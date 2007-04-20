@@ -33,6 +33,7 @@ char  *boot_cmdline = NULL;
 char  *reverseto    = NULL;
 int    rdflags      = -1;
 int    usb_mode     = -1;
+int    root_device  = -1;
 int    verbose      = 0;
 int    identify     = 0;
 int    reboot       = 0;
@@ -157,6 +158,7 @@ void show_usage()
 	printf(" -I [piece]    identify a firmware piece\n");
 	printf(" -l            list supported usb device ids\n");
 	printf(" -d [vid:pid]  injects a usb device into the supported list\n");
+	printf(" -D [0|1|2]    sets the root device to flash (0), mmc (1) or usb (2)\n");
 	printf(" -R            reboot the omap board\n");
 	printf(" -v            be verbose and noisy\n");
 	printf(" -V            show 0xFFFF version information\n");
@@ -199,13 +201,16 @@ int main(int argc, char **argv)
 	struct usb_device_descriptor udd;
 	int c;
 
-	while((c = getopt(argc, argv, "p:vVhRu:ib:U:r:e:ld:I:")) != -1) {
+	while((c = getopt(argc, argv, "p:vVhRu:ib:U:r:e:ld:I:D:")) != -1) {
 		switch(c) {
 		case 'd':
 			sscanf(optarg, "%04hx:%04hx", 
 				&supported_devices[SUPPORTED_DEVICES-2].vendor_id,
 				&supported_devices[SUPPORTED_DEVICES-2].product_id);
 			supported_devices[SUPPORTED_DEVICES-2].name = strdup("user");
+			break;
+		case 'D':
+			root_device = atoi(optarg);
 			break;
 		case 'e':
 			reverseto = optarg;
@@ -262,10 +267,12 @@ int main(int argc, char **argv)
 	&&	(rdflags      == -1)
 	&&	(info         == 0)
 	&&	(reboot       == 0)
-	&&      (usb_mode     == -1))
+	&&      (usb_mode     == -1)
+	&& 	(root_device  == -1))
 	{
-		printf("Usage: 0xFFFF [-hvVRi] [-e path] [-U 0|1] [-p [piece%]file [-p ...]]\n");
+		printf("Usage: 0xFFFF [-hvVRi] [-e path] [-U 0|1] [-p [piece%%]file [-p ...]]\n");
 		printf("              [-b boot-args] [-I piece [-I ...]] [-u fiasco-image]\n");
+		printf("              [-D 0|1|2]\n");
 		return 1;
 	}
 
@@ -329,6 +336,9 @@ int main(int argc, char **argv)
 			flash_image(pcs[c].name, pcs[c].type, pcs[c].vers);
 		}
 	}
+
+	if (root_device != -1)
+		set_root_device(root_device);
 
 	if (usb_mode!=-1)
 		set_usb_host_mode(usb_mode);

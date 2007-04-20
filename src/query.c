@@ -28,7 +28,7 @@
 int get_status()
 {
 	int ret = 0;
-	if (usb_control_msg(dev, 192, 1, 0, 0, (char *)&ret, 4, 2000) == -1) {
+	if (usb_control_msg(dev, CMD_QUERY, 1, 0, 0, (char *)&ret, 4, 2000) == -1) {
 		fprintf(stderr, "Cannot get device status.\n");
 		exit(1);
 	}
@@ -157,7 +157,7 @@ int query_root_device()
 {
 	unsigned char opcode;
 
-	if (usb_control_msg(dev, 192, 17, 0, 1, (char *)&opcode, 1, 2000) < 0) {
+	if (usb_control_msg(dev, CMD_QUERY, 17, 0, 1, (char *)&opcode, 1, 2000) < 0) {
 		fprintf(stderr, "Cannot query root device\n");
 		return -1;
 	}
@@ -171,12 +171,35 @@ int query_root_device()
 	return 0;
 }
 
+/**
+ * request type: CMD_WRITE
+ * request     : 16
+ * value       : 0|1|2 (=> flash|mmc|usb)
+ * index       : 1
+ */
+int set_root_device(unsigned short root_device)
+{
+	if (root_device>2) {
+		printf("Invalid root device specified '%d'.\n", root_device);
+		return -1;
+	}
+
+	if (usb_control_msg(dev, CMD_WRITE, 16, root_device, 1, 0, 0, 2000) == -1) {
+		fprintf(stderr, "Cannot set root device\n");
+		return -1;
+	}
+
+	printf("Root device set to: %s\n", root_devices[root_device]);
+
+	return 0;
+}
+
 int query_nolo_version()
 {
 	unsigned int version; // ensure uint is at least 32 bits
 
-	//if (usb_control_msg(dev, 192, 3, 0, 1, (char *)&version, 4 , 2000) < 0) {
-	if (usb_control_msg(dev, 192, 3, 0, 0, (char *)&version, 4 , 2000) < 0) {
+	//if (usb_control_msg(dev, CMD_QUERY, 3, 0, 1, (char *)&version, 4 , 2000) < 0) {
+	if (usb_control_msg(dev, CMD_QUERY, 3, 0, 0, (char *)&version, 4 , 2000) < 0) {
 		fprintf(stderr, "Cannot query nolo version. Old bootloader version?\n");
 		exit(1);
 	}

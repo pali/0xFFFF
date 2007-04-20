@@ -21,7 +21,10 @@ int set_rd_mode(unsigned short mode);
 int set_usb_host_mode(unsigned short mode);
 int query_hw_revision();
 int query_rdmode_device();
+
 int query_root_device();
+int set_root_device(unsigned short);
+
 int query_nolo_version();
 int add_piece(char *piece);
 
