@@ -25,8 +25,8 @@ pieces at certains offsets of the device internal memory.
 
 <b>Technical details:</b>
 
- * The internal flash memory is exposed to the system as MTD devices. So it's
- * possible to dump the individual sections of a flashed firmware.
+ * The internal flash memory is exposed to the system as MTD devices.
+ * Is possible to dump the individual sections of a flashed firmware.
  *
  * READ src/dump.c for detailed information.
 
@@ -40,6 +40,9 @@ pieces at certains offsets of the device internal memory.
    mtd2 - starts with NOLO img\x5c\x13 and \x00 padding
           0x00800 - zImage
 
-   mtd3 - rootfs.jffs2 (20M) aka 0x200000 vs 0x3900000
+	  > NOLO is a four byte marker, next four bytes
+	  > can vary since it is kernel image size
+
+   mtd3 - initfs.jffs2 (2M) aka 0x200000 vs 0x3900000
 
    mtd4 - rootfs.jffs2 (a fucking copy of the above rootfs?)

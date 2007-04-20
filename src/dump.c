@@ -134,7 +134,8 @@ int reverse_extract_pieces(char *dir)
 	rf_strip("xloader.bin");
 	rf_strip("secondary.bin");
 	rf_strip("zImage");
-	rf_strip("initfs.jffs2");
+//	rf_strip("initfs.jffs2"); 	// do not strip initfs, is 2MB long
+					//and can be useful for data recovery
 	printf("Identifying extracted files...\n");
 	printf("%s: xloader\n", fpid_file("xloader.bin"));
 	printf("%s: secondary.bin\n", fpid_file("secondary.bin"));
