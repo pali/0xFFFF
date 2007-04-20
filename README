@@ -1,0 +1,31 @@
+
+
+
+    ------.    ,---------.--.--.
+   /       |  ___        |  |  |  \\------------ -- .  
+   | .__  / \/   .   ____/ _/ _/      The 0pen
+   |   /  .     <      |  |  |             Free Fiasco
+   | '-    >     ^  ___| _| .'                Firmware Flasher
+   |                 |  '  |          - --  --- ----------------\\
+   \_____/7_/\______    :  I                              0xFFFF
+               _/ ___|_.|__|
+                '`
+
+The 'Free Fiasco Firmware Flasher' aka 0xFFFF utility tries to implement
+a free (GPL'd) userspace handler for the NOLO bootloader.
+
+Use it with CARE. This is an experimental tool and it can brick your device.
+It's not suposed to be stable, so nokia will probably release incompatible
+bootloaders to break this tool. USE IT AT YOUR OWN RISK.
+
+This tool has been designed and tested on n770. The n800 flash should work
+but it's not tested and is known to use different request codes.
+
+PLEASE. Read carefully all the documentation inside doc/* for more information
+before building or using the flasher to avoid questions, problems or so.
+
+
+Have phun!
+
+
+                                                         --pancake

@@ -1,0 +1,6 @@
+Fiasco firmware pieces
+======================
+
+The firmware for the maemo devices is composed by a set of pieces containing
+the required parts to update the whole system following a partition layout
+defined by NOLO on the internal flash memory.

@@ -1,0 +1,45 @@
+<b>Dumping the firmware</b>
+
+This technique consists on reconstructing a firmware image dumping
+pieces at certains offsets of the device internal memory.
+
+
+<b>End user details:</b>
+
+ * Extract the firmware pieces from a running device
+ *
+ * This functionality is useful to extract backups of your system
+ * firmware. This is really useful when you're on a desert island
+ * without an internet connection.
+ *
+ * This tool needs more testing, so take care and don't blame me if
+ * it breaks your system. It *is* to your responsability, use at
+ * your own risk
+ *
+ * NOTE: It's theorically possible to flash the device on the fly from
+ * the running OS, but this has not yet been tested. Keep tuned for
+ * updates and newz.
+ *
+ * Have fun!
+
+
+<b>Technical details:</b>
+
+ * The internal flash memory is exposed to the system as MTD devices. So it's
+ * possible to dump the individual sections of a flashed firmware.
+ *
+ * READ src/dump.c for detailed information.
+
+   mtd0 - contains xloader and sencodary pieces of the bootloaders
+          0x00000 - xloader.bin    (size is 0x03600)
+          0x04000 - secondary.bin  (size is 0x15400)
+          0x1FFFF - eof
+
+   mtd1 - looks like there's a pool ConF structures
+
+   mtd2 - starts with NOLO img\x5c\x13 and \x00 padding
+          0x00800 - zImage
+
+   mtd3 - rootfs.jffs2 (20M) aka 0x200000 vs 0x3900000
+
+   mtd4 - rootfs.jffs2 (a fucking copy of the above rootfs?)

@@ -1,0 +1,70 @@
+<b>FAQ</b>
+
+This file tries to collect a bunch of common questions/answers about flashing
+
+<b>*) Why implement a free software flasher?</b>
+
+  The Nokia Internet Tablets are based on Free Software (software libre), but
+  not everything included *is* free software, for instance, the firmware flasher
+  tool.
+
+  The 0xFFFF project aims to feed the minds of those who really want to
+  understand how these gadgets work internally, free the knowledge to
+  avoid the restrictions and fill the lack of information on the most
+  important part of the system.
+
+  That's it, now you can build and run this flasher on *BSD, w32, MacOSX on ARM,
+  powerpc, x86, mips, etc...
+
+
+<b>*) Can I brick my device?</b>
+
+  Of course! You're free to do what you want with your device :)
+
+  Seriously. Flashing a device is not a safe thing, so I give no warranty
+  of what will happen to your device when using this tool.
+
+  BTW, after a huge number of tests I can say that these devices are hard
+  to brick, but if you are scared about bricking your device you should
+  use the flasher provided by Nokia, it's better for your heart's health.
+
+
+<b>*) What can I do with 0xFFFF?</b>
+
+  Actually 0xFFFF allows you to:
+  
+  - flash separated pieces of the firmware.
+  - retrieve information about the device
+  - reboot de mother board
+  - extract the current firmware pieces from the device (reverse flash)
+  - set the USB host/slave mode
+  - set the R&R mode
+  - identify firmware pieces
+
+
+<b>*) What is NOLO?</b>
+
+  NOLO is the 'server-side' part of the flasher from Nokia. NOLO means
+  NOkia LOader and it's composed by two pieces of the firmware that are
+  flashed together.
+
+  On the n800 firmwares, these two pieces are distributed in a single
+  file, but when flashing a n770, NOLO requires to provide the xloader
+  (without commiting) and then the secondary piece.
+
+  This piece of software is closed source and is the responsable of
+  handling the requests from the client-side flasher. It provides a
+  query-like interface via usb control messages for doing different
+  actions on the device.
+
+
+<b>*) How can I identify my device?</b>
+
+  Theorically n770 and n800 have different USB device ID, but this is not
+  true at all. The first series of the n800 comes with the same usb-id 
+  than n770. That's weird!
+
+  So, the only way to identify the device is by asking nolo for the version
+  information of different pieces of the firmware. This can be faked, because
+  you can flash n770 stuff on n800 and viceversa, but it's not recommended
+  because it wouldn't work :)

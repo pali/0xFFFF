@@ -1,0 +1,105 @@
+<b>Nokia tips</b>
+
+When developing this tool I've found some bugs and misfeatures that
+should be fixed to make flashing safer and cleaner.
+
+Before reading the list of the following items I would like to say that
+Nokia has done a wonderful work on this device on the flashing/nolo parts,
+it's really hard to break the device and it works pretty nice. BTW I
+think that there are some things that should be fixed.
+
+
+<b>*) Flashing at low battery level</b>
+
+  When the device is under a certain limit of battery it will not start,
+  this is done by initfs, without any warning message or so, this really
+  scares end users, because the battery level check is done in the initfs
+  boot stage, not inside NOLO, so it's possible to flash the device on
+  low level batteries.
+
+  This is *really* dangerous and not very user friendly.
+
+
+<b>*) Internal nolo state not reset'd</b>
+
+  It's possible to get nolo on a strange state that always returns error
+  when flashing pieces, it's mandatory to reboot the device to recover
+  the original nolo state and be able to flash again.
+
+  This is an strange and not very clear to me.
+
+
+<b>*) Buffer overflows</b>
+
+  The original nokia flasher has some buffer overflow bugs that should
+  be fixed. They're safe for 99.9% of cases, but bofs on critical programs
+  like this one should not be there.
+
+  If nokia releases the source of the flasher it would be easier to make it
+  better and safer. BTW the original flasher is much more secure and reliable
+  than this one.
+
+
+<b>*) Missing stuff</b>
+
+  There are some flashing options that are not working like passing arguments
+  to the kernel, set the hw revision or do a cold flash (the most critical
+  part is undocumented).
+
+
+<b>*) Weird firmware format</b>
+
+  The (new and old) FIASCO firmware format is not a very clean format, it
+  doesn't provide any checksumming facility to ensure that the contents of
+  the firmware have been modified or incorrect, so i'll rather encourage
+  to design and create a standard firmware format for embedded devices with
+  checksumming, signatures, handling libraries, documentation and so.
+
+  I'll happilly collaborate on the design of this open firmware format, and
+  it would be used on all the open source-based devices to aim interoperability
+  between devices and flashers, providing a more standard and reliable way of
+  flashing devices.
+
+  This will ease the development on new devices, so the information and the
+  code could be revised and enhaced by zillions of eyes.
+
+
+<b>*) Poor checksumming</b>
+
+  The only checksum is a 16 bit xor of the whole firmware piece and it's only
+  checked after sending the piece to the device.
+
+  This is not very safe, because 16 bit checksum is a very low-quality
+  algorithm. It currently performs a unique check at the end, it could be
+  better to check each data block to avoid errors or invalid flashing, isn't it ?
+
+<b>*) No validation of pieces before flashing</b>
+
+  I've implemented a minimal check of the pieces to avoid flashing invalid
+  pieces on the wrong place. This is done in fpid.c (firmware piece identifier).
+
+  This should avoid end users to flash initfs on the kernel or weird things
+  that can (pseudo)brick the device.
+
+
+<b>*) Reverse flashing</b>
+
+  If you want to test a new firmware, but you don't want to loose all the
+  contents of your device. The only way to do that (afaik) is from the
+  device. That's done with `0xFFFF -e [path]`.
+
+  IMHO the reverse flashing (dump) should be implemented inside the bootloader
+  (NOLO in this case), and allow to retrieve (at least) the most critical
+  pieces of the firmware before flashing a new ones, and restore them in
+  case of a wrong checksumming (for example)
+
+
+<b>*) Documentation</b>
+
+  The nokia flasher comes as is, without documentation. This is not good
+  to anybody, because the lack of information is always the root of problems,
+  fear and ignorance.
+
+  So giving a minimal documentation about how to use the flasher (not only
+  the basic usage stuff (like the maemo community has done in the wiki)
+  would be good for everybody.

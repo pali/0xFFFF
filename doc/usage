@@ -1,0 +1,54 @@
+<b>Usage guide</b>
+
+0xFFFF is a free software implementation of the flasher for the Nokia Internet
+Tablets (n770 and n800).
+ <pre>
+  - flash separated pieces of the firmware.
+  - retrieve information about the device
+  - reboot de mother board
+  - extract the current firmware pieces from the device (dump)
+  - set the USB host/slave mode
+  - set the R&R mode
+  - identify firmware pieces
+  </pre>
+This is the help message of the tool:
+<pre>
+<b>~$ 0xFFFF -h</b>
+0xFFFF v0.1  - The Open Free Fiasco Firmware Flasher
+ -b [arg]      boots the kernel with arguments
+ -e [path]     dump the firmware pieces into the path
+ -p [[p:]file] piece-of-firmware : file-where-this-piece-is
+ -r [0|1]      disable/enable R&D mode
+ -u [fiasco]   unpack target fiasco image
+ -U [0|1]      disable/enable the usb host mode
+ -h            show this help message
+ -i            show device information (let standby mode)
+ -I [piece]    identify a firmware piece
+ -l            list supported usb device ids
+ -d [vid:pid]  injects a usb device into the supported list
+ -R            reboot the omap board
+ -v            be verbose and noisy
+ -V            show 0xFFFF version information
+Pieces are: xloader secondary kernel initfs rootfs omap-nand 
+</pre>
+
+Before anything we can execute failsafe queries like getting device information:
+<pre> <b>~$ 0xFFFF -i</b></pre>
+This command will put the bootloader in standby mode, so you can now send other
+commands without having to reboot the tablet manually. To reboot the mother
+board via USB type:
+<pre> <b>~$ 0xFFFF -R</b></pre>
+You can run 'offline' commands to identify the type of the firmware pieces:
+<pre> <b>~$ 0xFFFF -I zImage -I xloader.bin -I initfs.jffs2.orig</b>
+ kernel: zImage
+ xloader: xloader.bin
+ initfs: initfs.jffs2.orig</pre>
+If you want to backup your device firmware you can crosscompile the 0xFFFF
+utility and type this on the terminal:
+<pre> <b>~$ sudo gainroot</b>
+ ~# mkdir /media/mmc1/firmware
+ ~# ./0xFFFF -e /media/mmc1/firmware</pre>
+Now is time to flash something :) By default the flasher identifies the type
+of the piece automatically, but you can force't prefixing the filename with
+the piece-type name. To do this is just as simple as typing:
+<pre> <b>~$ 0xFFFF -p zImage</b></pre>
