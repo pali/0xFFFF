@@ -1,4 +1,4 @@
-VERSION=0.1
+VERSION=0.2
 OBJ=main.o fiasco.o hexdump.o dump.o flash.o
 OBJ+=hash.o fpid.o query.o pieces.o utils.o
 BIN=0xFFFF

@@ -33,7 +33,8 @@ struct usb_dev_handle *dev = NULL;
 char  *fiasco_image = NULL;
 char  *boot_cmdline = NULL;
 char  *reverseto    = NULL;
-int    rdflags      = -1;
+int    rd_mode      = -1;
+int    rd_flags      = -1;
 int    usb_mode     = -1;
 int    root_device  = -1;
 int    verbose      = 0;
@@ -151,8 +152,9 @@ void show_usage()
 
 	printf(" -b [arg]      boots the kernel with arguments\n");
 	printf(" -e [path]     dump and extract pieces to path\n");
-	printf(" -p [[p%%]file] piece-of-firmware %% file-where-this-piece-is\n");
 	printf(" -r [0|1]      disable/enable R&D mode\n");
+	printf(" -f <flags>    set the given RD flags (see 'Flasher_tool_usage' in maemo wiki)\n");
+	printf(" -p [[p%%]file] piece-of-firmware %% file-where-this-piece-is\n");
 	printf(" -u [fiasco]   unpack target fiasco image\n");
 	printf(" -U [0|1]      disable/enable the usb host mode\n");
 	printf(" -h            show this help message\n");
@@ -183,7 +185,7 @@ int main(int argc, char **argv)
 	struct usb_device_descriptor udd;
 	int c;
 
-	while((c = getopt(argc, argv, "p:vVhRu:ib:U:r:e:ld:I:D:")) != -1) {
+	while((c = getopt(argc, argv, "p:vVhRu:ib:U:r:e:ld:I:D:f:")) != -1) {
 		switch(c) {
 		case 'd':
 			sscanf(optarg, "%04hx:%04hx", 
@@ -197,11 +199,13 @@ int main(int argc, char **argv)
 		case 'e':
 			reverseto = optarg;
 			break;
+		case 'f':
+			rd_flags = (unsigned short) strtoul(optarg, NULL, 16);
 		case 'U':
 			usb_mode = atoi(optarg);
 			break;
 		case 'r':
-			rdflags = atoi(optarg);
+			rd_mode = atoi(optarg);
 			break;
 		case 'b':
 			boot_cmdline = optarg;
@@ -246,15 +250,16 @@ int main(int argc, char **argv)
 	&&	(boot_cmdline == NULL)
 	&&	(reverseto    == NULL)
 	&&	(pcs_n        == 0)
-	&&	(rdflags      == -1)
+	&&	(rd_flags     == -1)
+	&&	(rd_mode      == -1)
 	&&	(info         == 0)
 	&&	(reboot       == 0)
-	&&      (usb_mode     == -1)
+	&&  (usb_mode     == -1)
 	&& 	(root_device  == -1))
 	{
 		printf("Usage: 0xFFFF [-hvVRi] [-e path] [-U 0|1] [-p [piece%%]file [-p ...]]\n");
 		printf("              [-b boot-args] [-I piece [-I ...]] [-u fiasco-image]\n");
-		printf("              [-D 0|1|2]\n");
+		printf("              [-D 0|1|2] [-F rd flags]\n");
 		return 1;
 	}
 
@@ -295,19 +300,17 @@ int main(int argc, char **argv)
 		return 1;
 	}
 
-	set_rd_mode(rdflags);
-
 	/* go go go! */
 	while(get_status());
 
 	// if (info)
 	sleep(1); // take breath
-	get_root_device(); // only for flashing
-	get_rd_mode();
-	get_usb_mode();
-	
 	get_hw_revision(); // get hardware revision:
-
+	get_root_device(); // only for flashing
+	get_usb_mode();
+	get_rd_mode();
+	get_rd_flags();
+	
 	if (pcs_n) {
 		int c;
 
@@ -321,10 +324,16 @@ int main(int argc, char **argv)
 		}
 	}
 
+	if (rd_mode != -1)
+	  set_rd_mode(rd_mode);
+	  
+	if (rd_flags != -1)
+	  set_rd_flags(rd_flags);
+
 	if (root_device != -1)
 		set_root_device(root_device);
 
-	if (usb_mode!=-1)
+	if (usb_mode != -1)
 		set_usb_mode(usb_mode);
 
 	if (boot_cmdline)

@@ -44,6 +44,12 @@ int get_status()
  */
 int set_usb_mode(unsigned int mode)
 {
+	if (mode > 1)
+	{
+		printf("Invalid USB mode specified '%d'.\n", mode);
+		return -1;
+	}
+	
 	if (usb_control_msg(dev, CMD_WRITE, 16, mode, 2, 0, 0, 2000) == -1) {
 		fprintf(stderr, "Cannot set USB mode.\n");
 		return -1;
@@ -65,7 +71,7 @@ int get_usb_mode()
 {
 	unsigned short mode = 0;
 
-	if (usb_control_msg(dev, CMD_QUERY, 17, 0, 2, &mode, sizeof(mode), 2000) == -1) {
+	if (usb_control_msg(dev, CMD_QUERY, 17, 0, 2, (void *) &mode, sizeof(mode), 2000) == -1) {
 		fprintf(stderr, "Cannot query device.\n");
 		return -1;
 	}
@@ -201,6 +207,95 @@ int set_root_device(unsigned short root_device)
 	printf("Root device set to: %s\n", root_devices[root_device]);
 
 	return 0;
+}
+
+/**
+ * Set flags:
+ * request type: CMD_WRITE
+ * request     : 16
+ * value       : flags to set, see below
+ * index       : 3
+ * 
+ * Clear flags:
+ * request type: CMD_WRITE
+ * request     : 16
+ * value       : flags to clear, see below
+ * index       : 4
+ 
+ * Flags are composed of:
+ * 0x02 - disable OMAP watchdog (possibly)
+ * 0x04 - disable RETU watchdog (possibly)
+ * 0x08 - disable lifeguard reset
+ * 0x10 - enable serial console
+ * 0x20 - disable USB timeout
+ * 
+ * The function encapsule the NOLO API in a way that it works like
+ * a chmod 707. The bits that are not set will be cleared after the
+ * call. This is done by issuing a 'clear flags' command with all the
+ * non set bits.  
+ * 
+ */
+int set_rd_flags(unsigned short flags)
+{
+	unsigned short reverse_flags = 0;
+	
+	if (flags & ~(0x02 | 0x04 | 0x08 | 0x10 | 0x20)) {
+		printf("Invalid rd flags specified '%x'.\n", flags);
+		return -1;
+	}
+	
+	if (!(flags & 0x02))
+	  reverse_flags |= 0x02;
+
+	if (!(flags & 0x04))
+	  reverse_flags |= 0x04;
+
+	if (!(flags & 0x08))
+	  reverse_flags |= 0x08;
+
+	if (!(flags & 0x10))
+	  reverse_flags |= 0x10;
+
+	if (!(flags & 0x20))
+	  reverse_flags |= 0x20;
+	  
+	if (usb_control_msg(dev, CMD_WRITE, 16, flags, 3, 0, 0, 2000) == -1) {
+		fprintf(stderr, "Cannot set rd flags\n");
+		return -1;
+	}
+
+	if (usb_control_msg(dev, CMD_WRITE, 16, reverse_flags, 4, 0, 0, 2000) == -1) {
+		fprintf(stderr, "Cannot set rd flags\n");
+		return -1;
+	}
+
+	printf("Set rd flags successfully!\n");
+	printf("disable OMAP watchdog  : %s\n", (flags & 0x02) ? "set" : "not set"); 
+	printf("disable RETU watchdog  : %s\n", (flags & 0x04) ? "set" : "not set"); 
+	printf("disable lifeguard reset: %s\n", (flags & 0x08) ? "set" : "not set"); 
+	printf("enable serial console  : %s\n", (flags & 0x10) ? "set" : "not set"); 
+	printf("disable USB timeout    : %s\n", (flags & 0x20) ? "set" : "not set"); 
+
+	return 0;
+}
+
+int get_rd_flags()
+{
+	unsigned short flags = 0;
+	
+	if (usb_control_msg(dev, CMD_QUERY, 17, 0, 3, (void *) &flags, sizeof(flags), 2000) == -1) {
+		fprintf(stderr, "Cannot get rd flags\n");
+		return -1;
+	}
+	
+	printf("Current rd flag setting:\n");
+	printf("disable OMAP watchdog  : %s\n", (flags & 0x02) ? "set" : "not set"); 
+	printf("disable RETU watchdog  : %s\n", (flags & 0x04) ? "set" : "not set"); 
+	printf("disable lifeguard reset: %s\n", (flags & 0x08) ? "set" : "not set"); 
+	printf("enable serial console  : %s\n", (flags & 0x10) ? "set" : "not set"); 
+	printf("disable USB timeout    : %s\n", (flags & 0x20) ? "set" : "not set");
+	
+	return 0; 
 }
 
 int get_nolo_version()
