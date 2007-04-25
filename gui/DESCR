@@ -1,0 +1,53 @@
+- preferences
+
+ * choose flasher type.
+
+    by default 0xFFFF is used
+
+ *
+
+piece [file]
+ |
+ +-- radio
+ |
+ +-- nbh
+
+info
+ |
+ +-- -i
+
+reboot
+ |
+ +-- ???
+
+----------
+
+piece [file]
+ |
+ +-- xloader
+ |
+ +-- secondary
+ |
+ +-- kernel
+ |
+ +-- initfs
+ |
+ +-- rootfs
+ |
+ +-- autodetected
+
+info
+ |
+ +-- -i
+
+usb-host-mode
+ |
+ +-- -U [0|1]
+
+rd-mode
+ |
+ +-- -r 0|1
+
+reboot
+ |
+ +-- -R

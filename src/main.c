@@ -19,6 +19,8 @@
  */
 
 #include "main.h"
+#include "query.h"
+
 #include <usb.h>
 #include <stdio.h>
 #include <string.h>
@@ -176,26 +178,6 @@ void unpack_fiasco_image(char *file)
 	// TODO
 }
 
-int query_sw_version()
-{
-	int ret;
-	char bytes[1024];
-
-	strcpy(bytes, "version:sw-release");
-	ret = usb_control_msg(dev, CMD_WRITE, 18, 0, 0, (char *)&bytes, 18, 2000);
-	if (ret<0) {
-		fprintf(stderr, "error: cannot write query 18\n");
-		return 0;
-	}
-	ret = usb_control_msg(dev, CMD_QUERY, 20, 0, 0, (char *)&bytes, 512, 2000);
-	if (ret<0) {
-		fprintf(stderr, "error: b0rken swversion read!\n");
-		return 0;
-	}
-	printf("SWVERSION GOT: %s\n", bytes); //???+strlen(bytes)+1));
-	return 1;
-}
-
 int main(int argc, char **argv)
 {
 	struct usb_device_descriptor udd;
@@ -320,16 +302,18 @@ int main(int argc, char **argv)
 
 	// if (info)
 	sleep(1); // take breath
-	query_root_device(); // only for flashing
-	query_rdmode_device();
-	query_hw_revision(); // get hardware revision:
+	get_root_device(); // only for flashing
+	get_rd_mode();
+	get_usb_mode();
+	
+	get_hw_revision(); // get hardware revision:
 
 	if (pcs_n) {
 		int c;
 
 		check_nolo_order();
-		query_sw_version();
-		query_nolo_version();
+		get_sw_version();
+		get_nolo_version();
 
 		for(c=0;c<pcs_n;c++) {
 			printf("Flashing %s (%s)\n", pcs[c].type, pcs[c].name);
@@ -341,7 +325,7 @@ int main(int argc, char **argv)
 		set_root_device(root_device);
 
 	if (usb_mode!=-1)
-		set_usb_host_mode(usb_mode);
+		set_usb_mode(usb_mode);
 
 	if (boot_cmdline)
 		boot_board(boot_cmdline);

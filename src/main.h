@@ -1,3 +1,4 @@
+
 #ifndef _INCLUDE_MAIN_H_
 #define _INCLUDE_MAIN_H_
 
@@ -11,21 +12,7 @@ void check_nolo_order();
 extern struct usb_dev_handle *dev;
 unsigned long get_file_size(char *file);
 void progressbar(unsigned long long part, unsigned long long total);
-int get_status();
-int get_peripheral_host_mode(int foo);
-int boot_board(char *cmdline);
-int boot_board(char *cmdline);
-int reboot_board();
 char *fpid_file(char *filename);
-int set_rd_mode(unsigned short mode);
-int set_usb_host_mode(unsigned short mode);
-int query_hw_revision();
-int query_rdmode_device();
-
-int query_root_device();
-int set_root_device(unsigned short);
-
-int query_nolo_version();
 int add_piece(char *piece);
 
 #define D if (verbose)

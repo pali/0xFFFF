@@ -36,26 +36,48 @@ int get_status()
 	return ret;
 }
 
-int get_peripheral_host_mode(int foo)
+/**
+ * request type: CMD_WRITE
+ * request     : 16
+ * value       : 0|1 (=> client|host)
+ * index       : 2
+ */
+int set_usb_mode(unsigned int mode)
 {
-	//unsigned short mode = 0;
+	if (usb_control_msg(dev, CMD_WRITE, 16, mode, 2, 0, 0, 2000) == -1) {
+		fprintf(stderr, "Cannot set USB mode.\n");
+		return -1;
+	}
 
-	// XXX BROKEN
-#if 0
-	if (usb_control_msg(dev, 64, 16, 2, 0, 2, 0, 0, 2000)) {
+	printf("Set USB mode to: '%s'.\n", (mode) ? "host" : "client");
+
+	return 0;
+}
+
+/**
+ * request type: CMD_QUERY
+ * request     : 17
+ * index       : 2
+ * 
+ * return value: 0|1 (=> client|host)
+ */
+int get_usb_mode()
+{
+	unsigned short mode = 0;
+
+	if (usb_control_msg(dev, CMD_QUERY, 17, 0, 2, &mode, sizeof(mode), 2000) == -1) {
 		fprintf(stderr, "Cannot query device.\n");
 		return -1;
 	}
 
-	printf("Device is in \"%s\" mode (%hd)\n", (mode)?"host":"peripheral", mode);
-#endif
+	printf("Device's USB mode is '%s'\n", (mode) ? "host" : "client");
 
 	return 0;
 }
-/*
- * boot the omap mobo
- */
 
+/*
+ * Boots the Kernel with the given command-line.
+ */
 int boot_board(char *cmdline)
 {
 	if (usb_control_msg(dev, CMD_WRITE, 130, 0, 0, cmdline, strlen(cmdline), 2000) == -1) {
@@ -70,7 +92,7 @@ int boot_board(char *cmdline)
 }
 
 /*
- * reboot the omap mobo
+ * Reboots the omap mobo.
  */
 int reboot_board()
 {
@@ -100,23 +122,10 @@ int set_rd_mode(unsigned short mode)
 	return 0;
 }
 
-// mode = 1 || 0
-int set_usb_host_mode(unsigned short mode)
-{
-	if (usb_control_msg(dev, CMD_WRITE, 16, mode, 2, 0, 0, 2000) == -1) {
-		fprintf(stderr, "Cannot change the usb-host mode.\n");
-		return -1;
-	}
-
-	printf("USB host mode is %s.\n", mode?"enabled":"disabled");
-
-	return 0;
-}
-
 /*
  * query root device
  */
-int query_hw_revision()
+int get_hw_revision()
 {
 	unsigned char string[512];
 	int i = 0;
@@ -140,7 +149,7 @@ int query_hw_revision()
 	return 0;
 }
 
-int query_rdmode_device()
+int get_rd_mode()
 {
 	char isrd = 1;
 
@@ -153,7 +162,7 @@ int query_rdmode_device()
 	return isrd;
 }
 
-int query_root_device()
+int get_root_device()
 {
 	unsigned char opcode;
 
@@ -194,7 +203,7 @@ int set_root_device(unsigned short root_device)
 	return 0;
 }
 
-int query_nolo_version()
+int get_nolo_version()
 {
 	unsigned int version; // ensure uint is at least 32 bits
 
@@ -214,3 +223,24 @@ int query_nolo_version()
 
 	return 0;
 }
+
+int get_sw_version()
+{
+	int ret;
+	char bytes[1024];
+
+	strcpy(bytes, "version:sw-release");
+	ret = usb_control_msg(dev, CMD_WRITE, 18, 0, 0, (char *)&bytes, 18, 2000);
+	if (ret<0) {
+		fprintf(stderr, "error: cannot write query 18\n");
+		return 0;
+	}
+	ret = usb_control_msg(dev, CMD_QUERY, 20, 0, 0, (char *)&bytes, 512, 2000);
+	if (ret<0) {
+		fprintf(stderr, "error: b0rken swversion read!\n");
+		return 0;
+	}
+	printf("SWVERSION GOT: %s\n", bytes); //???+strlen(bytes)+1));
+	return 1;
+}
+
