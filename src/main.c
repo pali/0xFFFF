@@ -200,6 +200,15 @@ int main(int argc, char **argv)
 			reverseto = optarg;
 			break;
 		case 'f':
+			if (!strcmp(optarg,"help")) {
+			printf("* Flags are composed of:\n");
+			printf("  0x02 - disable OMAP watchdog (possibly)\n");
+			printf("  0x04 - disable RETU watchdog (possibly)\n");
+			printf("  0x08 - disable lifeguard reset\n");
+			printf("  0x10 - enable serial console\n");
+			printf("  0x20 - disable USB timeout\n");
+			exit(1);
+ 			}
 			rd_flags = (unsigned short) strtoul(optarg, NULL, 16);
 		case 'U':
 			usb_mode = atoi(optarg);
