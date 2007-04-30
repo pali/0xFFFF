@@ -1,0 +1,17 @@
+Compressing/Uncompressing images
+================================
+
+To compress your image type:
+
+  $ gimp -> create an image and save as raw rgb (24 bits)
+  $ logotool -w 300 -h 200 -c MyImage.rgb
+
+This command will create MyImage.rgb.logo
+
+You can check if the image is fine typing:
+
+  $ logotool -u MyImage.rgb.logo
+
+To see the image you'll need mplayer and type this:
+
+  $ `logotool -u MyImage.rgb.logo`
