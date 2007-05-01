@@ -20,8 +20,6 @@
 
 #include "main.h"
 #include "query.h"
-
-#include <usb.h>
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
@@ -30,18 +28,18 @@
 /* global pr0n */
 struct usb_device *device  = NULL;
 struct usb_dev_handle *dev = NULL;
-char  *fiasco_image = NULL;
-char  *boot_cmdline = NULL;
-char  *reverseto    = NULL;
-int    rd_mode      = -1;
-int    rd_flags      = -1;
-int    usb_mode     = -1;
-int    root_device  = -1;
-int    verbose      = 0;
-int    identify     = 0;
-int    reboot       = 0;
-int    unpack       = 0;
-int    info         = 0;
+char  *fiasco_image        = NULL;
+char  *boot_cmdline        = NULL;
+char  *reverseto           = NULL;
+int    rd_mode             = -1;
+int    rd_flags            = -1;
+int    usb_mode            = -1;
+int    root_device         = -1;
+int    verbose             = 0;
+int    identify            = 0;
+int    reboot              = 0;
+int    unpack              = 0;
+int    info                = 0;
 
 /* global structs */
 char *pieces[] = {
@@ -67,78 +65,6 @@ char *root_devices[] = {
   NULL
 };
 
-struct devices {
-  char *name;
-  unsigned short vendor_id;
-  unsigned short product_id;
-  unsigned short flags;
-};
-
-#define SUPPORTED_DEVICES 5
-struct devices supported_devices[SUPPORTED_DEVICES] = {
-  { "unkn", 0x421, 0x3f00, 0x0000 },  // probably a development board
-  { "n770", 0x421, 0x0105, 0x0001 },  // my n770 
-  { "n800", 0x421, 0x04c3, 0x0001 },  // a n800 
-  { 0 },
-  { 0 }
-};
-
-int is_valid_device(struct usb_device_descriptor *udd)
-{
-	int i;
-	struct devices ptr = supported_devices[0];
-
-	for(i=0 ; ptr.vendor_id; ptr = supported_devices[++i])
-		if ((udd->idVendor  == ptr.vendor_id)
-		&&  (udd->idProduct == ptr.product_id)) {
-			printf("found %s (%04x:%04x)\n",
-				ptr.name, ptr.vendor_id, ptr.product_id);
-			return 1;
-		}
-
-	return 0;
-}
-
-void list_valid_devices()
-{
-	int i;
-	struct devices ptr = supported_devices[0];
-
-	for(i=0; ptr.vendor_id; ptr = supported_devices[++i])
-		printf("%04x:%04x  %s\n", ptr.vendor_id, ptr.product_id, ptr.name);
-}
-
-int usb_device_found(struct usb_device_descriptor *udd)
-{
-	if (usb_find_busses() < 0) {
-		fprintf(stderr, "error: no usb busses found.\n");
-		exit(1);
-	} else {
-		if (usb_find_devices() < 0) {
-			fprintf(stderr, "error: no devices found.\n");
-			exit(1);
-		} else {
-			struct usb_bus *bus;
-			for (bus = usb_busses; bus; bus = bus->next) {
-				struct usb_device *dev = bus->devices;
-				D printf("bus: \n");
-				for (; dev; dev = dev->next) { 
-					*udd = dev->descriptor;
-					D printf(" dev (%s) - ", dev->filename);
-					D printf("vendor: %04x product: %04x\n", udd->idVendor, udd->idProduct);
-
-					if (is_valid_device(udd)) {
-						device = dev;
-						return 1;
-					}
-				}
-			}
-		}
-	}
-
-	return 0;
-}
-/*------------- devices -----------------------*/
 
 void show_title()
 {
@@ -153,7 +79,7 @@ void show_usage()
 	printf(" -b [arg]      boots the kernel with arguments\n");
 	printf(" -e [path]     dump and extract pieces to path\n");
 	printf(" -r [0|1]      disable/enable R&D mode\n");
-	printf(" -f <flags>    set the given RD flags (see 'Flasher_tool_usage' in maemo wiki)\n");
+	printf(" -f <flags>    set the given RD flags (see '-f help' or 'Flasher_tool_usage' in maemo wiki)\n");
 	printf(" -p [[p%%]file] piece-of-firmware %% file-where-this-piece-is\n");
 	printf(" -u [fiasco]   unpack target fiasco image\n");
 	printf(" -U [0|1]      disable/enable the usb host mode\n");
@@ -263,7 +189,7 @@ int main(int argc, char **argv)
 	&&	(rd_mode      == -1)
 	&&	(info         == 0)
 	&&	(reboot       == 0)
-	&&  (usb_mode     == -1)
+	&&	(usb_mode     == -1)
 	&& 	(root_device  == -1))
 	{
 		printf("Usage: 0xFFFF [-hvVRi] [-e path] [-U 0|1] [-p [piece%%]file [-p ...]]\n");

@@ -32,6 +32,7 @@
 
 int uncompress_image(char *srcf, char *dstf);
 int compress_image(char *srcf, char *dstf, int w, int h);
+int rgb2yuv(char *from, char *to, int width, int height);
 
 static int show_usage()
 {
