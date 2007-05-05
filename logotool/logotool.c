@@ -33,6 +33,7 @@
 int uncompress_image(char *srcf, char *dstf);
 int compress_image(char *srcf, char *dstf, int w, int h);
 int rgb2yuv(char *from, char *to, int width, int height);
+int rgba = 0;
 
 static int show_usage()
 {
@@ -43,6 +44,7 @@ static int show_usage()
 	printf("  -v [img]   view uncompressed image using the 'display'\n");
 	printf("             command from ImageMagick (in monochrome)\n");
 	printf("  -w         specify width (required for -v and -c)\n");
+	printf("  -a         force RGBA instead of RGB when compressing (use with -c)\n");
 	printf("  -h         specify height (required for -v and -c)\n");
 	printf("  -V         version number\n");
 	printf("\n");
@@ -60,12 +62,13 @@ int main ( int argc , char** argv )
 	char *uimg = NULL;
 	char *view = NULL;
 
-	while((c = getopt(argc, argv, "w:h:Vv:u:c:m:")) != -1) {
+	while((c = getopt(argc, argv, "w:h:Vv:u:c:m:a")) != -1) {
 		switch(c) {
 		case 'V': printf("%s\n", VERSION); return 0;
 		case 'u': uimg = optarg; break;
 		case 'c': cimg = optarg; break;
 		case 'm': mimg = optarg; break;
+		case 'a': rgba = 1; break;
 		case 'w': w = atoi(optarg); break;
 		case 'h': h = atoi(optarg); break;
 		case 'v': view = optarg; break;
@@ -83,7 +86,7 @@ int main ( int argc , char** argv )
 		sprintf(buf, "%s.rgb", mimg);
 
 		if ( rgb2yuv(mimg, buf, w,h ) ) {
-			sprintf(buf, "echo pause | mplayer %s.rgb -slave -demuxer rawvideo -rawvideo fps=1:w=416:h=70", mimg);
+			sprintf(buf, "echo pause | mplayer %s.rgb -slave -demuxer rawvideo -rawvideo fps=1:w=%d:h=%d", mimg, w,h);
 			system(buf);
 		} else {
 			printf("Oops\n");
@@ -116,7 +119,7 @@ int main ( int argc , char** argv )
 			printf("You must specify width and height with '-w' and '-h'.\n");
 			return 1;
 		}
-		dst = (char*)malloc(strlen(cimg)+5);
+		dst = (char*)malloc(strlen(cimg)+6);
 		strcpy(dst, cimg);
 		strcat(dst, ".logo");
 		compress_image(cimg, dst, w, h);
