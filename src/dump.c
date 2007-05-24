@@ -38,15 +38,15 @@ int rf_extract(char *dev, off_t from, off_t to, char *file)
 	if (fs == NULL) { perror(dev);  goto __rf_extract_exit; }
 	if (fd == NULL) { perror(file); goto __rf_extract_exit; }
 
-	printf("%s: extracting...", file);
-	fflush(stdout);
+	printf("Extracting %s...\n", file);
 	fseek(fs, from, SEEK_SET);
 
 	for(i=from;i<to;i+=blk) {
 		int ret;
 		if (i+blk>to) blk = to-i;
 		ret = fread(buf, blk, 1, fs);
-		if (feof(fs)) break;
+		progressbar(i, to);
+		if (!ret || feof(fs)) break;
 		fwrite(buf, blk, 1, fd);
 	}
 
@@ -56,7 +56,6 @@ int rf_extract(char *dev, off_t from, off_t to, char *file)
 __rf_extract_exit:
 	if (fs) fclose(fs);
 	if (fd) fclose(fd);
-
 
 	return 1;
 }
@@ -126,10 +125,10 @@ int reverse_extract_pieces(char *dir)
 	rf_extract("/dev/mtd2", 0x000800, 0x200000,  "zImage");
 	rf_extract("/dev/mtd3", 0x000000, 0x1D00000, "initfs.jffs2");
 	printf("\nWARNING: the rootfs extraction on n800 is known to be buggy! feedback is welcome.\n\n");
-	printf("Extract rootfs? (Y/n): "); fflush(stdout);
+	printf("Extract rootfs? (y/N): "); fflush(stdout);
 	read(0, &reply, 1);
 	if (reply=='y'||reply=='Y')
-		rf_extract("/dev/mtd4", 0x000000, 0xffffff, "rootfs.jffs2");
+		rf_extract("/dev/mtd4", 0x000000, 0x6000000, "rootfs.jffs2");
 	else	printf("*** Ignoring rootfs\n");
 	rf_strip("xloader.bin");
 	rf_strip("secondary.bin");

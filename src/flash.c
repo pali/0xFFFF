@@ -123,8 +123,33 @@ void flash_image(char *filename, char *piece, char *version)
 		if (bread != 1)
 			printf("WARNING: Oops wrong read %d vs %d \n", bread, bsize);
 		bread = usb_bulk_write(dev, 2, buf, bsize, 5000);
+		if (bread == 64) {
+			/* query error message */
+			int len = 0;
+			char nolomsg[2048];
+			memset(nolomsg, '\0', 2048);
+			usb_control_msg(dev, 192, 5, 0, 0, nolomsg, 2048, 2000);
+			nolomsg[2047] = '\0';
+			printf("\nNOLO says:\n");
+			if (nolomsg[0] == '\0') {
+				printf(" (.. silence ..)\n");
+			} else {
+				dump_bytes(nolomsg, 128);
+				do {
+					printf(" - %s\n", nolomsg+len);
+					len+=strlen(nolomsg+len)+1;
+				} while(nolomsg[len]!='\0');
+			}
+			fclose(fd);
+			return;
+		}
 		progressbar(off, size);
-		if (bread<0) perror(" -ee- ");
+		if (bread<0) {
+			printf("\n");
+			perror(" -ee- ");
+			fclose(fd);
+			return;
+		}
 		fflush(stdout);
 	}
 	fclose(fd);
