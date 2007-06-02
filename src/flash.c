@@ -20,6 +20,7 @@
 
 #include "main.h"
 #include "hash.h"
+#include "hexdump.h"
 #include <usb.h>
 #include <stdio.h>
 #include <string.h>
@@ -30,6 +31,26 @@ void check_nolo_order_failed()
 	fprintf(stderr, "\nERROR: Provide xloader before the secondary. NOLO disagrees anything else.\n");
 	fprintf(stderr, "Use: -p xloader.bin -p secondary.bin\n");
 	exit(1);
+}
+
+void query_error_message()
+{
+	/* query error message */
+	int len = 0;
+	char nolomsg[2048];
+	memset(nolomsg, '\0', 2048);
+	usb_control_msg(dev, 192, 5, 0, 0, nolomsg, 2048, 2000);
+	nolomsg[2047] = '\0';
+	printf("\nNOLO says:\n");
+	if (nolomsg[0] == '\0') {
+		printf(" (.. silence ..)\n");
+	} else {
+		dump_bytes((unsigned char *)nolomsg, 128);
+		do {
+			printf(" - %s\n", nolomsg+len);
+			len+=strlen(nolomsg+len)+1;
+		} while(nolomsg[len]!='\0');
+	}
 }
 
 void check_nolo_order()
@@ -100,6 +121,7 @@ void flash_image(char *filename, char *piece, char *version)
 
 	//dump_bytes(fquery, 27+vlen);
 	if (usb_control_msg(dev, CMD_WRITE, request, 0, 0, (char *)fquery, 27+vlen, 2000) <0) {
+		query_error_message();
 		perror("flash_image.header");
 		exit(1);
 	}
@@ -124,22 +146,7 @@ void flash_image(char *filename, char *piece, char *version)
 			printf("WARNING: Oops wrong read %d vs %d \n", bread, bsize);
 		bread = usb_bulk_write(dev, 2, buf, bsize, 5000);
 		if (bread == 64) {
-			/* query error message */
-			int len = 0;
-			char nolomsg[2048];
-			memset(nolomsg, '\0', 2048);
-			usb_control_msg(dev, 192, 5, 0, 0, nolomsg, 2048, 2000);
-			nolomsg[2047] = '\0';
-			printf("\nNOLO says:\n");
-			if (nolomsg[0] == '\0') {
-				printf(" (.. silence ..)\n");
-			} else {
-				dump_bytes(nolomsg, 128);
-				do {
-					printf(" - %s\n", nolomsg+len);
-					len+=strlen(nolomsg+len)+1;
-				} while(nolomsg[len]!='\0');
-			}
+			query_error_message();
 			fclose(fd);
 			return;
 		}
