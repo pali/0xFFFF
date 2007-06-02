@@ -1,0 +1,24 @@
+It is possible to flash directly from the device, so this brings the possibility
+to completely replace the bootloader flasher by a userland one with extended
+features for backuping and recovering data.
+
+The way to flash is using mtd-utils:
+
+ $ flash_eraseall -j /dev/mtd3
+ $ nandwrite -a -p /dev/mtd3 initfs.jffs2
+
+This is an specific example plagied from initfs_flasher of bootmenu.
+
+The '-j' flag says that this is a jffs2 partition. Theorically this
+flag is not required for zImage, and the bootloader pieces.
+
+The '-a' creates the OOB data automatically, and the '-p' flag pads
+the data to fill the block.
+
+These flags are only fine for initfs, so this will be probably wrong
+for other pieces. Using the dump functionality you can check if you
+have flashed properly every piece inside the device, but keep in mind
+that it is dangerous and you can brick your device.
+
+But feel free to send feedback to provide a full support for local
+flashing on n770 and n800.

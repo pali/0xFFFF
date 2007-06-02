@@ -1,0 +1,18 @@
+Installation instructions:
+==========================
+
+To build the flasher you will need gcc, make and libusb. For crosscompiling
+to arm you can use scratchbox. But you will probably need the libusb.so of
+the scratchbox environment to the device.
+
+Just type:
+
+  $ make
+
+The installation procedure is quite simple and you can define a new PREFIX
+manually from the command line:
+
+  $ make install PREFIX=/usr
+
+The default one is /usr/local (not very userfriendly but standards are
+standards :P hehe)

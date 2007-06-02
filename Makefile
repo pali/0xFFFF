@@ -11,3 +11,7 @@ clean:
 install:
 	cp src/0xFFFF ${PREFIX}/bin
 	cp logotool/logotool ${PREFIX}/bin
+
+deinstall:
+	rm -f ${PREFIX}/bin/0xFFFF
+	rm -f ${PREFIX}/bin/logotool
