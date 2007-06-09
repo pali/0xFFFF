@@ -393,28 +393,32 @@ int reverse_extract_pieces(char *dir)
 	char reply;
 	chdir(dir);
 
-	nanddump("/dev/mtd0", is_n800()?0x200:0, 0x003600, "xloader.bin");
 	//rf_extract("/dev/mtd0", is_n800()?0x200:0, 0x003600, "xloader.bin");
-	nanddump("/dev/mtd0", 0x004000, 0x01ffff,  "secondary.bin");
+	nanddump("/dev/mtd0", is_n800()?0x200:0, 0, "xloader.bin");
 	//rf_extract("/dev/mtd0", 0x004000, 0x01ffff,  "secondary.bin");
-	nanddump("/dev/mtd2", 0x000800, 0x200000,  "zImage");
+	nanddump("/dev/mtd0", 0x004000, 0,  "secondary.bin");
 	//rf_extract("/dev/mtd2", 0x000800, 0x200000,  "zImage");
-	nanddump("/dev/mtd3", 0x000000, 0x1D00000, "initfs.jffs2");
+	nanddump("/dev/mtd2", 0x000800, 0,  "zImage");
 	//rf_extract("/dev/mtd3", 0x000000, 0x1D00000, "initfs.jffs2");
-	printf("\nWARNING: the rootfs extraction on n800 is known to be buggy! feedback is welcome.\n\n");
-	printf("Extract rootfs? (y/N): "); fflush(stdout);
+	nanddump("/dev/mtd3", 0x000000, 0, "initfs.jffs2");
+
+	printf("\n\nExtract rootfs? (y/N): "); fflush(stdout);
 	read(0, &reply, 1);
 	if (reply=='y'||reply=='Y') {
-		nanddump("/dev/mtd4", 0x000000, 0x6000000, "rootfs.jffs2");
 		//rf_extract("/dev/mtd4", 0x000000, 0x6000000, "rootfs.jffs2");
-	}
-	else	printf("*** Ignoring rootfs\n");
-	rf_strip("xloader.bin");
-	rf_strip("secondary.bin");
-	rf_strip("zImage");
-//	rf_strip("initfs.jffs2"); 	// do not strip initfs, is 2MB long
-					//and can be useful for data recovery
-	printf("Identifying extracted files...\n");
+		nanddump("/dev/mtd4", 0x000000, 0, "rootfs.jffs2");
+	} else	printf("*** Ignoring rootfs\n");
+
+	printf("\n\nStrip dumped files? (y/N): "); fflush(stdout);
+	read(0, &reply, 1);
+	if (reply=='y'||reply=='Y') {
+		rf_strip("xloader.bin");
+		rf_strip("secondary.bin");
+		rf_strip("zImage");
+		rf_strip("initfs.jffs2");
+	} else  printf("*** Ignoring strip\n");
+
+	printf("\nIdentifying extracted files...\n");
 	printf("%s: xloader\n", fpid_file("xloader.bin"));
 	printf("%s: secondary.bin\n", fpid_file("secondary.bin"));
 	printf("%s: zImage\n", fpid_file("zImage"));

@@ -68,7 +68,7 @@ char *root_devices[] = {
 
 void show_title()
 {
-	printf("0xFFFF v%s  - The Free Fiasco Firmware Flasher\n", VERSION);
+	printf("0xFFFF v%s  // The Free Fiasco Firmware Flasher\n", VERSION);
 }
 
 void show_usage()
@@ -76,22 +76,23 @@ void show_usage()
 	int i;
 	show_title();
 
-	printf(" -b [arg]      boots the kernel with arguments\n");
-	printf(" -e [path]     dump and extract pieces to path\n");
-	printf(" -r [0|1]      disable/enable R&D mode\n");
-	printf(" -f <flags>    set the given RD flags (see '-f help' or 'Flasher_tool_usage' in maemo wiki)\n");
-	printf(" -p [[p%%]file] piece-of-firmware %% file-where-this-piece-is\n");
-	printf(" -u [fiasco]   unpack target fiasco image\n");
-	printf(" -U [0|1]      disable/enable the usb host mode\n");
-	printf(" -h            show this help message\n");
-	printf(" -i            show device information (let standby mode)\n");
-	printf(" -I [piece]    identify a firmware piece\n");
-	printf(" -l            list supported usb device ids\n");
-	printf(" -d [vid:pid]  injects a usb device into the supported list\n");
-	printf(" -D [0|1|2]    sets the root device to flash (0), mmc (1) or usb (2)\n");
-	printf(" -R            reboot the omap board\n");
-	printf(" -v            be verbose and noisy\n");
-	printf(" -V            show 0xFFFF version information\n");
+	printf(" -b [arg]       boots the kernel with arguments\n");
+	printf(" -e [path]      dump and extract pieces to path\n");
+	printf(" -r [0|1]       disable/enable R&D mode\n");
+	printf(" -f <flags>     set the given RD flags (see '-f help' or 'Flasher_tool_usage' in maemo wiki)\n");
+	printf(" -p [[p%%]file]  piece-of-firmware %% file-where-this-piece-is\n");
+	printf(" -u [fiasco]    unpack target fiasco image\n");
+	printf(" -U [0|1]       disable/enable the usb host mode\n");
+	printf(" -s [serial]    serial port console (minicom like terminal)\n");
+	printf(" -h             show this help message\n");
+	printf(" -i             show device information (let standby mode)\n");
+	printf(" -I [piece]     identify a firmware piece\n");
+	printf(" -l             list supported usb device ids\n");
+	printf(" -d [vid:pid]   injects a usb device into the supported list\n");
+	printf(" -D [0|1|2]     sets the root device to flash (0), mmc (1) or usb (2)\n");
+	printf(" -R             reboot the omap board\n");
+	printf(" -v             be verbose and noisy\n");
+	printf(" -V             show 0xFFFF version information\n");
 	printf("Pieces are: ");
 	for(i=0;pieces[i];i++) printf("%s ", pieces[i]); printf("\n");
 	// serial port support is not yet done (cold flash is for flashing the 8kB nand)
@@ -111,7 +112,7 @@ int main(int argc, char **argv)
 	struct usb_device_descriptor udd;
 	int c;
 
-	while((c = getopt(argc, argv, "p:vVhRu:ib:U:r:e:ld:I:D:f:")) != -1) {
+	while((c = getopt(argc, argv, "p:vVhRu:ib:U:r:e:ld:I:D:f:s:")) != -1) {
 		switch(c) {
 		case 'd':
 			sscanf(optarg, "%04hx:%04hx", 
@@ -125,6 +126,8 @@ int main(int argc, char **argv)
 		case 'e':
 			reverseto = optarg;
 			break;
+		case 's':
+			return console(optarg);
 		case 'f':
 			if (!strcmp(optarg,"help")) {
 			printf("* Flags are composed of:\n");
@@ -194,7 +197,7 @@ int main(int argc, char **argv)
 	{
 		printf("Usage: 0xFFFF [-hvVRi] [-e path] [-U 0|1] [-p [piece%%]file [-p ...]]\n");
 		printf("              [-b boot-args] [-I piece [-I ...]] [-u fiasco-image]\n");
-		printf("              [-D 0|1|2] [-F rd flags]\n");
+		printf("              [-D 0|1|2] [-F rd flags] [-s serial-dev]\n");
 		return 1;
 	}
 

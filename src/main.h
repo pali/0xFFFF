@@ -23,6 +23,7 @@ extern struct usb_dev_handle *dev;
 int is_valid_device(struct usb_device_descriptor *udd);
 void list_valid_devices();
 int usb_device_found(struct usb_device_descriptor *udd);
+int console(const char *device);
 
 extern int verbose;
 #define D if (verbose)
