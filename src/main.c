@@ -79,11 +79,12 @@ void show_usage()
 	printf(" -b [arg]       boots the kernel with arguments\n");
 	printf(" -e [path]      dump and extract pieces to path\n");
 	printf(" -r [0|1]       disable/enable R&D mode\n");
-	printf(" -f <flags>     set the given RD flags (see '-f help' or 'Flasher_tool_usage' in maemo wiki)\n");
+	printf(" -f <flags>     set the given RD flags (see '-f help')\n");
 	printf(" -p [[p%%]file]  piece-of-firmware %% file-where-this-piece-is\n");
 	printf(" -u [fiasco]    unpack target fiasco image\n");
 	printf(" -U [0|1]       disable/enable the usb host mode\n");
 	printf(" -s [serial]    serial port console (minicom like terminal)\n");
+	printf(" -c             console prompt mode\n");
 	printf(" -h             show this help message\n");
 	printf(" -i             show device information (let standby mode)\n");
 	printf(" -I [piece]     identify a firmware piece\n");
@@ -107,13 +108,53 @@ void unpack_fiasco_image(char *file)
 	// TODO
 }
 
+int connect_via_usb()
+{
+	int c=0;
+	struct usb_device_descriptor udd;
+	// usb_set_debug(5);
+	usb_init();
+
+	while(!usb_device_found(&udd)) {
+		char pbc[]={'/','-','\\', '|'};
+		usleep(0xc350); // 0.5s
+		printf("\rWaiting for device... %c", pbc[++c%4]);
+		fflush(stdout);
+	}
+
+	/*/ open device */
+	dev = usb_open(device);
+	if (dev == NULL) {
+		perror("usb_open");
+		return 1;
+	}
+	// TODO
+	if ( usb_claim_interface(dev, 2) < 0) { // 2 or 0
+		perror("usb_claim_interface");
+		return 1;
+	}
+
+	if (usb_set_altinterface(dev, 1) < 0) {
+		perror("usb_set_altinterface");
+		return 1;
+	}
+
+	/* go go go! */
+	while(get_status());
+
+	sleep(1); // take breath
+
+	return 0;
+}
+
 int main(int argc, char **argv)
 {
-	struct usb_device_descriptor udd;
 	int c;
 
-	while((c = getopt(argc, argv, "p:vVhRu:ib:U:r:e:ld:I:D:f:s:")) != -1) {
+	while((c = getopt(argc, argv, "cp:vVhRu:ib:U:r:e:ld:I:D:f:s:")) != -1) {
 		switch(c) {
+		case 'c':
+			return console_prompt();
 		case 'd':
 			sscanf(optarg, "%04hx:%04hx", 
 				&supported_devices[SUPPORTED_DEVICES-2].vendor_id,
@@ -197,7 +238,7 @@ int main(int argc, char **argv)
 	{
 		printf("Usage: 0xFFFF [-hvVRi] [-e path] [-U 0|1] [-p [piece%%]file [-p ...]]\n");
 		printf("              [-b boot-args] [-I piece [-I ...]] [-u fiasco-image]\n");
-		printf("              [-D 0|1|2] [-F rd flags] [-s serial-dev]\n");
+		printf("              [-D 0|1|2] [-F rd flags] [-s serial-dev] [-c]\n");
 		return 1;
 	}
 
@@ -211,43 +252,10 @@ int main(int argc, char **argv)
 		return 0;
 	}
 
-	// usb_set_debug(5);
-	usb_init();
-
-	while(!usb_device_found(&udd)) {
-		char pbc[]={'/','-','\\', '|'};
-		usleep(0xc350); // 0.5s
-		printf("\rWaiting for device... %c", pbc[++c%4]);
-		fflush(stdout);
-	}
-
-	/*/ open device */
-	dev = usb_open(device);
-	if (dev == NULL) {
-		perror("usb_open");
-		return 1;
-	}
-	// TODO
-	if ( usb_claim_interface(dev, 2) < 0) { // 2 or 0
-		perror("usb_claim_interface");
-		return 1;
-	}
-
-	if (usb_set_altinterface(dev, 1) < 0) {
-		perror("usb_set_altinterface");
-		return 1;
-	}
-
-	/* go go go! */
-	while(get_status());
+	connect_via_usb();
 
 	// if (info)
-	sleep(1); // take breath
-	get_hw_revision(); // get hardware revision:
-	get_root_device(); // only for flashing
-	get_usb_mode();
-	get_rd_mode();
-	get_rd_flags();
+	cmd_info("");
 	
 	if (pcs_n) {
 		int c;

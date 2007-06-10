@@ -24,6 +24,11 @@ int is_valid_device(struct usb_device_descriptor *udd);
 void list_valid_devices();
 int usb_device_found(struct usb_device_descriptor *udd);
 int console(const char *device);
+int connect_via_usb();
+int console_prompt();
+
+//
+void cmd_info(char *line);
 
 extern int verbose;
 #define D if (verbose)

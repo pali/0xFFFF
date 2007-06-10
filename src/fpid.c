@@ -64,7 +64,8 @@ char *fpid_file(char *filename)
 	if (!memcmp(b+0x00, "\x00\x00\xa0\xe1\x00\x00\xa0\xe1", 8))
 		return pieces[PIECE_KERNEL];
 	else
-	if (!memcmp(b+0x00, "\x85\x19\x01\xe0", 4)) {
+	// JFFS2 MAGIC
+	if (!memcmp(b+0x00, "\x85\x19", 2)) { //\x01\xe0", 4)) {
 		/*/ is jffs2 */
 		if (size < 0x300000)
 			return pieces[PIECE_INITFS];
