@@ -84,6 +84,7 @@ void show_usage()
 	printf(" -u [fiasco]    unpack target fiasco image\n");
 	printf(" -U [0|1]       disable/enable the usb host mode\n");
 	printf(" -s [serial]    serial port console (minicom like terminal)\n");
+	printf(" -C [/dev/mtd]  check bad blocks on mtd\n");
 	printf(" -c             console prompt mode\n");
 	printf(" -h             show this help message\n");
 	printf(" -i             show device information (let standby mode)\n");
@@ -151,7 +152,7 @@ int main(int argc, char **argv)
 {
 	int c;
 
-	while((c = getopt(argc, argv, "cp:vVhRu:ib:U:r:e:ld:I:D:f:s:")) != -1) {
+	while((c = getopt(argc, argv, "C:cp:vVhRu:ib:U:r:e:ld:I:D:f:s:")) != -1) {
 		switch(c) {
 		case 'c':
 			return console_prompt();
@@ -203,6 +204,8 @@ int main(int argc, char **argv)
 			printf("%s: %s\n", fpid_file(optarg), optarg);
 			identify = 1;
 			break;
+		case 'C':
+			return check_badblocks(optarg);
 		case 'i':
 			info = 1;
 			break;
@@ -238,7 +241,7 @@ int main(int argc, char **argv)
 	{
 		printf("Usage: 0xFFFF [-hvVRi] [-e path] [-U 0|1] [-p [piece%%]file [-p ...]]\n");
 		printf("              [-b boot-args] [-I piece [-I ...]] [-u fiasco-image]\n");
-		printf("              [-D 0|1|2] [-F rd flags] [-s serial-dev] [-c]\n");
+		printf("              [-D 0|1|2] [-F rd flags] [-s serial-dev] [-c] [-C mtd-dev]\n");
 		return 1;
 	}
 

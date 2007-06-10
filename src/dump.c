@@ -19,6 +19,7 @@
  */
 
 #include "main.h"
+#include "hexdump.h"
 #include <usb.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -85,68 +86,191 @@ __rf_extract_exit:
 #include <asm/types.h>
 #include <mtd/mtd-user.h>
 
-// configuration for nanddump //
-int	ignoreerrors = 1;	// ignore errors
-int	pretty_print = 0;	// print nice in ascii
-int	noecc = 0;		// don't error correct
-int	omitoob = 1;		// omit oob data
-int	omitbad = 1;
-// configuration for nanddump //
+#define M_RDONLY   0x00000001
+#define M_RDRW     0x00000002
+#define M_OMITOOB  0x00000010
+#define M_OMITBAD  0x00000011
+#define M_OMITECC  0x00000012
 
-int nanddump(char *mtddev, unsigned long start_addr, unsigned long length, char *dumpfile)
+int mtd_open(char *file, mtd_info_t *meminfo, int *oobinfochanged, 
+	struct nand_oobinfo *old_oobinfo, int *eccstats, int flags)
 {
-	unsigned char readbuf[2048];
-	unsigned char oobbuf[64];
-	struct nand_oobinfo none_oobinfo = {
-		.useecc = MTD_NANDECC_OFF,
-	};
-	unsigned long ofs, end_addr = 0;
-	unsigned long long blockstart = 1;
-	int i, fd, ofd, bs, badblock = 0;
-	struct mtd_oob_buf oob = {0, 16, oobbuf};
-	mtd_info_t meminfo;
-	char pretty_buf[80];
-	int oobinfochanged = 0 ;
-	int badblocks = 1;
-	struct nand_oobinfo old_oobinfo;
-	struct mtd_ecc_stats stat1, stat2;
-	int eccstats = 0;
-
-	printf("\nExtracting %s from %s...\n", dumpfile, mtddev);
-
-	/* Open MTD device */
-	if ((fd = open(mtddev, O_RDONLY)) == -1) {
-		perror("open flash");
-		return 1;
+	int fd;
+	*oobinfochanged = 0 ;
+	
+	fd = open(file, (flags&M_RDONLY)?O_RDONLY:O_RDWR);
+	if (fd == -1) {
+		perror("mtd_open");
+		return -1;
 	}
-
 	/* Fill in MTD device capability structure */
-	if (ioctl(fd, MEMGETINFO, &meminfo) != 0) {
+	if (ioctl(fd, MEMGETINFO, meminfo) != 0) {
 		perror("MEMGETINFO");
 		close(fd);
 		return 1;
 	}
 
 	/* Make sure device page sizes are valid */
-	if (!(meminfo.oobsize == 64 && meminfo.writesize == 2048) &&
-	    !(meminfo.oobsize == 16 && meminfo.writesize == 512) &&
-	    !(meminfo.oobsize == 8 && meminfo.writesize == 256)) {
+	if (!(meminfo->oobsize == 64 && meminfo->writesize == 2048) &&
+	    !(meminfo->oobsize == 16 && meminfo->writesize == 512) &&
+	    !(meminfo->oobsize == 8  && meminfo->writesize == 256)) {
 		fprintf(stderr, "Unknown flash (not normal NAND)\n");
 		close(fd);
-		return 1;
+		return -1;
 	}
+
+
+	return fd;
+}
+
+int mtd_close(int fd, struct nand_oobinfo *old_oobinfo, int oobinfochanged)
+{
+	/* reset oobinfo */
+	if (oobinfochanged == 1) {
+		if (ioctl (fd, MEMSETOOBSEL, &old_oobinfo) != 0) {
+			perror ("MEMSETOOBSEL");
+			close(fd);
+			return 1;
+		}
+	}
+	/* Close the output file and MTD device */
+	return close(fd);
+}
+
+// configuration for nanddump //
+//int	noecc = 0;		// don't error correct
+int	omitoob = 1;		// omit oob data
+int	omitbad = 1;
+// configuration for nanddump //
+
+#define CONFIGURE_FLAGS(x) \
+omitoob = x & M_OMITOOB; \
+omitbad = x & M_OMITBAD;
+
+int check_badblocks(char *mtddev)
+{
+	int fd;
+	int oobinfochanged = 0 ;
+	int badblock = 0;
+	int badblocks = 1;
+	int eccstats = 0;
+	unsigned long int i;
+	unsigned long long blockstart = 1;
+	unsigned char oobbuf[64];
+	struct nand_oobinfo old_oobinfo;
+	struct mtd_oob_buf oob = {0, 16, oobbuf};
+	struct mtd_ecc_stats stat1, stat2;
+	mtd_info_t meminfo;
+
+	fd = mtd_open(mtddev, &meminfo, &oobinfochanged, &old_oobinfo, &eccstats, M_RDONLY);
+
+        fprintf(stderr, "Block size %u, page size %u, OOB size %u\n",
+                meminfo.erasesize, meminfo.writesize, meminfo.oobsize);
+        fprintf(stderr, "Size %u, flags %u, type 0x%x\n",
+                meminfo.size, meminfo.flags, (int)meminfo.type);
+
+	oob.length = meminfo.oobsize;
+	for(i = 0; i < meminfo.size; i+= meminfo.writesize) {
+
+		// new eraseblock , check for bad block
+		if (blockstart != (i & (~meminfo.erasesize + 1))) {
+			blockstart = i & (~meminfo.erasesize + 1);
+			if ((badblock = ioctl(fd, MEMGETBADBLOCK, &blockstart)) < 0) {
+				perror("ioctl(MEMGETBADBLOCK)");
+				goto closeall;
+			}
+		}
+
+		if (badblock) {
+			if (omitbad) {
+				printf("Bad block found at 0x%lx\n", i);
+				continue;
+			}
+		} else {
+			char readbuf[2048]; // XXX hardcoded like mtd-utils?? ugly!
+			// dummy -- should be removed
+			if (pread(fd, readbuf, meminfo.writesize, i) != meminfo.writesize) {
+				perror("pread");
+				goto closeall;
+			}
+		}
+
+		/* ECC stats available ? */
+		if (eccstats) {
+			if (ioctl(fd, ECCGETSTATS, &stat2)) {
+				perror("ioctl(ECCGETSTATS)");
+				goto closeall;
+			}
+			if (stat1.failed != stat2.failed)
+				fprintf(stderr, "ECC: %d uncorrectable bitflip(s)"
+					" at offset 0x%08lx\n",
+					stat2.failed - stat1.failed, i);
+			if (stat1.corrected != stat2.corrected)
+				fprintf(stderr, "ECC: %d corrected bitflip(s) at"
+					" offset 0x%08lx\n",
+					stat2.corrected - stat1.corrected, i);
+			stat1 = stat2;
+		}
+
+		if (badblock) {
+			printf("Oops badblock %d at 0x%lx !\n", badblocks++, i);
+		} else {
+			/* Read OOB data and exit on failure */
+			oob.start = i;
+			if (ioctl(fd, MEMREADOOB, &oob) != 0) {
+				perror("ioctl(MEMREADOOB)");
+				goto closeall;
+			}
+		}
+
+		/* Write out OOB data */
+		if (badblock)
+		D dump_bytes(oobbuf, meminfo.oobsize);
+	}
+
+	mtd_close(fd, &old_oobinfo, oobinfochanged);
+	return 0;
+
+closeall:
+	mtd_close(fd, &old_oobinfo, oobinfochanged);
+	return 1;
+}
+
+int nanddump(char *mtddev, unsigned long start_addr, unsigned long length, char *dumpfile)
+{
+	unsigned char readbuf[2048];
+	int oobinfochanged = 0 ;
+	unsigned char oobbuf[64];
+	unsigned long ofs, end_addr = 0;
+	unsigned long long blockstart = 1;
+	struct nand_oobinfo none_oobinfo = {
+		.useecc = MTD_NANDECC_OFF,
+	};
+	int fd, ofd, bs, badblock = 0;
+	struct mtd_oob_buf oob = {0, 16, oobbuf};
+	mtd_info_t meminfo;
+	int badblocks = 1;
+	struct nand_oobinfo old_oobinfo;
+	int eccstats = 0;
+	struct mtd_ecc_stats stat1, stat2;
+	int flags = M_RDONLY;
+
+	printf("\nExtracting %s from %s...\n", dumpfile, mtddev);
+
+	fd = mtd_open(mtddev, &meminfo, &oobinfochanged, &old_oobinfo, &eccstats, flags);
+
 	/* Read the real oob length */
 	oob.length = meminfo.oobsize;
 
-	if (noecc)  {
+	if (flags & M_OMITECC)  { // (noecc)
 		switch (ioctl(fd, MTDFILEMODE, (void *) MTD_MODE_RAW)) {
 		case -ENOTTY:
-			if (ioctl (fd, MEMGETOOBSEL, &old_oobinfo) != 0) {
+			if (ioctl (fd, MEMGETOOBSEL, old_oobinfo) != 0) {
 				perror ("MEMGETOOBSEL");
 				close (fd);
 				exit (1);
 			}
-			if (ioctl (fd, MEMSETOOBSEL, &none_oobinfo) != 0) {
+			if (ioctl (fd, MEMSETOOBSEL, none_oobinfo) != 0) {
 				perror ("MEMSETOOBSEL");
 				close (fd);
 				exit (1);
@@ -193,8 +317,11 @@ int nanddump(char *mtddev, unsigned long start_addr, unsigned long length, char 
 	bs = meminfo.writesize;
 
 	/* Print informative message */
-	fprintf(stderr, "Block size %u, page size %u, OOB size %u\n",
-		meminfo.erasesize, meminfo.writesize, meminfo.oobsize);
+        fprintf(stderr, "Block size %u, page size %u, OOB size %u\n",
+                meminfo.erasesize, meminfo.writesize, meminfo.oobsize);
+        fprintf(stderr, "Size %u, flags %u, type 0x%x\n",
+                meminfo.size, meminfo.flags, (int)meminfo.type);
+
 	fprintf(stderr,
 		"Dumping data starting at 0x%08x and ending at 0x%08x...\n",
 		(unsigned int) start_addr, (unsigned int) end_addr);
@@ -225,6 +352,7 @@ int nanddump(char *mtddev, unsigned long start_addr, unsigned long length, char 
 			}
 		}
 
+		// TODO exist on n800??? // remove code?
 		/* ECC stats available ? */
 		if (eccstats) {
 			if (ioctl(fd, ECCGETSTATS, &stat2)) {
@@ -243,25 +371,8 @@ int nanddump(char *mtddev, unsigned long start_addr, unsigned long length, char 
 		}
 
 		/* Write out page data */
-		if (pretty_print) {
-			for (i = 0; i < bs; i += 16) {
-				sprintf(pretty_buf,
-					"0x%08x: %02x %02x %02x %02x %02x %02x %02x "
-					"%02x %02x %02x %02x %02x %02x %02x %02x %02x\n",
-					(unsigned int) (ofs + i),  readbuf[i],
-					readbuf[i+1], readbuf[i+2],
-					readbuf[i+3], readbuf[i+4],
-					readbuf[i+5], readbuf[i+6],
-					readbuf[i+7], readbuf[i+8],
-					readbuf[i+9], readbuf[i+10],
-					readbuf[i+11], readbuf[i+12],
-					readbuf[i+13], readbuf[i+14],
-					readbuf[i+15]);
-				write(ofd, pretty_buf, 60);
-			}
-		} else
-			write(ofd, readbuf, bs);
-
+		//if (pretty_print) dump_bytes(readbuf, bs);
+		write(ofd, readbuf, bs);
 
 		if (badblock) {
 			printf("Oops badblock %d at 0x%lx !\n", badblocks++, ofs);
@@ -279,56 +390,17 @@ int nanddump(char *mtddev, unsigned long start_addr, unsigned long length, char 
 			continue;
 
 		/* Write out OOB data */
-		if (pretty_print) {
-			if (meminfo.oobsize < 16) {
-				sprintf(pretty_buf, "  OOB Data: %02x %02x %02x %02x %02x %02x "
-					"%02x %02x\n",
-					oobbuf[0], oobbuf[1], oobbuf[2],
-					oobbuf[3], oobbuf[4], oobbuf[5],
-					oobbuf[6], oobbuf[7]);
-				write(ofd, pretty_buf, 48);
-				continue;
-			}
-
-			for (i = 0; i < meminfo.oobsize; i += 16) {
-				sprintf(pretty_buf, "  OOB Data: %02x %02x %02x %02x %02x %02x "
-					"%02x %02x %02x %02x %02x %02x %02x %02x %02x %02x\n",
-					oobbuf[i], oobbuf[i+1], oobbuf[i+2],
-					oobbuf[i+3], oobbuf[i+4], oobbuf[i+5],
-					oobbuf[i+6], oobbuf[i+7], oobbuf[i+8],
-					oobbuf[i+9], oobbuf[i+10], oobbuf[i+11],
-					oobbuf[i+12], oobbuf[i+13], oobbuf[i+14],
-					oobbuf[i+15]);
-				write(ofd, pretty_buf, 60);
-			}
-		} else
-			write(ofd, oobbuf, meminfo.oobsize);
+		D dump_bytes(oobbuf, meminfo.oobsize);
+		write(ofd, oobbuf, meminfo.oobsize);
 	}
 
-	/* reset oobinfo */
-	if (oobinfochanged == 1) {
-		if (ioctl (fd, MEMSETOOBSEL, &old_oobinfo) != 0) {
-			perror ("MEMSETOOBSEL");
-			close(fd);
-			close(ofd);
-			return 1;
-		}
-	}
-	/* Close the output file and MTD device */
-	close(fd);
+	mtd_close(fd, &old_oobinfo, oobinfochanged);
 	close(ofd);
 
-	/* Exit happy */
 	return 0;
 
  closeall:
-	/* The new mode change is per file descriptor ! */
-	if (oobinfochanged == 1) {
-		if (ioctl (fd, MEMSETOOBSEL, &old_oobinfo) != 0)  {
-			perror ("MEMSETOOBSEL");
-		}
-	}
-	close(fd);
+	mtd_close(fd, &old_oobinfo, oobinfochanged);
 	close(ofd);
 	return 1;
 }
@@ -423,6 +495,7 @@ int reverse_extract_pieces(char *dir)
 	printf("%s: secondary.bin\n", fpid_file("secondary.bin"));
 	printf("%s: zImage\n", fpid_file("zImage"));
 	printf("%s: initfs.jffs2\n", fpid_file("initfs.jffs2"));
+	printf("%s: rootfs.jffs2\n", fpid_file("rootfs.jffs2"));
 
 	return 1;
 }

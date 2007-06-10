@@ -3,25 +3,7 @@
 This technique consists on reconstructing a firmware image dumping
 pieces at certains offsets of the device internal memory.
 
-
-<b>End user details:</b>
-
- * Extract the firmware pieces from a running device
- *
- * This functionality is useful to extract backups of your system
- * firmware. This is really useful when you're on a desert island
- * without an internet connection.
- *
- * This tool needs more testing, so take care and don't blame me if
- * it breaks your system. It *is* to your responsability, use at
- * your own risk
- *
- * NOTE: It's theorically possible to flash the device on the fly from
- * the running OS, but this has not yet been tested. Keep tuned for
- * updates and newz.
- *
- * Have fun!
-
+<b></b>
 
 <b>Technical details:</b>
 
@@ -46,3 +28,30 @@ pieces at certains offsets of the device internal memory.
    mtd3 - initfs.jffs2 (2M) aka 0x200000 vs 0x3900000
 
    mtd4 - rootfs.jffs2 (a fucking copy of the above rootfs?)
+
+
+// Extra notes //
+
+[MTD] NAND Consolidate oobinfo handling
+
+The info structure for out of band data was copied into
+the mtd structure. Make it a pointer and remove the ability
+to set it from userspace. The position of ecc bytes is
+defined by the hardware and should not be changed by software.
+
+// The oob stuff
+
+In mtd3 the OOB data is 64 bytes aka 0x40, and this oob stuff
+appears every 2KB aka 0x800 bytes.
+
+/*
+ * Obsolete legacy interface. Keep it in order not to break userspace
+ * interfaces
+ */
+struct nand_oobinfo {
+        uint32_t useecc;
+        uint32_t eccbytes;
+        uint32_t oobfree[8][2];
+        uint32_t eccpos[32];
+};
+

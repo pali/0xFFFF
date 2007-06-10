@@ -32,12 +32,13 @@ void cmd_exit(char *line)
 
 void cmd_help(char *line)
 {
-	printf("connect     connects via usb to nolo\n");
-	printf("info        shows info of the remote system\n");
-	printf("linfo       shows info of the local system\n");
-	printf("shell       opens a shell (/bin/sh)\n");
-	printf("dump [dir]  dumps the contents of /dev/mtd to dir\n");
-	printf("exit        exits the shell\n");
+	printf("connect           connects via usb to nolo\n");
+	printf("info              shows info of the remote system\n");
+	printf("linfo             shows info of the local system\n");
+	printf("shell             opens a shell (/bin/sh)\n");
+	printf("badblocks [dev]   checks bad blocks on mtd (/dev/mtd1)\n");
+	printf("dump [dir]        dumps the contents of /dev/mtd to dir\n");
+	printf("exit              exits the shell\n");
 	fflush(stdout);
 }
 
@@ -56,7 +57,18 @@ void cmd_dump(char *line)
 		printf("Usage: dump [path]\n");
 		return;
 	}
+	while(line[0]==' ') line = line +1;
 	reverse_extract_pieces(line);
+}
+
+void cmd_badblocks(char *line)
+{
+	if (!line[0]) {
+		printf("Usage: dump [path]\n");
+		return;
+	}
+	while(line[0]==' ') line = line +1;
+	check_badblocks(line);
 }
 
 void cmd_connect(char *line)
@@ -69,7 +81,7 @@ void cmd_shell(char *line)
 	system("/bin/sh");
 }
 
-#define CMDS 8
+#define CMDS 9
 #define IS_CMD(x) !strcmp(console_commands[i].name, x)
 #define CALL_CMD(x) console_commands[x].callback((char *)line)
 #define FOREACH_CMD(x) for(x=0;x<CMDS;x++)
@@ -78,14 +90,15 @@ struct cmd_t {
 	char *name;
 	void (*callback)(char *);
 } console_commands[CMDS] = {
-	{ .name = "exit",    .callback = &cmd_exit },
-	{ .name = "q",       .callback = &cmd_exit },
-	{ .name = "connect", .callback = &cmd_connect },
-	{ .name = "help",    .callback = &cmd_help },
-	{ .name = "?",       .callback = &cmd_help },
-	{ .name = "info",    .callback = &cmd_info },
-	{ .name = "dump",    .callback = &cmd_dump },
-	{ .name = "shell",   .callback = &cmd_shell }
+	{ .name = "exit",      .callback = &cmd_exit },
+	{ .name = "q",         .callback = &cmd_exit },
+	{ .name = "connect",   .callback = &cmd_connect },
+	{ .name = "badblocks", .callback = &cmd_badblocks},
+	{ .name = "help",      .callback = &cmd_help },
+	{ .name = "?",         .callback = &cmd_help },
+	{ .name = "info",      .callback = &cmd_info },
+	{ .name = "dump",      .callback = &cmd_dump },
+	{ .name = "shell",     .callback = &cmd_shell }
 };
 
 static int console_command(const char *line)
