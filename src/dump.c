@@ -119,7 +119,6 @@ int mtd_open(char *file, mtd_info_t *meminfo, int *oobinfochanged,
 		return -1;
 	}
 
-
 	return fd;
 }
 
@@ -164,10 +163,16 @@ int check_badblocks(char *mtddev)
 
 	fd = mtd_open(mtddev, &meminfo, &oobinfochanged, &old_oobinfo, &eccstats, M_RDONLY);
 
+	if (fd == -1) {
+		printf("cannot open mtd\n");
+		return 1;
+	}
+
         fprintf(stderr, "Block size %u, page size %u, OOB size %u\n",
                 meminfo.erasesize, meminfo.writesize, meminfo.oobsize);
         fprintf(stderr, "Size %u, flags %u, type 0x%x\n",
                 meminfo.size, meminfo.flags, (int)meminfo.type);
+
 
 	oob.length = meminfo.oobsize;
 	for(i = 0; i < meminfo.size; i+= meminfo.writesize) {
@@ -261,6 +266,11 @@ int nanddump(char *mtddev, unsigned long start_addr, unsigned long length, char 
 
 	/* Read the real oob length */
 	oob.length = meminfo.oobsize;
+        fprintf(stderr, "Block size %u, page size %u, OOB size %u\n",
+                meminfo.erasesize, meminfo.writesize, meminfo.oobsize);
+        fprintf(stderr, "Size %u, flags %u, type 0x%x\n",
+                meminfo.size, meminfo.flags, (int)meminfo.type);
+
 
 	if (flags & M_OMITECC)  { // (noecc)
 		switch (ioctl(fd, MTDFILEMODE, (void *) MTD_MODE_RAW)) {
@@ -315,12 +325,6 @@ int nanddump(char *mtddev, unsigned long start_addr, unsigned long length, char 
 		end_addr = meminfo.size;
 
 	bs = meminfo.writesize;
-
-	/* Print informative message */
-        fprintf(stderr, "Block size %u, page size %u, OOB size %u\n",
-                meminfo.erasesize, meminfo.writesize, meminfo.oobsize);
-        fprintf(stderr, "Size %u, flags %u, type 0x%x\n",
-                meminfo.size, meminfo.flags, (int)meminfo.type);
 
 	fprintf(stderr,
 		"Dumping data starting at 0x%08x and ending at 0x%08x...\n",
@@ -460,15 +464,85 @@ int is_n800()
 	return n800;
 }
 
+int dump_config()
+{
+	mtd_info_t meminfo;
+	int fd = open("/dev/mtd1", O_RDONLY);
+	char buf[1024];
+	int i=0,j;
+	int ret;
+
+
+	if (fd == -1) {
+		perror("open /dev/mtd1");
+		return 1;
+	}
+	if (ioctl(fd, MEMGETINFO, &meminfo) != 0) {
+		perror("MEMGETINFO");
+		close(fd);
+		return 1;
+	}
+
+	while(i<0x60000) {
+	iniloop:
+		ret = read(fd, buf, 4);
+		if (ret == -1)
+			break;
+		if (!memcmp(buf,"ConF", 4)) {
+		loop:
+			read(fd, buf, 4);
+			if (ret == -1) break;
+			printf("\n0x%08x : ConF %02x %02x %02x %02x : ", i,
+				buf[0], buf[1], buf[2], buf[3]);
+			fflush(stdout);
+			while(1) {
+				ret = read(fd, buf, 4);
+				if (ret <1) {
+					printf("Unexpected eof\n");
+					break;
+				}
+				if (buf[0]=='\0'||buf[1]=='\0'||buf[2]=='\0'||buf[3]=='\0') {
+					printf("%s  \t  ", buf);
+					fflush(stdout);
+					while(1) {
+						ret = read(fd, buf, 4);
+						if (ret <1) {
+							printf("Unexpected eof\n");
+							break;
+						}
+						if (!memcmp(buf,"\xff\xff\xff\xff", 4))
+							goto iniloop;
+						if (!memcmp(buf,"ConF", 4))
+							goto loop;
+						printf ("%02x %02x %02x %02x ",
+							buf[0], buf[1], buf[2], buf[3]);
+					}
+					break;
+				} else {
+					write(1, buf,4);
+				}
+			}
+		}
+		j = lseek(fd, 0, SEEK_CUR);
+		if (j==i) break; i = j;
+	}
+	close(fd);
+	printf("\n");
+	return 0;
+}
+
 int reverse_extract_pieces(char *dir)
 {
 	char reply;
 	chdir(dir);
 
+	// TODO: get values from /proc/mtd ???
+
 	//rf_extract("/dev/mtd0", is_n800()?0x200:0, 0x003600, "xloader.bin");
 	nanddump("/dev/mtd0", is_n800()?0x200:0, 0, "xloader.bin");
 	//rf_extract("/dev/mtd0", 0x004000, 0x01ffff,  "secondary.bin");
 	nanddump("/dev/mtd0", 0x004000, 0,  "secondary.bin");
+	nanddump("/dev/mtd1", 0x060000, 0,  "config.bin");
 	//rf_extract("/dev/mtd2", 0x000800, 0x200000,  "zImage");
 	nanddump("/dev/mtd2", 0x000800, 0,  "zImage");
 	//rf_extract("/dev/mtd3", 0x000000, 0x1D00000, "initfs.jffs2");
@@ -493,6 +567,7 @@ int reverse_extract_pieces(char *dir)
 	printf("\nIdentifying extracted files...\n");
 	printf("%s: xloader\n", fpid_file("xloader.bin"));
 	printf("%s: secondary.bin\n", fpid_file("secondary.bin"));
+	printf("%s: config.bin\n", fpid_file("config.bin"));
 	printf("%s: zImage\n", fpid_file("zImage"));
 	printf("%s: initfs.jffs2\n", fpid_file("initfs.jffs2"));
 	printf("%s: rootfs.jffs2\n", fpid_file("rootfs.jffs2"));

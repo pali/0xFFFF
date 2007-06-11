@@ -93,6 +93,7 @@ void show_usage()
 	printf(" -d [vid:pid]   injects a usb device into the supported list\n");
 	printf(" -D [0|1|2]     sets the root device to flash (0), mmc (1) or usb (2)\n");
 	printf(" -R             reboot the omap board\n");
+	printf(" -x             extract configuration entries from /dev/mtd1\n");
 	printf(" -v             be verbose and noisy\n");
 	printf(" -V             show 0xFFFF version information\n");
 	printf("Pieces are: ");
@@ -152,8 +153,10 @@ int main(int argc, char **argv)
 {
 	int c;
 
-	while((c = getopt(argc, argv, "C:cp:vVhRu:ib:U:r:e:ld:I:D:f:s:")) != -1) {
+	while((c = getopt(argc, argv, "C:cp:vVhRu:ib:U:r:e:ld:I:D:f:s:x")) != -1) {
 		switch(c) {
+		case 'x':
+			return dump_config();
 		case 'c':
 			return console_prompt();
 		case 'd':
@@ -240,7 +243,7 @@ int main(int argc, char **argv)
 	&& 	(root_device  == -1))
 	{
 		printf("Usage: 0xFFFF [-hvVRi] [-e path] [-U 0|1] [-p [piece%%]file [-p ...]]\n");
-		printf("              [-b boot-args] [-I piece [-I ...]] [-u fiasco-image]\n");
+		printf("              [-b boot-args] [-I piece [-I ...]] [-u fiasco-image] [-x]\n");
 		printf("              [-D 0|1|2] [-F rd flags] [-s serial-dev] [-c] [-C mtd-dev]\n");
 		return 1;
 	}

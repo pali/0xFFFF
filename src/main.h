@@ -30,6 +30,7 @@ int console_prompt();
 //
 void cmd_info(char *line);
 int check_badblocks(char *mtddev);
+int dump_config();
 
 extern int verbose;
 #define D if (verbose)
