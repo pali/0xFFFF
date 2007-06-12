@@ -9,10 +9,21 @@ Just type:
 
   $ make
 
+The most interesting targets for make are:
+
+  all        normal build
+  allusb     builds 0xFFFF without libusb dependency (embedded)
+  static     builds 0xFFFF statically (no need for libusb)
+
+  install    installs into /usr/local by default
+
+  clean      clean compilation objects and generated binaries
+
+
 The installation procedure is quite simple and you can define a new PREFIX
 manually from the command line:
 
-  $ make install PREFIX=/usr
+  $ sudo make install PREFIX=/usr
 
 The default one is /usr/local (not very userfriendly but standards are
 standards :P hehe)

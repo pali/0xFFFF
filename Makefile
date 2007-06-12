@@ -1,7 +1,17 @@
 PREFIX?=/usr/local
 
-all:
+all: logot
 	cd src && ${MAKE} all
+
+static: logot
+	cd libusb && ${MAKE} all
+	cd src && ${MAKE} static
+
+allusb: logot
+	cd libusb && ${MAKE} all
+	cd src && ${MAKE} allusb
+
+logot:
 	cd logotool && ${MAKE} all
 
 clean:
