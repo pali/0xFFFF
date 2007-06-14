@@ -112,34 +112,68 @@ void unpack_fiasco_image(char *file)
 
 int connect_via_usb()
 {
-	int c=0;
-	struct usb_device_descriptor udd;
+        struct usb_device_descriptor udd;
+        struct devices it_device;
+	int    c = 0;
+	static char pbc[]={'/','-','\\', '|'};
+
 	// usb_set_debug(5);
 	usb_init();
 
-	while(!usb_device_found(&udd)) {
-		char pbc[]={'/','-','\\', '|'};
+        /* Tries to get access to the Internet Tablet and retries
+         * if any of the neccessary steps fail.
+         *
+         * Note: While a proper device may be found on the bus it may
+         * not be in the right state to be accessed (e.g. the Nokia is
+         * not in the boot stage any more).
+         */
+	while(!dev) {
 		usleep(0xc350); // 0.5s
-		printf("\rWaiting for device... %c", pbc[++c%4]);
-		fflush(stdout);
-	}
+                
+                if(!usb_device_found(&udd, &it_device)) {
+			printf("\rWaiting for device... %c", pbc[++c%4]);
+			fflush(stdout);
+			continue;
+		}
 
-	/*/ open device */
-	dev = usb_open(device);
-	if (dev == NULL) {
-		perror("usb_open");
-		return 1;
-	}
-	// TODO
-	if ( usb_claim_interface(dev, 2) < 0) { // 2 or 0
-		perror("usb_claim_interface");
-		return 1;
-	}
+        	/* open device */
+        	if(!(dev = usb_open(device))) {
+	        	perror("usb_open");
+                        return 1;
+	        }
 
-	if (usb_set_altinterface(dev, 1) < 0) {
-		perror("usb_set_altinterface");
-		return 1;
-	}
+        	if ( usb_claim_interface(dev, 2) < 0) { // 2 or 0
+	        	D perror("usb_claim_interface");
+
+                        // Something is broken if closing fails.
+                        if(usb_close(dev)) {
+                          perror("usb_close");
+                          return 1;
+                        }
+
+                        dev = NULL;
+
+                        // Try again later.
+                        continue;
+        	}
+
+        	if (usb_set_altinterface(dev, 1) < 0) {
+	        	D perror("usb_set_altinterface");
+
+                        // Something is broken if closing fails.
+                        if(usb_close(dev)) {
+                          perror("usb_close");
+                          return 1;
+                        }
+
+                        dev = NULL;
+                        // Try again later.
+                        continue;
+        	}
+        }
+
+        printf("found %s (%04x:%04x)\n", it_device.name,
+		it_device.vendor_id, it_device.product_id);
 
 	/* go go go! */
 	while(get_status());
@@ -258,7 +292,10 @@ int main(int argc, char **argv)
 		return 0;
 	}
 
-	connect_via_usb();
+        if (connect_via_usb()) {
+                fprintf(stderr, "Cannot connect to device. It is possibly not in boot stage.\n");
+                return 0;
+        }
 
 	// if (info)
 	cmd_info("");

@@ -5,6 +5,8 @@
 #define _FILE_OFFSET_BITS 64
 #define _GNU_SOURCE
 
+// Forward declaration for use in function arguments.
+struct devices;
 
 int reverse_extract_pieces(char *dir);
 void flash_image(char *filename, char *piece, char *version);
@@ -22,7 +24,7 @@ extern struct usb_device *device;
 extern struct usb_dev_handle *dev;
 int is_valid_device(struct usb_device_descriptor *udd);
 void list_valid_devices();
-int usb_device_found(struct usb_device_descriptor *udd);
+int usb_device_found(struct usb_device_descriptor *udd, struct devices *it_device);
 int console(const char *device);
 int connect_via_usb();
 int console_prompt();
@@ -54,7 +56,8 @@ struct devices {
   unsigned short product_id;
   unsigned short flags;
 };
-#define SUPPORTED_DEVICES 5
+
+#define SUPPORTED_DEVICES 6
 extern struct devices supported_devices[SUPPORTED_DEVICES];
 
 extern int pcs_n;
