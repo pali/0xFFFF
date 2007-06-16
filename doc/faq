@@ -68,3 +68,12 @@ This file tries to collect a bunch of common questions/answers about flashing
   information of different pieces of the firmware. This can be faked, because
   you can flash n770 stuff on n800 and viceversa, but it's not recommended
   because it wouldn't work :)
+
+
+<b>*) Can I unpack fiasco blobs?</b>
+
+  Actually the fiasco format is not yet supported and not planned in
+  short term. There is no real need for supporting a proprietary
+  format image containing a proprietary system.
+
+  We can just use tarballs containing the desired pieces.

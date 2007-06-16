@@ -4,3 +4,40 @@ Fiasco firmware pieces
 The firmware for the maemo devices is composed by a set of pieces containing
 the required parts to update the whole system following a partition layout
 defined by NOLO on the internal flash memory.
+
+Nokia provides a blob packed with a proprietary format called 'FIASCO'. This
+blob contains the following pieces:
+
+ - omap-nand   -  only flashable via serial jtag
+ - xloader     -  first part of nolo
+ - secondary   -  second part of nolo (usb support and launches kernel)
+ - kernel      -  the kernel
+ - initfs      -  initial system that initializes everything and runs rootfs
+ - rootfs      -  the whole system image
+
+Some of these pieces are versioned to match board specific features
+(mostly xloader and secondary ones).
+
+This format is not supported by 0xFFFF at this moment, but there are no
+plans for doing it in short term. This is because we only need to flash
+separated pieces. We can just distribute tarballs containing the pieces
+and meta information with a whole Free OS for the internet tablets.
+
+To flash an initfs partition and reboot:
+
+  $ 0xFFFF -p initfs%initfs.jffs2 -R
+
+The format of the argument is [piece-type] % [file-name] (% [version-string]).
+
+Pieces can be automatically identified by using the '-I' flag:
+
+  $ 0xFFFF -I initfs.jffs2
+  initfs.jffs2: initfs
+
+You can dump these pieces from the internal memory of the internet
+tablet by using the mtd-utils over /dev/mtd* or just running:
+
+  n770$ 0xFFFF -e /media/mmc1
+
+There is another way for dumping pieces with extra parameters and options,
+read doc/dumping for more information.

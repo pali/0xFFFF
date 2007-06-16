@@ -124,6 +124,9 @@ int mtd_open(char *file, mtd_info_t *meminfo, int *oobinfochanged,
 
 int mtd_close(int fd, struct nand_oobinfo *old_oobinfo, int oobinfochanged)
 {
+	if (fd == -1)
+		return 1;
+
 	/* reset oobinfo */
 	if (oobinfochanged == 1) {
 		if (ioctl (fd, MEMSETOOBSEL, &old_oobinfo) != 0) {
@@ -264,13 +267,18 @@ int nanddump(char *mtddev, unsigned long start_addr, unsigned long length, char 
 
 	fd = mtd_open(mtddev, &meminfo, &oobinfochanged, &old_oobinfo, &eccstats, flags);
 
+	if (meminfo.writesize == 0) {
+		printf("What the fuck.. this is not an MTD device!\n");
+		close(fd);
+		return 1;
+	}
+
 	/* Read the real oob length */
 	oob.length = meminfo.oobsize;
         fprintf(stderr, "Block size %u, page size %u, OOB size %u\n",
                 meminfo.erasesize, meminfo.writesize, meminfo.oobsize);
         fprintf(stderr, "Size %u, flags %u, type 0x%x\n",
                 meminfo.size, meminfo.flags, (int)meminfo.type);
-
 
 	if (flags & M_OMITECC)  { // (noecc)
 		switch (ioctl(fd, MTDFILEMODE, (void *) MTD_MODE_RAW)) {

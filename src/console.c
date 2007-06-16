@@ -33,11 +33,14 @@ void cmd_exit(char *line)
 void cmd_help(char *line)
 {
 	printf("connect           connects via usb to nolo\n");
+	printf("reboot            reboots remote host\n");
 	printf("info              shows info of the remote system\n");
 	printf("linfo             shows info of the local system\n");
 	printf("shell             opens a shell (/bin/sh)\n");
 	printf("badblocks [dev]   checks bad blocks on mtd (/dev/mtd1)\n");
 	printf("dump [dir]        dumps the contents of /dev/mtd to dir\n");
+	printf("nanddump [dev] [start] [len] [out] [ignore-badblocks] [ignore-oob]\n");
+	printf("                  f.ex: nanddump /dev/mtd0 0x0 0x4000 xloader.bin 1 1\n");
 	printf("exit              exits the shell\n");
 	fflush(stdout);
 }
@@ -49,6 +52,24 @@ void cmd_info(char *line)
 	get_usb_mode();
 	get_rd_mode();
 	get_rd_flags();
+}
+
+void cmd_nanddump(char *line)
+{
+	char dev[128];
+	int from;
+	int length;
+	char out[128];
+	int ignbb;
+	int ignoob = -1;
+	sscanf(line, "%127s 0x%x 0x%x %127s %d %d", &dev, &from, &length, &out, &ignbb, &ignoob);
+	if (ignoob == -1) {
+		printf("Invalid arguments.\n");
+		printf("nanddump [dev] [start] [len] [out] [ignore-badblocks] [ignore-oob]\n");
+		printf("                  f.ex: nanddump /dev/mtd0 0x0 0x4000 xloader.bin 1 1\n");
+	} else {
+		nanddump(dev, from, length, out, ignbb, ignoob);
+	}
 }
 
 void cmd_dump(char *line)
@@ -76,12 +97,17 @@ void cmd_connect(char *line)
 	connect_via_usb();
 }
 
+void cmd_reboot(char *line)
+{
+	reboot_board();
+}
+
 void cmd_shell(char *line)
 {
 	system("/bin/sh");
 }
 
-#define CMDS 9
+#define CMDS 11
 #define IS_CMD(x) !strcmp(console_commands[i].name, x)
 #define CALL_CMD(x) console_commands[x].callback((char *)line)
 #define FOREACH_CMD(x) for(x=0;x<CMDS;x++)
@@ -93,11 +119,13 @@ struct cmd_t {
 	{ .name = "exit",      .callback = &cmd_exit },
 	{ .name = "q",         .callback = &cmd_exit },
 	{ .name = "connect",   .callback = &cmd_connect },
+	{ .name = "reboot",    .callback = &cmd_reboot },
 	{ .name = "badblocks", .callback = &cmd_badblocks},
 	{ .name = "help",      .callback = &cmd_help },
 	{ .name = "?",         .callback = &cmd_help },
 	{ .name = "info",      .callback = &cmd_info },
 	{ .name = "dump",      .callback = &cmd_dump },
+	{ .name = "nanddump",  .callback = &cmd_nanddump },
 	{ .name = "shell",     .callback = &cmd_shell }
 };
 
@@ -125,6 +153,10 @@ int console_prompt()
 		write(1, "0xFFFF> ", 8);
 		line[0] = '\0';
 		fgets(line, 1024, stdin);
+		if (feof(stdin)) {
+			write(1, "\n", 1);
+			break;
+		}
 		if (line[0]) line[strlen(line)-1] = '\0';
 		line[1023] = '\0';
 	} while(console_command(line));
