@@ -241,7 +241,7 @@ closeall:
 	return 1;
 }
 
-int nanddump(char *mtddev, unsigned long start_addr, unsigned long length, char *dumpfile)
+int nanddump(char *mtddev, unsigned long start_addr, unsigned long length, char *dumpfile, int isbl)
 {
 	unsigned char readbuf[2048];
 	int oobinfochanged = 0 ;
@@ -332,9 +332,6 @@ int nanddump(char *mtddev, unsigned long start_addr, unsigned long length, char 
 
 	/* Dump the flash contents */
 	for (ofs = start_addr; ofs < end_addr ; ofs+=bs) {
-
-		progressbar(ofs, end_addr);
-
 		// new eraseblock , check for bad block
 		if (blockstart != (ofs & (~meminfo.erasesize + 1))) {
 			blockstart = ofs & (~meminfo.erasesize + 1);
@@ -344,7 +341,7 @@ int nanddump(char *mtddev, unsigned long start_addr, unsigned long length, char 
 			}
 		}
 
-		if (badblock) {
+		if (!isbl && badblock) {
 			if (omitbad)
 				continue;
 			memset (readbuf, 0xff, bs);
@@ -376,10 +373,14 @@ int nanddump(char *mtddev, unsigned long start_addr, unsigned long length, char 
 
 		/* Write out page data */
 		//if (pretty_print) dump_bytes(readbuf, bs);
-		write(ofd, readbuf, bs);
+		progressbar(ofs, end_addr);
 
-		if (badblock) {
-			printf("Oops badblock %d at 0x%lx !\n", badblocks++, ofs);
+		// OOB STUFF //
+		if (omitoob)
+			continue;
+
+		if (!isbl&&badblock) {
+			printf("Oops badblock %d *ignored* at 0x%lx !\n", badblocks++, ofs);
 			memset (readbuf, 0xff, meminfo.oobsize);
 		} else {
 			/* Read OOB data and exit on failure */
@@ -389,9 +390,6 @@ int nanddump(char *mtddev, unsigned long start_addr, unsigned long length, char 
 				goto closeall;
 			}
 		}
-
-		if (omitoob)
-			continue;
 
 		/* Write out OOB data */
 		D dump_bytes(oobbuf, meminfo.oobsize);
@@ -539,20 +537,20 @@ int reverse_extract_pieces(char *dir)
 	// TODO: get values from /proc/mtd ???
 
 	//rf_extract("/dev/mtd0", is_n800()?0x200:0, 0x003600, "xloader.bin");
-	nanddump("/dev/mtd0", is_n800()?0x200:0, 0, "xloader.bin");
+	nanddump("/dev/mtd0", is_n800()?0x200:0, 0x4000, "xloader.bin", 1); // 0x3600 size?
 	//rf_extract("/dev/mtd0", 0x004000, 0x01ffff,  "secondary.bin");
-	nanddump("/dev/mtd0", 0x004000, 0,  "secondary.bin");
-	nanddump("/dev/mtd1", 0x060000, 0,  "config.bin");
+	nanddump("/dev/mtd0", 0x004000, 0,  "secondary.bin", 1);
+	nanddump("/dev/mtd1", 0, 0,  "config.bin", 0);
 	//rf_extract("/dev/mtd2", 0x000800, 0x200000,  "zImage");
-	nanddump("/dev/mtd2", 0x000800, 0,  "zImage");
+	nanddump("/dev/mtd2", 0x000800, 0,  "zImage", 0);
 	//rf_extract("/dev/mtd3", 0x000000, 0x1D00000, "initfs.jffs2");
-	nanddump("/dev/mtd3", 0x000000, 0, "initfs.jffs2");
+	nanddump("/dev/mtd3", 0x000000, 0, "initfs.jffs2", 0);
 
 	printf("\n\nExtract rootfs? (y/N): "); fflush(stdout);
 	read(0, &reply, 1);
 	if (reply=='y'||reply=='Y') {
 		//rf_extract("/dev/mtd4", 0x000000, 0x6000000, "rootfs.jffs2");
-		nanddump("/dev/mtd4", 0x000000, 0, "rootfs.jffs2");
+		nanddump("/dev/mtd4", 0x000000, 0, "rootfs.jffs2", 0);
 	} else	printf("*** Ignoring rootfs\n");
 
 	printf("\n\nStrip dumped files? (y/N): "); fflush(stdout);
