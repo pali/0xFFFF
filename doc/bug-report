@@ -1,0 +1,60 @@
+Bug#:      1584
+Opened:    2007-06-25 23:06 GMT+3
+Reporter:  Robert Schuster <thebohemian [at] gmx.net>
+Summary:   provide system management software under free software licenses
+
+Several applications and libraries found on the N800 internet tablet/IT OS
+2007.10 are distributed under restricted and non-free license terms according
+to the Debian Free Software Guidelines, Open Source Definition and Free
+Software definition.
+
+I hereby politely ask for distributing those components under terms that are
+acceptable to the above mentioned guidelines.
+
+The applications of interest are:
+from the initfs: activate_panel, bt-cal, cal-tool, fb-chaimage, text2screen,
+wlan-cal, wlan-fw-update, retu-time, show_image, dsme, battest, bootstate,
+dsmetool, dspctl, waitfordsme and the script linuxrc
+
+the libraries of interest are:
+libbmeic.so, libcal.so, libdsme.so, libppu.so, libactivitymonitor.so,
+libcalmodule.so, libhwwd.so, libinactivity-blank.so, liblifeguard.so,
+libperipheral.so, libprocesswd.so, libstartup.so, libstate.so,
+libtemperature.so
+
+There may be other software artifacts which are of interest for which I will
+file separate bugreports if there is a need for them.
+
+Rationale:
+When Nokia/Maemo decided to use a variant of the GNU operating system and Linux
+as its kernel for implementing the Internet Tablet OS they profited from a
+wealth of knowledge and work invested in various software projects. With the
+help of free software licensing they were allowed to create a unique software
+environment which exactly implements the Maemo projects' goals. Maemo has
+gained and still gains from those software projects because they are
+independently developed further giving Maemo more possibilities in the future.
+
+One of the key goals of the GNU project is to give its user's the freedom to
+implement their own ideas. This goal is to be reached by writing free software
+and sometimes (in the early days often) replacing proprietary software.
+
+The non-free bits in the core infrastructure of the IT OS 2007 are a road block
+for efforts to create free operating systems/distributions besides IT OS on the
+N770/N800.
+
+The reason for why it is helpful to have other operating system/distribution on
+the N800 is simple: There are hundreds of GNU/Linux distributions out there.
+Each one exists because there is a userbase that exactly likes their flavor of
+GNU/Linux.
+
+For the N770/N800 Internet Tablets there exists only one such distribution: The
+Internet Tablet OS. With the sheer amount of GNU/Linux distributions for
+desktops/workstations/servers/routers/PDAs on the one hand and the single OS
+solution for the Internet Tablets on the other I doubt that it can handle all
+the possible uses people have.
+
+By releasing the above mentioned programs/libraries under free software
+licenses people will be given the same possibilities the Maemo project had in
+the first place.
+
+Let us be free.
