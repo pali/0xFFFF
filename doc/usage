@@ -8,27 +8,38 @@ Tablets (n770 and n800).
   - reboot de mother board
   - extract the current firmware pieces from the device (dump)
   - set the USB host/slave mode
-  - set the R&R mode
+  - fine grained R&D flags support
   - identify firmware pieces
+  - dump mtd partitions (embedded mtd-utils source code)
+  - reconstruct initfs from a dump
+  - dump config partition
+  - automatic piece identifier
+  - console mode (shell like)
   </pre>
 This is the help message of the tool:
 <pre>
 <b>~$ 0xFFFF -h</b>
-0xFFFF v0.1  - The Open Free Fiasco Firmware Flasher
- -b [arg]      boots the kernel with arguments
- -e [path]     dump the firmware pieces into the path
- -p [[p:]file] piece-of-firmware : file-where-this-piece-is
- -r [0|1]      disable/enable R&D mode
- -u [fiasco]   unpack target fiasco image
- -U [0|1]      disable/enable the usb host mode
- -h            show this help message
- -i            show device information (let standby mode)
- -I [piece]    identify a firmware piece
- -l            list supported usb device ids
- -d [vid:pid]  injects a usb device into the supported list
- -R            reboot the omap board
- -v            be verbose and noisy
- -V            show 0xFFFF version information
+0xFFFF v0.2  // The Free Fiasco Firmware Flasher
+ -b [arg]       boots the kernel with arguments
+ -e [path]      dump and extract pieces to path
+ -r [0|1]       disable/enable R&D mode
+ -f <flags>     set the given RD flags (see '-f help')
+ -p [[p%]file]  piece-of-firmware % file-where-this-piece-is
+ -u [fiasco]    unpack target fiasco image
+ -U [0|1]       disable/enable the usb host mode
+ -s [serial]    serial port console (minicom like terminal)
+ -C [/dev/mtd]  check bad blocks on mtd
+ -c             console prompt mode
+ -h             show this help message
+ -i             show device information (let standby mode)
+ -I [piece]     identify a firmware piece
+ -l             list supported usb device ids
+ -d [vid:pid]   injects a usb device into the supported list
+ -D [0|1|2]     sets the root device to flash (0), mmc (1) or usb (2)
+ -R             reboot the omap board
+ -x             extract configuration entries from /dev/mtd1
+ -v             be verbose and noisy
+ -V             show 0xFFFF version information
 Pieces are: xloader secondary kernel initfs rootfs omap-nand 
 </pre>
 

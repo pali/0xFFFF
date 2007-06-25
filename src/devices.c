@@ -23,6 +23,18 @@
 #include <string.h>
 #include <stdlib.h>
 
+/*
+ * The internet tablet PC (and probably most of
+ * Nokia devices have different USB-IDs depending
+ * on the boot state.
+ *
+ * The following table shows this info:
+ *
+ *           boot       os
+ * n770   0421:0105  0421:0431
+ * n800              0421:0431
+ *
+ */
 struct devices supported_devices[SUPPORTED_DEVICES] = {
   { "FFFF", 0x000, 0x0000, 0x0000 },  // dummy
   { "unkn", 0x421, 0x3f00, 0x0000 },  // probably a development board
@@ -53,6 +65,10 @@ int is_valid_device(struct usb_device_descriptor *udd)
 	return 0;
 }
 
+/*
+ * List all supported device-ids and it's names
+ *
+ */
 void list_valid_devices()
 {
 	int i;
@@ -61,6 +77,12 @@ void list_valid_devices()
 	for(i=1; ptr.vendor_id; ptr = supported_devices[++i])
 		printf("%04x:%04x  %s\n", ptr.vendor_id, ptr.product_id, ptr.name);
 }
+
+/*
+ * Returns true (1) when a valid usb device is found and stores the udd and devices
+ *   structures for the specified device.
+ * Otherwise returns false (0)
+ */
 
 int usb_device_found(struct usb_device_descriptor *udd, struct devices *it_device)
 {
@@ -74,9 +96,6 @@ int usb_device_found(struct usb_device_descriptor *udd, struct devices *it_devic
 		switch(usb_find_devices()) {
 		case -1:
 			fprintf(stderr, "\nerror: no devices found.\n");
-			exit(1);
-		case 0:
-			fprintf(stderr, "\noops: no permission to usb. got root?\n");
 			exit(1);
 		default:
 			for (bus = usb_busses; bus; bus = bus->next) {
