@@ -16,119 +16,211 @@
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "main.h"
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
+#include <fcntl.h>
 #include <unistd.h>
 #include <sys/types.h>
 #include <sys/stat.h>
-#include <fcntl.h>
+#include <arpa/inet.h>
+#include "main.h"
 
-#warning The FIASCO format is not yet fully implemented.
+void (*fiasco_callback)(struct header_t *header) = NULL;
 
-off_t piece_header_to_size(unsigned char *header)
+int openfiasco(char *name)
 {
-	off_t sz = 0;
-	sz += header[0x15+3];
-	sz += header[0x15+2] << 8;
-	sz += header[0x15+1] << 16;
-	sz += header[0x15+0] << 24;
-	return sz;
-}
-
-int piece_header_is_valid(unsigned char *header)
-{
-	if (header[0]=='T' && header[1]=='\x02')
-		return 1;
-	return 0;
-}
-
-#define piece_header_to_name(x) x+0x9;
-
-/*
- * Teh Fiasco firmware parser lives here!
- */
-int fiasco_read_image(char *file)
-{
-	int fd;
-	unsigned char header[5];
-	unsigned char version[55];
-	char *version2;
-
-	fd = open(file, O_RDONLY);
-
-	printf("WARNING: Fiasco firmware is not yet fully supported. Don't relay on it ATM.\n");
+	struct header_t header;
+	unsigned char buf[128];
+	unsigned char data[128];
+	unsigned int namelen;
+	int i;
+	int fd = open(name, O_RDONLY);
 
 	if (fd == -1) {
-		printf("Cannot open fiasco image.\n");
-		return -1;
+		fprintf(stderr, "Cannot open %s\n", name);
+		return 1;
 	}
 
-	// b4 00 00 00 00 36
-	if (read(fd, header, 5) != 5) {
-		printf("Error reading fiasco header\n");
-		goto __fiasco_read_image_end;
+	/* read header */
+	read(fd, buf, 5);
+	if (buf[0] != 0xb4) {
+		printf("Invalid header\n");
+		return close(fd);
+	}
+	memcpy(&namelen,buf+1,4);
+	namelen = ntohl(namelen);
+	if (namelen>128) {
+		printf("Stupid length at header. Is this a joke?\n");
+		return close(fd);
+	}
+	memset(buf,'\0', 128);
+	read(fd, buf, namelen);
+	// 6 first bytes are unknown
+	// buf 00 00 00 VERSION e8 0e
+//	printf("6Bytes: %02x %02x %02x %02x %02x %02x\n", 
+//		buf[0], buf[1], buf[2], buf[3], buf[4], buf[5]);
+	printf("Fiasco version: %2d\n", buf[3]);
+	strcpy(header.fwname, buf+6);
+	for(i=6;i<namelen;i+=strlen(buf+i)+1) {
+		printf("Name: %s\n", buf+i);
 	}
 
-	if (header[0] != 0xb4) {
-		printf("Invalid fiasco signature.\n");
-		goto __fiasco_read_image_end;
-	}
-	// skip 6 bytes
-	read(fd, version, 6);
+	/* walk the tree */
+	while(1) {
+		if (read(fd, buf, 9)<9)
+			break;
 
-	// print version header
-	if (read(fd, version, 55) != 55) {
-		printf("Error reading fiasco version.\n");
-		goto __fiasco_read_image_end;
-	}
-
-	printf("# Fiasco header information:\n");
-	printf("# ==========================\n");
-	printf("# firmware type:    %s\n", version);
-	version2 = version+strlen((char *)version)+3;
-	if (*version2=='.')
-		printf("firmware version: (null) (old firmware? no version string found?)\n");
-	else printf("firmware version: %s\n", version2);
-
-	// pieces:
-	// after the version2 string starts the header-body loop love
-	lseek(fd, 0xf + strlen(version2) + strlen(version), SEEK_SET);
-	do {
-		char piece_header[30];
-		char description[256];
-		unsigned char desc_len;
-		char *name;
-		off_t size;
-		off_t tmp = lseek(fd, 0, SEEK_CUR);
-
-		size = read(fd, piece_header, 30);
-		if (size != 30) {
-			fprintf(stderr, "Unexpected end of file\n");
+		if (buf[0] != 0x54) { // 'T'
+			printf("unexpected header at %d, found %02x %02x %02x\n", 
+				(int)lseek(fd, 0, SEEK_CUR),
+				buf[0], buf[1], buf[2]);
 			break;
 		}
-		dump_bytes(piece_header,30);
-		if (!piece_header_is_valid(piece_header)) {
-			fprintf(stderr, "Oops. Invalid piece header.\n");
+		header.hash = buf[7]<<8|buf[8];
+		//printf("BYTE: %02x %02x %02x %02x %02x %02x\n", 
+			//	buf[1], buf[2], buf[3], buf[4], buf[5], buf[6]);
+
+		/* piece name */
+		memset(data, '\0', 13);
+		if (read(fd, data, 12)<12)
 			break;
+		if (data[0] == 0xff) {
+			printf(" [eof]\n");
+			break;
+		} else printf(" %s\n", data);
+		strcpy(header.name, data);
+
+		if (read(fd, buf, 9)<9)
+			break;
+		memcpy(&header.size, buf,4);
+		header.size = ntohl(header.size);
+		printf("   size:    %d bytes\n", header.size);
+		printf("   hash:    %04x\n", header.hash);
+		//printf("BYTE: %02x %02x %02x %02x %02x\n", 
+		//	buf[4], buf[5], buf[6], buf[7], buf[8]);
+		/* XXX this is not ok */
+		//printf("BUF8: %02x\n", buf[8]);
+		while (buf[8] && buf[8]>'0' && buf[8] < '9') {
+			if (read(fd, data, 1)<1)
+				break;
+			i = data[0];
+			if (read(fd, data, i)<i)
+				break;
+			if (data[0])
+			printf("   version: %s\n", data);
+			strcpy(header.version, data);
+			if (read(fd, buf+8, 1)<1)
+				break;
 		}
-		size = piece_header_to_size(piece_header);
-		name = piece_header_to_name(piece_header);
-		printf("# %s is %lld bytes\n", name, size);
-
-		read(fd, description, 255);
-		printf("#   version: %s\n", description);
-		/* lseek foreach subimage */
-		lseek(fd, tmp, SEEK_SET);
-		lseek(fd, strlen(description) + 0x20, SEEK_CUR);
-		printf("rsc '%s' %lld '%s.bin' 0 %lld\n", file, lseek(fd,0,SEEK_CUR), name, size);
-		lseek(fd, size, SEEK_CUR);
-	} while(1);
-
-	//printf("Image '%s', size %d bytes.\n", image, size);
-
-__fiasco_read_image_end:
-	close(fd);
+		/* callback */
+		if (fiasco_callback != NULL) {
+			header.data = (char *)malloc(header.size);
+			if (header.data == NULL) {
+				printf("Cannot alloc %d bytes\n", header.size);
+				break;
+			}
+			read(fd, header.data, header.size);
+			fiasco_callback(&header);
+			free(header.data);
+			continue;
+		}
+		lseek(fd, header.size, SEEK_CUR);
+	}
 	return 0;
 }
+
+/* fiasco writer */
+
+int fiasco_new(const char *filename, const char *name)
+{
+	int fd;
+	int len = htonl(strlen(name));
+	fd = open(filename, O_RDWR|O_CREAT);
+	if (fd == -1)
+		return -1;
+	write(fd, "\xb4", 1);
+	write(fd, &len, 4);
+	/* version header */
+	write(fd, "\x00\x00\x00\x02\xe8\x0e", 6);
+	write(fd, name, strlen(name)+1);
+	return fd;
+}
+
+int fiasco_add_eof(int fd)
+{
+	unsigned char buf[32];
+	if (fd == -1)
+		return -1;
+	memset(buf,'\xff', 32);
+	write(fd, buf, 32);
+	return 0;
+}
+
+int fiasco_add(int fd, const char *name, const char *file, const char *version)
+{
+	int gd;
+	unsigned int sz;
+	unsigned char len;
+	unsigned short hash;
+	unsigned char *ptr = &hash;
+	char bname[13];
+
+	if (fd == -1)
+		return -1;
+	gd = open(file, O_RDONLY);
+	if (gd == -1)
+		return -1;
+	sz = htonl((unsigned int) lseek(gd, 0, SEEK_END));
+	// 4 bytes big endian
+	write(fd, "T\x02\x2e\x19\x01\x01\x00", 7); // header?
+	/* checksum */
+	hash = do_hash_file(file);
+	ptr[0]^=ptr[1]; ptr[1]=ptr[0]^ptr[1]; ptr[0]^=ptr[1];
+	write(fd, hash, 2);
+
+	memset(bname, '\0', 13);
+	strncpy(bname, name, 12);
+
+	write(fd, &sz, 4);
+	if (version) {
+		/* append metadata */
+		//write(fd, version, 
+		write(fd, "\x00\x00\x00\x00\x31", 5);
+		len = strlen(version);
+		write(fd, &len, 1);
+		write(fd, version, len);
+		write(fd, "\x00\x9b", 2);
+	} else {
+		write(fd, "\x00\x00\x00\x00\x9b", 5);
+	}
+	return 0;
+}
+
+
+/* local code */
+#if 0
+void my_callback(struct header_t *header)
+{
+	printf("Dumping %s\n", header->name);
+	printf("DATA: %02x\n", header->data[0]);
+}
+
+int main(int argc, char **argv)
+{
+	if (argc!=2) {
+		printf("Usage: unfiasco [file]\n");
+		return 1;
+	}
+
+/*
+	fd = fiasco_new("myfiasco", "pancake-edition");
+	fiasco_add(fd, "kernel", "zImage", "2.6.22");
+	close(fd);
+*/
+
+//	fiasco_callback = &my_callback;
+
+	return openfiasco(argv[1]);
+}
+#endif

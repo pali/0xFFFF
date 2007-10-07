@@ -73,27 +73,28 @@ void show_usage()
 {
 	int i;
 	show_title();
-
 	printf(" -b [arg]       boots the kernel with arguments\n");
-	printf(" -e [path]      dump and extract pieces to path\n");
-	printf(" -r [0|1]       disable/enable R&D mode\n");
-	printf(" -f <flags>     set the given RD flags (see '-f help')\n");
-	printf(" -p [[p%%]file]  piece-of-firmware %% file-where-this-piece-is\n");
-	printf(" -u [fiasco]    unpack target fiasco image\n");
-	printf(" -U [0|1]       disable/enable the usb host mode\n");
-	printf(" -s [serial]    serial port console (minicom like terminal)\n");
-	printf(" -C [/dev/mtd]  check bad blocks on mtd\n");
 	printf(" -c             console prompt mode\n");
-	printf(" -h             show this help message\n");
-	printf(" -i             show device information (let standby mode)\n");
-	printf(" -I [piece]     identify a firmware piece\n");
-	printf(" -l             list supported usb device ids\n");
+	printf(" -C [/dev/mtd]  check bad blocks on mtd\n");
 	printf(" -d [vid:pid]   injects a usb device into the supported list\n");
 	printf(" -D [0|1|2]     sets the root device to flash (0), mmc (1) or usb (2)\n");
+	printf(" -e [path]      dump and extract pieces to path\n");
+	printf(" -f <flags>     set the given RD flags (see '-f help')\n");
+	printf(" -F [fiasco]    flash a fiasco firmware image\n");
+	printf(" -h             show this help message\n");
+	printf(" -H [file]      calculate hash for file\n");
+	printf(" -i             show device information (let standby mode)\n");
+	printf(" -I [piece]     identify a firmware piece\n");
+	printf(" -l, -L         list supported usb device ids\n");
+	printf(" -p [[p%%]file]  piece-of-firmware %% file-where-this-piece-is\n");
+	printf(" -r [0|1]       disable/enable R&D mode\n");
 	printf(" -R             reboot the omap board\n");
-	printf(" -x             extract configuration entries from /dev/mtd1\n");
+	printf(" -s [serial]    serial port console (minicom like terminal)\n");
+	printf(" -u [fiasco]    unpack target fiasco image\n");
+	printf(" -U [0|1]       disable/enable the usb host mode\n");
 	printf(" -v             be verbose and noisy\n");
 	printf(" -V             show 0xFFFF version information\n");
+	printf(" -x             extract configuration entries from /dev/mtd1\n");
 	printf("Pieces are: ");
 	for(i=0;pieces[i];i++) printf("%s ", pieces[i]); printf("\n");
 	// serial port support is not yet done (cold flash is for flashing the 8kB nand)
@@ -102,10 +103,32 @@ void show_usage()
 	exit(0);
 }
 
+
+void unpack_callback(struct header_t *header)
+{
+	FILE *fd = fopen(header->name, "wb");
+	if (fd == NULL) {
+		printf("Cannot open file.\n");
+		return;
+	}
+	fwrite(header->data, header->size, 1, fd);
+	fclose(fd);
+}
+
 void unpack_fiasco_image(char *file)
 {
-	fiasco_read_image(file);
-	// TODO
+	printf("Dumping firmware pieces to disk.\n");
+	fiasco_callback = &unpack_callback;
+	openfiasco( file );
+}
+
+int fiasco_flash(char *file)
+{
+	/* TODO */
+	fiasco_callback = NULL;
+	openfiasco( file );
+
+	printf("\nTODO: Implement the fiasco flashing here.\n");
 }
 
 int connect_via_usb()
@@ -185,12 +208,17 @@ int main(int argc, char **argv)
 {
 	int c;
 
-	while((c = getopt(argc, argv, "C:cp:vVhRu:ib:U:r:e:ld:I:D:f:s:x")) != -1) {
+	while((c = getopt(argc, argv, "C:cp:vVhRu:ib:U:r:e:Lld:I:D:f:F:s:xH:")) != -1) {
 		switch(c) {
+		case 'H':
+			printf("xorpair: %04x\n", do_hash_file(optarg));
+			return 0;
 		case 'x':
 			return dump_config();
 		case 'c':
 			return console_prompt();
+		case 'F':
+			return fiasco_flash(optarg);
 		case 'd':
 			sscanf(optarg, "%04hx:%04hx", 
 				&supported_devices[SUPPORTED_DEVICES-2].vendor_id,
@@ -232,6 +260,7 @@ int main(int argc, char **argv)
 		case 'p':
 			add_piece(optarg);
 			break;
+		case 'L':
 		case 'l':
 			list_valid_devices();
 			return 0;
@@ -274,9 +303,9 @@ int main(int argc, char **argv)
 	&&	(usb_mode     == -1)
 	&& 	(root_device  == -1))
 	{
-		printf("Usage: 0xFFFF [-hvVRi] [-e path] [-U 0|1] [-p [piece%%]file [-p ...]]\n");
-		printf("              [-b boot-args] [-I piece [-I ...]] [-u fiasco-image] [-x]\n");
-		printf("              [-D 0|1|2] [-F rd flags] [-s serial-dev] [-c] [-C mtd-dev]\n");
+		printf("0xFFFF [-chiLRvVx] [-C mtd-dev] [-d vid:pid] [-D 0|1|2] [-e path] [-f flags]\n");
+		printf("       [-F fiasco] [-H hash-file] [-I piece] [-p [piece%%]file]] [-r 0|1]\n");
+		printf("       [-s serial-dev] [-u fiasco-image] [-U 0|1]\n");
 		return 1;
 	}
 

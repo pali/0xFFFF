@@ -77,4 +77,16 @@ extern char *pieces[];
 extern char *modes[];
 extern char *root_devices[];
 
+// fiasco
+extern void (*fiasco_callback)(struct header_t *header);
+struct header_t {
+	char fwname[128];
+	char name[128];
+	char version[128];
+	unsigned short hash;
+	unsigned int size;
+	unsigned char *data;
+};
+
+
 #endif
