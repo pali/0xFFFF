@@ -73,28 +73,29 @@ void show_usage()
 {
 	int i;
 	show_title();
-	printf(" -b [arg]       boots the kernel with arguments\n");
-	printf(" -c             console prompt mode\n");
-	printf(" -C [/dev/mtd]  check bad blocks on mtd\n");
-	printf(" -d [vid:pid]   injects a usb device into the supported list\n");
-	printf(" -D [0|1|2]     sets the root device to flash (0), mmc (1) or usb (2)\n");
-	printf(" -e [path]      dump and extract pieces to path\n");
-	printf(" -f <flags>     set the given RD flags (see '-f help')\n");
-	printf(" -F [fiasco]    flash a fiasco firmware image\n");
-	printf(" -h             show this help message\n");
-	printf(" -H [file]      calculate hash for file\n");
-	printf(" -i             show device information (let standby mode)\n");
-	printf(" -I [piece]     identify a firmware piece\n");
-	printf(" -l, -L         list supported usb device ids\n");
+	printf(" -b [arg]        boots the kernel with arguments\n");
+	printf(" -c              console prompt mode\n");
+	printf(" -C [/dev/mtd]   check bad blocks on mtd\n");
+	printf(" -d [vid:pid]    injects a usb device into the supported list\n");
+	printf(" -D [0|1|2]      sets the root device to flash (0), mmc (1) or usb (2)\n");
+	printf(" -e [path]       dump and extract pieces to path\n");
+	printf(" -f <flags>      set the given RD flags (see '-f help')\n");
+	printf(" -F [fiasco]     flash a fiasco firmware image\n");
+	printf(" -h              show this help message\n");
+	printf(" -H [file]       calculate hash for file\n");
+	printf(" -i              show device information (let standby mode)\n");
+	printf(" -I [piece]      identify a firmware piece\n");
+	printf(" -l, -L          list supported usb device ids\n");
 	printf(" -p [[p%%]file]  piece-of-firmware %% file-where-this-piece-is\n");
-	printf(" -r [0|1]       disable/enable R&D mode\n");
-	printf(" -R             reboot the omap board\n");
-	printf(" -s [serial]    serial port console (minicom like terminal)\n");
-	printf(" -u [fiasco]    unpack target fiasco image\n");
-	printf(" -U [0|1]       disable/enable the usb host mode\n");
-	printf(" -v             be verbose and noisy\n");
-	printf(" -V             show 0xFFFF version information\n");
-	printf(" -x             extract configuration entries from /dev/mtd1\n");
+	printf(" -P [new-fiasco] creates a new fiasco package, pieces as arguments\n");
+	printf(" -r [0|1]        disable/enable R&D mode\n");
+	printf(" -R              reboot the omap board\n");
+	printf(" -s [serial]     serial port console (minicom like terminal)\n");
+	printf(" -u [fiasco]     unpack target fiasco image\n");
+	printf(" -U [0|1]        disable/enable the usb host mode\n");
+	printf(" -v              be verbose and noisy\n");
+	printf(" -V              show 0xFFFF version information\n");
+	printf(" -x              extract configuration entries from /dev/mtd1\n");
 	printf("Pieces are: ");
 	for(i=0;pieces[i];i++) printf("%s ", pieces[i]); printf("\n");
 	// serial port support is not yet done (cold flash is for flashing the 8kB nand)
@@ -111,6 +112,7 @@ void unpack_callback(struct header_t *header)
 		printf("Cannot open file.\n");
 		return;
 	}
+	fiasco_data_read(header);
 	fwrite(header->data, header->size, 1, fd);
 	fclose(fd);
 }
@@ -208,7 +210,7 @@ int main(int argc, char **argv)
 {
 	int c;
 
-	while((c = getopt(argc, argv, "C:cp:vVhRu:ib:U:r:e:Lld:I:D:f:F:s:xH:")) != -1) {
+	while((c = getopt(argc, argv, "C:cp:PvVhRu:ib:U:r:e:Lld:I:D:f:F:s:xH:")) != -1) {
 		switch(c) {
 		case 'H':
 			printf("xorpair: %04x\n", do_hash_file(optarg));
@@ -260,6 +262,8 @@ int main(int argc, char **argv)
 		case 'p':
 			add_piece(optarg);
 			break;
+		case 'P':
+			return fiasco_pack(optind, argv);
 		case 'L':
 		case 'l':
 			list_valid_devices();
@@ -305,7 +309,7 @@ int main(int argc, char **argv)
 	{
 		printf("0xFFFF [-chiLRvVx] [-C mtd-dev] [-d vid:pid] [-D 0|1|2] [-e path] [-f flags]\n");
 		printf("       [-F fiasco] [-H hash-file] [-I piece] [-p [piece%%]file]] [-r 0|1]\n");
-		printf("       [-s serial-dev] [-u fiasco-image] [-U 0|1]\n");
+		printf("       [-s serial-dev] [-u fiasco-image] [-U 0|1] | [-P new-fiasco] [piece1] [2] ..\n");
 		return 1;
 	}
 

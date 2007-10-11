@@ -78,8 +78,15 @@ extern char *modes[];
 extern char *root_devices[];
 
 // fiasco
+int openfiasco(char *name);
+int fiasco_new(const char *filename, const char *name);
+void fiasco_data_read(struct header_t *header);
+int fiasco_add_eof(int fd);
 extern void (*fiasco_callback)(struct header_t *header);
+int fiasco_add(int fd, const char *name, const char *file, const char *version);
+int fiasco_pack(int optind, char *argv[]);
 struct header_t {
+	int fd;
 	char fwname[128];
 	char name[128];
 	char version[128];
