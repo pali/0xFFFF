@@ -20,7 +20,7 @@
 #include <stdio.h>
 #include <string.h>
 
-char *fpid_file(char *filename)
+const char *fpid_file(const char *filename)
 {
 	FILE *fd;
 	char buf[512];
@@ -45,11 +45,9 @@ char *fpid_file(char *filename)
 	size = ftell(fd);
 	fclose(fd);
 
-#if 0
 	if (!memcmp(b+0x34, "2NDAPE", 6))
-		return PIECE_2ND;
+		return pieces[PIECE_2ND];
 	else
-#endif
 	if (!memcmp(b+0x04, "NOLOScnd", 8))
 		return pieces[PIECE_SECONDARY];
 	else

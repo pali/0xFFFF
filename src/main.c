@@ -42,6 +42,7 @@ int    info                = 0;
 /* global structs */
 char *pieces[] = {
   "xloader",    // xloader.bin
+  "2nd",        // 2nd
   "secondary",  // secondary.bin
   "kernel",     // zImage
   "initfs",     // jffs'd initfs

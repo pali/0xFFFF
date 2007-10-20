@@ -15,7 +15,7 @@ void check_nolo_order();
 extern struct usb_dev_handle *dev;
 unsigned long get_file_size(char *file);
 void progressbar(unsigned long long part, unsigned long long total);
-char *fpid_file(char *filename);
+const char *fpid_file(const char *filename);
 int add_piece(char *piece);
 
 #include <usb.h>
@@ -65,6 +65,7 @@ extern struct piece_t pcs[10];
 
 enum {
 	PIECE_XLOADER = 0,
+	PIECE_2ND,
 	PIECE_SECONDARY,
 	PIECE_KERNEL,
 	PIECE_INITFS,

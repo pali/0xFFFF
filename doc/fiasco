@@ -1,0 +1,30 @@
+SPECS FOR TEH FIASCO FIRMWARE FILE FORMAT ffff!
+-----------------------------------------------
+
+  These notes has not been taken properly and may be wrong. It must
+  be revised to fit the reality. But this is mostly a general idea:
+
+
+FILE HEADER
+
+   1 byte = 0xb4    --  signature
+   4 bytes          --  firmware name length (big endian)
+   6 bytes          --  versioning info ( byte 4 is format version )
+   N-6 bytes        --  firmware name (zero fill)
+
+
+PIECE HEADER
+
+   1 byte = 0x54    --  piece signature
+   6 bytes          --  unknown
+   2 bytes          --  checksum for the piece contents (xorpair)
+  12 bytes          --  piece name (first byte is FF if is the last)
+   4 bytes          --  piece size (big endian)
+   4 bytes          --  unknown
+             block {
+   1 byte           --  if (value '1'-'9') { ..there's a comment.. }
+   1 byte           --  length of comment
+   N bytes          --  comment
+             }
+   N bytes          -- piece data
+  

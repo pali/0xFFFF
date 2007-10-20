@@ -25,37 +25,7 @@
 #include <sys/stat.h>
 #include <arpa/inet.h>
 #include "main.h"
-
-#if 0
-
-SPECS FOR TEH FIASCO FIRMWARE FILE FORMAT ffff!
------------------------------------------------
-
-FILE HEADER
-
-   1 byte = 0xb4    --  signature
-   4 bytes          --  firmware name length (big endian)
-   6 bytes          --  versioning info ( byte 4 is format version )
-   N-6 bytes        --  firmware name (zero fill)
-
-
-PIECE HEADER
-
-   1 byte = 0x54    --  piece signature
-   6 bytes          --  unknown
-   2 bytes          --  checksum for the piece contents (xorpair)
-  12 bytes          --  piece name (first byte is FF if is the last)
-   4 bytes          --  piece size (big endian)
-   4 bytes          --  unknown
-             block {
-   1 byte           --  if (value '1'-'9') { ..there's a comment.. }
-   1 byte           --  length of comment
-   N bytes          --  comment
-             }
-   N bytes          -- piece data
-  
-
-#endif
+#include "hash.h"
 
 void (*fiasco_callback)(struct header_t *header) = NULL;
 
@@ -168,26 +138,38 @@ void fiasco_data_read(struct header_t *header)
 int fiasco_new(const char *filename, const char *name)
 {
 	int fd;
-	int len = htonl(strlen(name)+1+6);
+	//int len = htonl(strlen(name)+1+6+14);
+
 	fd = open(filename, O_RDWR|O_CREAT, 0644);
 	if (fd == -1)
 		return -1;
+#if 1
+	write(fd, "\xb4\x00\x00\x00\x14\x00\x00\x00\x01\xe8\x0e", 11);
+	write(fd, "OSSO UART+USB", 14);
+#else
+	/* 2nd format doesnt works. atm stay with old one */
 	write(fd, "\xb4", 1);
 	write(fd, &len, 4);
 	/* version header */
 	write(fd, "\x00\x00\x00\x02\xe8\x0e", 6);
+	/* firmware type */
+	write(fd, "OSSO UART+USB", 14);
 	/* firmware name */
-	write(fd, name, strlen(name)+1);
+	write(fd, name, strlen(name));
+	write(fd, "", 1);
+#endif
 	return fd;
 }
 
 int fiasco_add_eof(int fd)
 {
+#if 0
 	unsigned char buf[120];
 	if (fd == -1)
 		return -1;
 	memset(buf,'\xff', 120);
 	write(fd, buf, 120);
+#endif
 	return 0;
 }
 
@@ -198,7 +180,7 @@ int fiasco_add(int fd, const char *name, const char *file, const char *version)
 	unsigned int sz;
 	unsigned char len;
 	unsigned short hash;
-	unsigned char *ptr = &hash;
+	unsigned char *ptr = (unsigned char *)&hash;
 	char buf[4096];
 	char bname[32];
 
@@ -213,7 +195,8 @@ int fiasco_add(int fd, const char *name, const char *file, const char *version)
 	sz = htonl((unsigned int) lseek(gd, 0, SEEK_END));
 	lseek(gd, 0, SEEK_SET);
 	// 4 bytes big endian
-	write(fd, "T\x02\x2e\x19\x01\x01\x00", 7); // header?
+	//write(fd, "T\x02\x2e\x19\x01\x01\x00", 7); // header?
+	write(fd, "T\x01\x2e\x19\x01\x01\x00", 7); // header (old piece format)
 	/* checksum */
 	hash = do_hash_file(file);
 	ptr[0]^=ptr[1]; ptr[1]=ptr[0]^ptr[1]; ptr[0]^=ptr[1];
@@ -222,15 +205,17 @@ int fiasco_add(int fd, const char *name, const char *file, const char *version)
 
 	memset(bname, '\0', 13);
 	if (name == NULL)
-		strncpy(bname, file, 12);
-	else
-		strncpy(bname, name, 12);
+		name = fpid_file(file);
+	/* failback */
+	if (name == NULL)
+		name = file;
+
+	strncpy(bname, name, 12);
 	write(fd, bname, 12);
 
 	write(fd, &sz, 4);
 	if (version) {
 		/* append metadata */
-		//write(fd, version, 
 		write(fd, "\x00\x00\x00\x00\x31", 5);
 		len = strlen(version);
 		write(fd, &len, 1);
@@ -252,7 +237,7 @@ int fiasco_add(int fd, const char *name, const char *file, const char *version)
 
 int fiasco_pack(int optind, char *argv[])
 {
-	char *file = argv[optind];
+	const char *file = argv[optind];
 	char *type;
 	int fd, ret;
 
@@ -262,7 +247,7 @@ int fiasco_pack(int optind, char *argv[])
 
 	printf("Package: %s\n", file);
 	while((file=argv[++optind])) {
-		type = fpid_file(file);
+		type = (char *)fpid_file(file);
 		printf("Adding %s: %s..\n", type, file);
 		ret = fiasco_add(fd, type, file, NULL);
 		if (ret<0) {
