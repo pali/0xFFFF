@@ -41,27 +41,27 @@ int    info                = 0;
 
 /* global structs */
 char *pieces[] = {
-  "xloader",    // xloader.bin
-  "2nd",        // 2nd
-  "secondary",  // secondary.bin
-  "kernel",     // zImage
-  "initfs",     // jffs'd initfs
-  "rootfs",     // 80mB of blob
-  "omap-nand",  // 8kB of food for the nand
-  NULL
+	"xloader",    // xloader.bin
+	"2nd",        // 2nd
+	"secondary",  // secondary.bin
+	"kernel",     // zImage
+	"initfs",     // jffs'd initfs
+	"rootfs",     // 80mB of blob
+	"omap-nand",  // 8kB of food for the nand
+	NULL
 };
 
 char *modes[]={
-  "host",
-  "peripheral",
-  NULL
+	"host",
+	"peripheral",
+	NULL
 };
 
 char *root_devices[] = {
-  "flash",
-  "mmc",
-  "usb",
-  NULL
+	"flash",
+	"mmc",
+	"usb",
+	NULL
 };
 
 
@@ -132,6 +132,7 @@ int fiasco_flash(char *file)
 	openfiasco( file );
 
 	printf("\nTODO: Implement the fiasco flashing here.\n");
+	return -1;
 }
 
 int connect_via_usb()

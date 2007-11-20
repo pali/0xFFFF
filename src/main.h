@@ -2,6 +2,8 @@
 #ifndef _INCLUDE_MAIN_H_
 #define _INCLUDE_MAIN_H_
 
+#include "hash.h"
+
 #define _FILE_OFFSET_BITS 64
 #define _GNU_SOURCE
 
@@ -17,7 +19,12 @@ unsigned long get_file_size(char *file);
 void progressbar(unsigned long long part, unsigned long long total);
 const char *fpid_file(const char *filename);
 int add_piece(char *piece);
+void eprintf(const char *format, ...);
 
+#include <limits.h>
+#ifndef PATH_MAX
+#define PATH_MAX 4096
+#endif
 #include <usb.h>
 
 extern struct usb_device *device;
@@ -74,6 +81,16 @@ enum {
 	PIECE_LAST
 };
 
+struct header_t {
+	int fd;
+	char fwname[128];
+	char name[128];
+	char version[128];
+	unsigned short hash;
+	unsigned int size;
+	unsigned char *data;
+};
+
 extern char *pieces[];
 extern char *modes[];
 extern char *root_devices[];
@@ -86,15 +103,7 @@ int fiasco_add_eof(int fd);
 extern void (*fiasco_callback)(struct header_t *header);
 int fiasco_add(int fd, const char *name, const char *file, const char *version);
 int fiasco_pack(int optind, char *argv[]);
-struct header_t {
-	int fd;
-	char fwname[128];
-	char name[128];
-	char version[128];
-	unsigned short hash;
-	unsigned int size;
-	unsigned char *data;
-};
+int nanddump(char *mtddev, unsigned long start_addr, unsigned long length, char *dumpfile, int isbl, int ioob);
 
 
 #endif

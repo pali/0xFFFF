@@ -56,7 +56,7 @@ int is_valid_device(struct usb_device_descriptor *udd)
 	for(i=1 ; ptr.vendor_id; ptr = supported_devices[++i])
 		if ((udd->idVendor  == ptr.vendor_id)
 		&&  (udd->idProduct == ptr.product_id)) {
-                        D printf("found %s\n", supported_devices[i]);
+                        D printf("found %s\n", supported_devices[i].name);
 			return i;
 		}
 

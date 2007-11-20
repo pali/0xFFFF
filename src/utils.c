@@ -20,6 +20,7 @@
 #include <usb.h>
 #include <stdio.h>
 #include <string.h>
+#include <stdarg.h>
 #include <stdlib.h>
 
 unsigned long get_file_size(char *file)
@@ -52,4 +53,13 @@ void progressbar(unsigned long long part, unsigned long long total)
         for(tmp=cols-(cols*pc/100);tmp;tmp--) printf("-");
         printf("]\r");
         fflush(stdout);
+}
+
+void eprintf(const char *format, ...)
+{
+	va_list ap;
+	va_start(ap, format);
+	vfprintf(stderr, format, ap);
+	va_end(ap);
+	//fflush(stderr); // XXX CRASH?!? stdin here?!?!?
 }

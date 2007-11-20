@@ -60,8 +60,8 @@ int openfiasco(char *name)
 	read(header.fd, buf, namelen);
 
 	printf("Fiasco version: %2d\n", buf[3]);
-	strcpy(header.fwname, buf+6);
-	for(i=6;i<namelen;i+=strlen(buf+i)+1)
+	strcpy(header.fwname, (char *)buf+6);
+	for(i=6;i<namelen;i+=strlen((char *)(buf+i))+1)
 		printf("Name: %s\n", buf+i);
 
 	/* walk the tree */
@@ -86,7 +86,7 @@ int openfiasco(char *name)
 			printf(" [eof]\n");
 			break;
 		} else printf(" %s\n", data);
-		strcpy(header.name, data);
+		strcpy(header.name, (char *)data);
 
 		if (read(header.fd, buf, 9)<9)
 			break;
@@ -106,7 +106,7 @@ int openfiasco(char *name)
 				break;
 			if (data[0])
 			printf("   version: %s\n", data);
-			strcpy(header.version, data);
+			strcpy(header.version, (char *)data);
 			if (read(header.fd, buf+8, 1)<1)
 				break;
 		}
@@ -126,7 +126,7 @@ int openfiasco(char *name)
 
 void fiasco_data_read(struct header_t *header)
 {
-	header->data = (char *)malloc(header->size);
+	header->data = (unsigned char *)malloc(header->size);
 	if (header->data == NULL) {
 		printf("Cannot alloc %d bytes\n", header->size);
 		return;

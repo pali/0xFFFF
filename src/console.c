@@ -60,14 +60,17 @@ void cmd_nanddump(char *line)
 	char out[128];
 	int ignbb;
 	int ignoob = -1;
-	sscanf(line, "%127s 0x%x 0x%x %127s %d %d", &dev, &from, &length, &out, &ignbb, &ignoob);
+
+	sscanf(line, "%127s 0x%x 0x%x %127s %d %d",
+		(char *)&dev, (unsigned int*)&from, (unsigned int *)&length,
+		(char *)&out, (int*)&ignbb, (int *)&ignoob);
+
 	if (ignoob == -1) {
-		printf("Invalid arguments.\n");
-		printf("nanddump [dev] [start] [len] [out] [ignore-badblocks] [ignore-oob]\n");
-		printf("                  f.ex: nanddump /dev/mtd0 0x0 0x4000 xloader.bin 1 1\n");
-	} else {
+		eprintf("Invalid arguments.\n");
+		eprintf("nanddump [dev] [start] [len] [out] [ignore-badblocks] [ignore-oob]\n");
+		eprintf("                  f.ex: nanddump /dev/mtd0 0x0 0x4000 xloader.bin 1 1\n");
+	} else
 		nanddump(dev, from, length, out, ignbb, ignoob);
-	}
 }
 
 void cmd_dump(char *line)

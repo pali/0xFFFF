@@ -27,7 +27,7 @@ usho do_hash(usho *b, int len)
 	return result;
 }
 
-usho do_hash_file(char *filename)
+usho do_hash_file(const char *filename)
 {
 	unsigned char buf[BSIZE];
 	FILE *fd = fopen(filename, "r");

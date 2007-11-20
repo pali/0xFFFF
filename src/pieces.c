@@ -55,7 +55,7 @@ int add_piece(char *piece)
 		pcs[pcs_n].vers = NULL; // TODO version string not yet supported
 	} else {
 		/*/ autodetect piece type */
-		pcs[pcs_n].type = fpid_file(piece);
+		pcs[pcs_n].type = (char *)fpid_file(piece);
 		if (pcs[pcs_n].type == NULL) {
 			printf("Use -p [piece]:[file]\n");
 			printf("Pieces: ");

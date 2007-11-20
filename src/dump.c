@@ -242,7 +242,8 @@ closeall:
 	return 1;
 }
 
-int nanddump(char *mtddev, unsigned long start_addr, unsigned long length, char *dumpfile, int isbl)
+// XXX warning ioob is not used
+int nanddump(char *mtddev, unsigned long start_addr, unsigned long length, char *dumpfile, int isbl, int ioob)
 {
 	unsigned char readbuf[2048];
 	int oobinfochanged = 0 ;
@@ -543,20 +544,20 @@ int reverse_extract_pieces(char *dir)
 	// TODO: get values from /proc/mtd ???
 
 	//rf_extract("/dev/mtd0", is_n800()?0x200:0, 0x003600, "xloader.bin");
-	nanddump("/dev/mtd0", is_n800()?0x200:0, 0x4000, "xloader.bin", 1); // 0x3600 size?
+	nanddump("/dev/mtd0", is_n800()?0x200:0, 0x4000, "xloader.bin", 1,0); // 0x3600 size?
 	//rf_extract("/dev/mtd0", 0x004000, 0x01ffff,  "secondary.bin");
-	nanddump("/dev/mtd0", 0x004000, 0,  "secondary.bin", 1);
-	nanddump("/dev/mtd1", 0, 0,  "config.bin", 0);
+	nanddump("/dev/mtd0", 0x004000, 0,  "secondary.bin", 1,0);
+	nanddump("/dev/mtd1", 0, 0,  "config.bin", 0,0);
 	//rf_extract("/dev/mtd2", 0x000800, 0x200000,  "zImage");
-	nanddump("/dev/mtd2", 0x000800, 0,  "zImage", 0);
+	nanddump("/dev/mtd2", 0x000800, 0,  "zImage", 0,0);
 	//rf_extract("/dev/mtd3", 0x000000, 0x1D00000, "initfs.jffs2");
-	nanddump("/dev/mtd3", 0x000000, 0, "initfs.jffs2", 0);
+	nanddump("/dev/mtd3", 0x000000, 0, "initfs.jffs2", 0,0);
 
 	printf("\n\nExtract rootfs? (y/N): "); fflush(stdout);
 	read(0, &reply, 1);
 	if (reply=='y'||reply=='Y') {
 		//rf_extract("/dev/mtd4", 0x000000, 0x6000000, "rootfs.jffs2");
-		nanddump("/dev/mtd4", 0x000000, 0, "rootfs.jffs2", 0);
+		nanddump("/dev/mtd4", 0x000000, 0, "rootfs.jffs2", 0,0);
 	} else	printf("*** Ignoring rootfs\n");
 
 	printf("\n\nStrip dumped files? (y/N): "); fflush(stdout);

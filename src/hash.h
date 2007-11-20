@@ -5,6 +5,6 @@
 #define BSIZE 0x20000
 
 usho do_hash(usho *b, int len);
-usho do_hash_file(char *filename);
+usho do_hash_file(const char *filename);
 
 #endif
