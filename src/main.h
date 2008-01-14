@@ -25,6 +25,8 @@ void eprintf(const char *format, ...);
 #ifndef PATH_MAX
 #define PATH_MAX 4096
 #endif
+
+#if HAVE_USB
 #include <usb.h>
 
 extern struct usb_device *device;
@@ -34,6 +36,8 @@ void list_valid_devices();
 int usb_device_found(struct usb_device_descriptor *udd, struct devices *it_device);
 int console(const char *device);
 int connect_via_usb();
+#endif
+
 int console_prompt();
 
 //

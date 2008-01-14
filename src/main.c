@@ -24,8 +24,11 @@
 #include <getopt.h>
 
 /* global pr0n */
+#if HAVE_USB
+#include <usb.h>
 struct usb_device *device  = NULL;
 struct usb_dev_handle *dev = NULL;
+#endif
 char  *fiasco_image        = NULL;
 char  *boot_cmdline        = NULL;
 char  *reverseto           = NULL;
@@ -35,7 +38,7 @@ int    usb_mode            = -1;
 int    root_device         = -1;
 int    verbose             = 0;
 int    identify            = 0;
-int    reboot              = 0;
+int    moboreboot          = 0;
 int    unpack              = 0;
 int    info                = 0;
 
@@ -74,26 +77,30 @@ void show_usage()
 {
 	int i;
 	show_title();
+#if HAVE_USB
+	printf("Over USB:\n");
 	printf(" -b [arg]        boots the kernel with arguments\n");
 	printf(" -c              console prompt mode\n");
-	printf(" -C [/dev/mtd]   check bad blocks on mtd\n");
 	printf(" -d [vid:pid]    injects a usb device into the supported list\n");
 	printf(" -D [0|1|2]      sets the root device to flash (0), mmc (1) or usb (2)\n");
-	printf(" -e [path]       dump and extract pieces to path\n");
 	printf(" -f <flags>      set the given RD flags (see '-f help')\n");
-	printf(" -F [fiasco]     flash a fiasco firmware image\n");
-	printf(" -h              show this help message\n");
-	printf(" -H [file]       calculate hash for file\n");
 	printf(" -i              show device information (let standby mode)\n");
-	printf(" -I [piece]      identify a firmware piece\n");
-	printf(" -l, -L          list supported usb device ids\n");
+	printf(" -l              list supported usb device ids\n");
 	printf(" -p [[p%%]file]  piece-of-firmware %% file-where-this-piece-is\n");
-	printf(" -P [new-fiasco] creates a new fiasco package, pieces as arguments\n");
 	printf(" -r [0|1]        disable/enable R&D mode\n");
 	printf(" -R              reboot the omap board\n");
-	printf(" -s [serial]     serial port console (minicom like terminal)\n");
-	printf(" -u [fiasco]     unpack target fiasco image\n");
 	printf(" -U [0|1]        disable/enable the usb host mode\n");
+#endif
+	printf("Local stuff:\n");
+	printf(" -s [serial]     serial port console (minicom like terminal)\n");
+	printf(" -h              show this help message\n");
+	printf(" -C [/dev/mtd]   check bad blocks on mtd\n");
+	printf(" -e [path]       dump and extract pieces to path\n");
+	printf(" -F [fiasco]     flash a fiasco firmware image\n");
+	printf(" -H [file]       calculate hash for file\n");
+	printf(" -I [piece]      identify a firmware piece\n");
+	printf(" -P [new-fiasco] creates a new fiasco package, pieces as arguments\n");
+	printf(" -u [fiasco]     unpack target fiasco image\n");
 	printf(" -v              be verbose and noisy\n");
 	printf(" -V              show 0xFFFF version information\n");
 	printf(" -x              extract configuration entries from /dev/mtd1\n");
@@ -135,6 +142,7 @@ int fiasco_flash(char *file)
 	return -1;
 }
 
+#if HAVE_USB
 int connect_via_usb()
 {
         struct usb_device_descriptor udd;
@@ -207,20 +215,28 @@ int connect_via_usb()
 
 	return 0;
 }
+#endif
 
 int main(int argc, char **argv)
 {
 	int c;
 
-	while((c = getopt(argc, argv, "C:cp:PvVhRu:ib:U:r:e:Lld:I:D:f:F:s:xH:")) != -1) {
+	while((c = getopt(argc, argv, "C:cp:PvVhRu:ib:U:r:e:ld:I:D:f:F:s:xH:")) != -1) {
 		switch(c) {
 		case 'H':
 			printf("xorpair: %04x\n", do_hash_file(optarg));
 			return 0;
 		case 'x':
 			return dump_config();
+#if HAVE_USB
 		case 'c':
 			return console_prompt();
+		case 'b':
+			boot_cmdline = optarg;
+			break;
+		case 'U':
+			usb_mode = atoi(optarg);
+			break;
 		case 'F':
 			return fiasco_flash(optarg);
 		case 'd':
@@ -232,11 +248,6 @@ int main(int argc, char **argv)
 		case 'D':
 			root_device = atoi(optarg);
 			break;
-		case 'e':
-			reverseto = optarg;
-			break;
-		case 's':
-			return console(optarg);
 		case 'f':
 			if (!strcmp(optarg,"help")) {
 			printf("* Flags are composed of:\n");
@@ -248,37 +259,40 @@ int main(int argc, char **argv)
 			exit(1);
  			}
 			rd_flags = (unsigned short) strtoul(optarg, NULL, 16);
-		case 'U':
-			usb_mode = atoi(optarg);
 			break;
 		case 'r':
 			rd_mode = atoi(optarg);
 			break;
-		case 'b':
-			boot_cmdline = optarg;
+		case 'l':
+			list_valid_devices();
+			return 0;
+		case 'p':
+			add_piece(optarg);
 			break;
+		case 'i':
+			info = 1;
+			break;
+		case 'R':
+			moboreboot = 1;
+			break;
+#endif
+		case 'e':
+			reverseto = optarg;
+			break;
+		case 's':
+			return console(optarg);
 		case 'u':
 			fiasco_image = optarg;
 			unpack = 1;
 			break;
-		case 'p':
-			add_piece(optarg);
-			break;
 		case 'P':
 			return fiasco_pack(optind, argv);
-		case 'L':
-		case 'l':
-			list_valid_devices();
-			return 0;
 		case 'I':
 			printf("%s: %s\n", fpid_file(optarg), optarg);
 			identify = 1;
 			break;
 		case 'C':
 			return check_badblocks(optarg);
-		case 'i':
-			info = 1;
-			break;
 		case 'v':
 			verbose = 1;
 			break;
@@ -288,9 +302,6 @@ int main(int argc, char **argv)
 		case 'V':
 			printf("%s\n", VERSION);
 			return 0;
-		case 'R':
-			reboot = 1;
-			break;
 		}
 	}
 
@@ -305,11 +316,11 @@ int main(int argc, char **argv)
 	&&	(rd_flags     == -1)
 	&&	(rd_mode      == -1)
 	&&	(info         == 0)
-	&&	(reboot       == 0)
+	&&	(moboreboot       == 0)
 	&&	(usb_mode     == -1)
 	&& 	(root_device  == -1))
 	{
-		printf("0xFFFF [-chiLRvVx] [-C mtd-dev] [-d vid:pid] [-D 0|1|2] [-e path] [-f flags]\n");
+		printf("0xFFFF [-chilRvVx] [-C mtd-dev] [-d vid:pid] [-D 0|1|2] [-e path] [-f flags]\n");
 		printf("       [-F fiasco] [-H hash-file] [-I piece] [-p [piece%%]file]] [-r 0|1]\n");
 		printf("       [-s serial-dev] [-u fiasco-image] [-U 0|1] | [-P new-fiasco] [piece1] [2] ..\n");
 		return 1;
@@ -325,6 +336,7 @@ int main(int argc, char **argv)
 		return 0;
 	}
 
+#if HAVE_USB
         if (connect_via_usb()) {
                 fprintf(stderr, "Cannot connect to device. It is possibly not in boot stage.\n");
                 return 0;
@@ -361,8 +373,9 @@ int main(int argc, char **argv)
 	if (boot_cmdline)
 		boot_board(boot_cmdline);
 
-	if (reboot)
+	if (moboreboot)
 		reboot_board();
+#endif
 
 	return 0;
 }

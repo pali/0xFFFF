@@ -16,6 +16,7 @@
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#if HAVE_USB
 #include "main.h"
 #include <stdio.h>
 #include <string.h>
@@ -116,3 +117,4 @@ int usb_device_found(struct usb_device_descriptor *udd, struct devices *it_devic
 
 	return 0;
 }
+#endif

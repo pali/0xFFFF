@@ -1,3 +1,4 @@
+include config.mk
 PREFIX?=/usr/local
 
 all: logot

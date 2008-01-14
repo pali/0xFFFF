@@ -1,6 +1,6 @@
 /*
  *  0xFFFF - Open Free Fiasco Firmware Flasher
- *  Copyright (C) 2007  pancake <pancake@youterm.com>
+ *  Copyright (C) 2007,2008  pancake <@youterm.com>
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -15,6 +15,8 @@
  *  You should have received a copy of the GNU General Public License
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
+
+#if HAVE_USB
 
 #include "main.h"
 #include <stdio.h>
@@ -337,3 +339,4 @@ int get_sw_version()
 	return 1;
 }
 
+#endif

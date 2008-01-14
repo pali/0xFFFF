@@ -16,10 +16,10 @@
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#if HAVE_USB
 #include "main.h"
 #include "hash.h"
 #include "hexdump.h"
-#include <usb.h>
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
@@ -195,3 +195,4 @@ void flash_image(char *filename, char *piece, char *version)
 	}
 	printf("Flash done succesfully.\n");
 }
+#endif

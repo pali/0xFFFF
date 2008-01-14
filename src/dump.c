@@ -18,7 +18,6 @@
 
 #include "main.h"
 #include "hexdump.h"
-#include <usb.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -81,8 +80,11 @@ __rf_extract_exit:
 #include <sys/ioctl.h>
 #include <sys/types.h>
 #include <sys/stat.h>
-#include <asm/types.h>
+//#include <asm/types.h>
 #include <mtd/mtd-user.h>
+#ifndef loff_t
+#define loff_t off_t
+#endif
 
 #define M_RDONLY   0x00000001
 #define M_RDRW     0x00000002
@@ -380,6 +382,7 @@ int nanddump(char *mtddev, unsigned long start_addr, unsigned long length, char 
 
 		/* Write out page data */
 		//if (pretty_print) dump_bytes(readbuf, bs);
+		write(ofd, readbuf, bs);
 		progressbar(ofs, end_addr);
 
 		// OOB STUFF //
