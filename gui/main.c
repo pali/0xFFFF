@@ -21,10 +21,10 @@
 
 #define U(x) printf("%d\n",x); fflush(stdout);
 
+	GladeXML *xml;
 int main(int argc, char **argv)
 {
 	GtkWidget *w;
-	GladeXML *xml;
 
 	gtk_init(&argc, &argv);
 
@@ -40,10 +40,38 @@ int main(int argc, char **argv)
 	w = glade_xml_get_widget(xml, "main_window");
 	gtk_signal_connect(GTK_OBJECT(w), "destroy",
 		GTK_SIGNAL_FUNC(gtk_main_quit),NULL);
+{
+	GtkComboBox *piece = GTK_COMBO_BOX(glade_xml_get_widget(xml, "piece"));
+	gtk_combo_box_set_active(piece, 0);
+}
+
 	gtk_widget_show_all(w);
 
 	gtk_object_unref(GTK_OBJECT(xml));
 
 	gtk_main();
 	return 0;	
+}
+extern void gui_run();
+extern void gui_run()
+{
+	printf("run\n");
+}
+
+extern void gui_add();
+extern void gui_add()
+{
+	GtkTreeView *tree = glade_xml_get_widget(xml, "tree");
+	GtkFileChooser *file = GTK_FILE_CHOOSER(glade_xml_get_widget(xml, "file"));
+	GtkComboBox *piece = GTK_COMBO_BOX(glade_xml_get_widget(xml, "piece"));
+
+	printf("ADD %s\n", gtk_file_chooser_get_filename(file));
+	printf("ADD %d\n", gtk_combo_box_get_active(piece));
+}
+
+extern void gui_information();
+void gui_information()
+{
+	printf("FUCKMENOT!\n");
+	fflush(stdout);
 }

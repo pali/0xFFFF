@@ -21,7 +21,7 @@
               <widget class="GtkComboBox" id="combobox2">
                 <property name="visible">True</property>
                 <property name="active">0</property>
-                <property name="items" translatable="yes" context="yes">n770/n800
+                <property name="items" translatable="yes" context="yes">n770/n800/n810
 HERMflasher</property>
               </widget>
               <packing>
@@ -30,17 +30,7 @@ HERMflasher</property>
               </packing>
             </child>
             <child>
-              <widget class="GtkButton" id="gochange">
-                <property name="width_request">32</property>
-                <property name="visible">True</property>
-                <property name="has_default">True</property>
-                <property name="label" translatable="yes" context="yes">&gt;</property>
-              </widget>
-              <packing>
-                <property name="expand">False</property>
-                <property name="fill">False</property>
-                <property name="position">1</property>
-              </packing>
+              <placeholder/>
             </child>
           </widget>
           <packing>
@@ -55,10 +45,11 @@ HERMflasher</property>
             <child>
               <widget class="GtkScrolledWindow" id="scrolledwindow1">
                 <property name="visible">True</property>
+                <property name="can_focus">False</property>
                 <property name="hscrollbar_policy">GTK_POLICY_AUTOMATIC</property>
                 <property name="vscrollbar_policy">GTK_POLICY_AUTOMATIC</property>
                 <child>
-                  <widget class="GtkTreeView" id="treeview1">
+                  <widget class="GtkTreeView" id="tree">
                     <property name="visible">True</property>
                   </widget>
                 </child>
@@ -70,14 +61,14 @@ HERMflasher</property>
                 <property name="border_width">3</property>
                 <property name="spacing">2</property>
                 <child>
-                  <widget class="GtkFileChooserButton" id="filechooserbutton2">
+                  <widget class="GtkFileChooserButton" id="file">
                   </widget>
                   <packing>
                     <property name="expand">False</property>
                   </packing>
                 </child>
                 <child>
-                  <widget class="GtkComboBox" id="combo1">
+                  <widget class="GtkComboBox" id="piece">
                     <property name="row_span_column">0</property>
                     <property name="column_span_column">0</property>
                     <property name="active">0</property>
@@ -100,12 +91,18 @@ xloader</property>
                       <widget class="GtkButton" id="button2">
                         <property name="visible">True</property>
                         <property name="label" context="yes">Remove</property>
+                        <property name="response_id">0</property>
+                        <signal name="clicked" handler="gui_remove"/>
+                        <signal name="activate" handler="gui_remove"/>
                       </widget>
                     </child>
                     <child>
                       <widget class="GtkButton" id="add">
                         <property name="visible">True</property>
                         <property name="label" context="yes">Add</property>
+                        <property name="response_id">0</property>
+                        <signal name="clicked" handler="gui_add"/>
+                        <signal name="activate" handler="gui_add"/>
                       </widget>
                       <packing>
                         <property name="position">1</property>
@@ -118,9 +115,10 @@ xloader</property>
                   </packing>
                 </child>
                 <child>
-                  <widget class="GtkCheckButton" id="checkbutton2">
+                  <widget class="GtkCheckButton" id="usbhost">
                     <property name="visible">True</property>
                     <property name="label" translatable="yes" context="yes">USB host mode</property>
+                    <property name="response_id">0</property>
                     <property name="draw_indicator">True</property>
                   </widget>
                   <packing>
@@ -130,9 +128,10 @@ xloader</property>
                   </packing>
                 </child>
                 <child>
-                  <widget class="GtkCheckButton" id="checkbutton3">
+                  <widget class="GtkCheckButton" id="rdmode">
                     <property name="visible">True</property>
                     <property name="label" translatable="yes" context="yes">R&amp;D mode</property>
+                    <property name="response_id">0</property>
                     <property name="draw_indicator">True</property>
                   </widget>
                   <packing>
@@ -145,6 +144,7 @@ xloader</property>
                   <widget class="GtkCheckButton" id="reboot">
                     <property name="visible">True</property>
                     <property name="label" translatable="yes" context="yes">Reboot</property>
+                    <property name="response_id">0</property>
                     <property name="draw_indicator">True</property>
                   </widget>
                   <packing>
@@ -171,7 +171,7 @@ xloader</property>
             <property name="visible">True</property>
             <property name="spacing">6</property>
             <child>
-              <widget class="GtkProgressBar" id="progressbar1">
+              <widget class="GtkProgressBar" id="pbar">
                 <property name="visible">True</property>
                 <property name="show_text">True</property>
               </widget>
@@ -184,6 +184,9 @@ xloader</property>
                     <property name="visible">True</property>
                     <property name="label" translatable="yes" context="yes">gtk-dialog-info</property>
                     <property name="use_stock">True</property>
+                    <property name="response_id">0</property>
+                    <signal name="clicked" handler="gui_information" object="main_window"/>
+                    <signal name="activate" handler="gui_information" object="main_window"/>
                   </widget>
                   <packing>
                     <property name="expand">False</property>
@@ -195,6 +198,9 @@ xloader</property>
                     <property name="visible">True</property>
                     <property name="label" translatable="yes" context="yes">gtk-execute</property>
                     <property name="use_stock">True</property>
+                    <property name="response_id">0</property>
+                    <signal name="clicked" handler="gui_run"/>
+                    <signal name="activate" handler="gui_run"/>
                   </widget>
                   <packing>
                     <property name="expand">False</property>
@@ -215,6 +221,56 @@ xloader</property>
             <property name="expand">False</property>
             <property name="fill">False</property>
             <property name="position">2</property>
+          </packing>
+        </child>
+      </widget>
+    </child>
+  </widget>
+  <widget class="GtkAboutDialog" id="information">
+    <property name="events">GDK_POINTER_MOTION_MASK | GDK_POINTER_MOTION_HINT_MASK | GDK_BUTTON_PRESS_MASK | GDK_BUTTON_RELEASE_MASK</property>
+    <property name="border_width">5</property>
+    <property name="title" translatable="yes" context="yes">About Glade</property>
+    <property name="resizable">False</property>
+    <property name="window_position">GTK_WIN_POS_CENTER_ON_PARENT</property>
+    <property name="type_hint">GDK_WINDOW_TYPE_HINT_DIALOG</property>
+    <property name="has_separator">False</property>
+    <property name="program_name">Glade</property>
+    <child internal-child="vbox">
+      <widget class="GtkVBox" id="dialog-vbox3">
+        <property name="visible">True</property>
+        <property name="events">GDK_POINTER_MOTION_MASK | GDK_POINTER_MOTION_HINT_MASK | GDK_BUTTON_PRESS_MASK | GDK_BUTTON_RELEASE_MASK</property>
+        <property name="spacing">2</property>
+        <child>
+          <widget class="GtkScrolledWindow" id="scrolledwindow2">
+            <property name="visible">True</property>
+            <property name="can_focus">True</property>
+            <property name="events">GDK_POINTER_MOTION_MASK | GDK_POINTER_MOTION_HINT_MASK | GDK_BUTTON_PRESS_MASK | GDK_BUTTON_RELEASE_MASK</property>
+            <property name="hscrollbar_policy">GTK_POLICY_AUTOMATIC</property>
+            <property name="vscrollbar_policy">GTK_POLICY_AUTOMATIC</property>
+            <child>
+              <widget class="GtkTextView" id="textview1">
+                <property name="visible">True</property>
+                <property name="can_focus">True</property>
+                <property name="events">GDK_POINTER_MOTION_MASK | GDK_POINTER_MOTION_HINT_MASK | GDK_BUTTON_PRESS_MASK | GDK_BUTTON_RELEASE_MASK</property>
+                <property name="pixels_below_lines">2</property>
+                <property name="editable">False</property>
+                <property name="cursor_visible">False</property>
+              </widget>
+            </child>
+          </widget>
+          <packing>
+            <property name="position">2</property>
+          </packing>
+        </child>
+        <child internal-child="action_area">
+          <widget class="GtkHButtonBox" id="dialog-action_area3">
+            <property name="visible">True</property>
+            <property name="events">GDK_POINTER_MOTION_MASK | GDK_POINTER_MOTION_HINT_MASK | GDK_BUTTON_PRESS_MASK | GDK_BUTTON_RELEASE_MASK</property>
+            <property name="layout_style">GTK_BUTTONBOX_END</property>
+          </widget>
+          <packing>
+            <property name="expand">False</property>
+            <property name="pack_type">GTK_PACK_END</property>
           </packing>
         </child>
       </widget>
