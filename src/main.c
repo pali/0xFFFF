@@ -175,8 +175,8 @@ int connect_via_usb()
                         return 1;
 	        }
 
-        	if ( usb_claim_interface(dev,
-		device->config->interface->altsetting->bInterfaceNumber) < 0) { // 2 or 0
+        	if ( usb_claim_interface(dev, 2) < 0) {
+		//device->config->interface->altsetting->bInterfaceNumber) < 0) { // 2 or 0
 	        	D perror("usb_claim_interface");
 
                         // Something is broken if closing fails.
@@ -191,7 +191,7 @@ int connect_via_usb()
                         continue;
         	}
 
-        	if (usb_set_altinterface(dev, device->config->interface->altsetting->bAlternateSetting) < 0) {
+        	if (usb_set_altinterface(dev, 1) <0) { //device->config->interface->altsetting->bAlternateSetting) < 0) {
 	        	D perror("usb_set_altinterface");
 
                         // Something is broken if closing fails.

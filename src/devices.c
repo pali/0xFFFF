@@ -37,7 +37,7 @@
 struct devices supported_devices[SUPPORTED_DEVICES] = {
   { "FFFF", 0x000, 0x0000, 0x0000 },  // dummy
   { "unkn", 0x421, 0x3f00, 0x0000 },  // probably a development board
-  { "n770", 0x421, 0x0105, 0x0001 },  // my n770 
+  { "n770/n810", 0x421, 0x0105, 0x0001 },  // my n770 
   { "n800", 0x421, 0x04c3, 0x0001 },  // a n800 
   { 0 },
   { 0 }

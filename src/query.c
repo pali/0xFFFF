@@ -118,7 +118,7 @@ int set_rd_mode(unsigned short mode)
 	if (((short)mode)==-1)
 		return 1;
 
-	if (usb_control_msg(dev, CMD_WRITE, 16, mode, 0, 0, 0, 2000) == -1) {
+	if (usb_control_msg(dev, CMD_WRITE, NOLO_SET_RDFLAGS, mode, 0, 0, 0, 2000) == -1) {
 		fprintf(stderr, "Cannot set R&D flags.\n");
 		return 1;
 	}
@@ -136,7 +136,8 @@ int get_hw_revision()
 	unsigned char string[512];
 	int i = 0;
 
-	if (usb_control_msg(dev, CMD_QUERY, 4, 0, 0, (char *)string, 512, 2000) == -1) {
+	memset(string,'\0',512);
+	if (usb_control_msg(dev, CMD_QUERY, NOLO_GET_HWVERSION, 0, 0, (char *)string, 512, 2000) == -1) {
 		fprintf(stderr, "Cannot query hw revision.\n");
 		return -1;
 	}
@@ -159,7 +160,7 @@ int get_rd_mode()
 {
 	char isrd = 1;
 
-	if (usb_control_msg(dev, CMD_QUERY, 17, 0, 0, (char *)&isrd, 1, 2000) == -1) {
+	if (usb_control_msg(dev, CMD_QUERY, NOLO_GET_RDFLAGS, 0, 0, (char *)&isrd, 1, 2000) == -1) {
 		fprintf(stderr, "Cannot query rd mode.\n");
 		return -1;
 	}
@@ -172,7 +173,7 @@ int get_root_device()
 {
 	unsigned char opcode;
 
-	if (usb_control_msg(dev, CMD_QUERY, 17, 0, 1, (char *)&opcode, 1, 2000) < 0) {
+	if (usb_control_msg(dev, CMD_QUERY, NOLO_GET_RDFLAGS, 0, 1, (char *)&opcode, 1, 2000) < 0) {
 		fprintf(stderr, "Cannot query root device\n");
 		return -1;
 	}
@@ -199,7 +200,7 @@ int set_root_device(unsigned short root_device)
 		return -1;
 	}
 
-	if (usb_control_msg(dev, CMD_WRITE, 16, root_device, 1, 0, 0, 2000) == -1) {
+	if (usb_control_msg(dev, CMD_WRITE, NOLO_SET_RDFLAGS, root_device, 1, 0, 0, 2000) == -1) {
 		fprintf(stderr, "Cannot set root device\n");
 		return -1;
 	}
@@ -283,7 +284,7 @@ int get_rd_flags()
 {
 	unsigned short flags = 0;
 	
-	if (usb_control_msg(dev, CMD_QUERY, 17, 0, 3, (void *) &flags, sizeof(flags), 2000) == -1) {
+	if (usb_control_msg(dev, CMD_QUERY, NOLO_GET_RDFLAGS, 0, 3, (void *) &flags, sizeof(flags), 2000) == -1) {
 		fprintf(stderr, "Cannot get rd flags\n");
 		return -1;
 	}
@@ -303,7 +304,7 @@ int get_nolo_version()
 	unsigned int version; // ensure uint is at least 32 bits
 
 	//if (usb_control_msg(dev, CMD_QUERY, 3, 0, 1, (char *)&version, 4 , 2000) < 0) {
-	if (usb_control_msg(dev, CMD_QUERY, 3, 0, 0, (char *)&version, 4 , 2000) < 0) {
+	if (usb_control_msg(dev, CMD_QUERY, NOLO_GET_VERSION, 0, 0, (char *)&version, 4 , 2000) < 0) {
 		fprintf(stderr, "Cannot query nolo version. Old bootloader version?\n");
 		exit(1);
 	}
@@ -330,6 +331,7 @@ int get_sw_version()
 		fprintf(stderr, "error: cannot write query 18\n");
 		return 0;
 	}
+	bytes[0]='\0';
 	ret = usb_control_msg(dev, CMD_QUERY, 20, 0, 0, (char *)&bytes, 512, 2000);
 	if (ret<0) {
 		fprintf(stderr, "error: b0rken swversion read!\n");

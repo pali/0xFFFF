@@ -3,6 +3,7 @@
 #define _INCLUDE_MAIN_H_
 
 #include "hash.h"
+#include "nolo.h"
 
 #define _FILE_OFFSET_BITS 64
 #define _GNU_SOURCE
@@ -51,9 +52,6 @@ extern int verbose;
 #define CMD_WRITE 64
 #define CMD_QUERY 192
 
-#define NOLO_GET_STATUS   1
-#define NOLO_GET_BOARD_ID 2
-#define NOLO_GET_VERSION  3
 
 struct piece_t {
 	char *name;

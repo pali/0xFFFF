@@ -1,0 +1,7 @@
+
+#define NOLO_GET_STATUS   1
+#define NOLO_GET_BOARD_ID 2
+#define NOLO_GET_VERSION  3
+#define NOLO_GET_HWVERSION 4
+#define NOLO_SET_RDFLAGS   16
+#define NOLO_GET_RDFLAGS  17
