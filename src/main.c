@@ -1,6 +1,6 @@
 /*
  *  0xFFFF - Open Free Fiasco Firmware Flasher
- *  Copyright (C) 2007  pancake <pancake@youterm.com>
+ *  Copyright (C) 2007, 2008  pancake <pancake@youterm.com>
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -23,6 +23,10 @@
 #include <stdlib.h>
 #include <getopt.h>
 
+#if HAVE_SQUEUE
+#include "squeue/squeue.h"
+#endif
+
 /* global pr0n */
 #if HAVE_USB
 #include <usb.h>
@@ -40,6 +44,7 @@ int    verbose             = 0;
 int    identify            = 0;
 int    moboreboot          = 0;
 int    unpack              = 0;
+int    qmode               = 0;
 int    info                = 0;
 
 /* global structs */
@@ -90,6 +95,9 @@ void show_usage()
 	printf(" -r [0|1]        disable/enable R&D mode\n");
 	printf(" -R              reboot the omap board\n");
 	printf(" -U [0|1]        disable/enable the usb host mode\n");
+#endif
+#if HAVE_SQUEUE
+	printf(" -Q              enter shared queues server mode (for gui or remote)\n");
 #endif
 	printf("Local stuff:\n");
 	printf(" -s [serial]     serial port console (minicom like terminal)\n");
@@ -222,7 +230,7 @@ int main(int argc, char **argv)
 {
 	int c;
 
-	while((c = getopt(argc, argv, "C:cp:PvVhRu:ib:U:r:e:ld:I:D:f:F:s:xH:")) != -1) {
+	while((c = getopt(argc, argv, "QC:cp:PvVhRu:ib:U:r:e:ld:I:D:f:F:s:xH:")) != -1) {
 		switch(c) {
 		case 'H':
 			printf("xorpair: %04x\n", do_hash_file(optarg));
@@ -286,6 +294,9 @@ int main(int argc, char **argv)
 			fiasco_image = optarg;
 			unpack = 1;
 			break;
+		case 'Q':
+			qmode = 1;
+			break;
 		case 'P':
 			return fiasco_pack(optind, argv);
 		case 'I':
@@ -306,6 +317,9 @@ int main(int argc, char **argv)
 		}
 	}
 
+	if (qmode)
+		return queue_mode();
+
 	if (identify)
 		return 0;
 
@@ -321,9 +335,11 @@ int main(int argc, char **argv)
 	&&	(usb_mode     == -1)
 	&& 	(root_device  == -1))
 	{
-		printf("0xFFFF [-chilRvVx] [-C mtd-dev] [-d vid:pid] [-D 0|1|2] [-e path] [-f flags]\n");
-		printf("       [-F fiasco] [-H hash-file] [-I piece] [-p [piece%%]file]] [-r 0|1]\n");
-		printf("       [-s serial-dev] [-u fiasco-image] [-U 0|1] | [-P new-fiasco] [piece1] [2] ..\n");
+
+		printf("# The Free Fiasco Firmware Flasher v"VERSION"\n"
+		"0xFFFF [-chilQRvVx] [-C mtd-dev] [-d vid:pid] [-D 0|1|2] [-e path] [-f flags]\n"
+		"       [-F fiasco] [-H hash-file] [-I piece] [-p [piece%%]file]] [-r 0|1]\n"
+		"       [-s serial-dev] [-u fiasco-image] [-U 0|1] | [-P new-fiasco] [piece1] [2] ..\n");
 		return 1;
 	}
 

@@ -4,6 +4,7 @@
 
 #include "hash.h"
 #include "nolo.h"
+#include "os.h"
 
 #define _FILE_OFFSET_BITS 64
 #define _GNU_SOURCE
@@ -11,6 +12,7 @@
 // Forward declaration for use in function arguments.
 struct devices;
 
+int queue_mode();
 int reverse_extract_pieces(char *dir);
 void flash_image(char *filename, char *piece, char *version);
 int fiasco_read_image(char *file);
