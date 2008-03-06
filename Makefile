@@ -1,8 +1,11 @@
 include config.mk
 PREFIX?=/usr/local
 
-all: logot
+all: logot frontend
 	cd src && ${MAKE} all
+
+frontend:
+	-cd src/gui && ${MAKE} all
 
 static: logot
 	cd libusb && ${MAKE} all
@@ -21,6 +24,7 @@ clean:
 
 install:
 	cp src/0xFFFF ${PREFIX}/bin
+	-cp src/gui/goxf ${PREFIX}/bin
 	cp logotool/logotool ${PREFIX}/bin
 
 deinstall:

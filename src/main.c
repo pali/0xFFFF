@@ -75,7 +75,7 @@ void show_usage()
 	printf(" -f <flags>      set the given RD flags (see '-f help')\n");
 	printf(" -i              show device information (let standby mode)\n");
 	printf(" -l              list supported usb device ids\n");
-	printf(" -p [[p%%]file]  piece-of-firmware %% file-where-this-piece-is\n");
+	printf(" -p [[p%%]file]   piece-of-firmware %% file-where-this-piece-is\n");
 	printf(" -r [0|1]        disable/enable R&D mode\n");
 	printf(" -R              reboot the omap board\n");
 	printf(" -U [0|1]        disable/enable the usb host mode\n");
@@ -87,7 +87,7 @@ void show_usage()
 	printf(" -s [serial]     serial port console (minicom like terminal)\n");
 	printf(" -h              show this help message\n");
 	printf(" -C [/dev/mtd]   check bad blocks on mtd\n");
-	printf(" -e [path]       dump and extract pieces to path\n");
+	printf(" -e [path]       dump/extract pieces to path\n");
 	printf(" -F [fiasco]     flash a fiasco firmware image\n");
 	printf(" -H [file]       calculate hash for file\n");
 	printf(" -I [piece]      identify a firmware piece\n");
@@ -328,6 +328,8 @@ int main(int argc, char **argv)
 	}
 
 	if (unpack) {
+		if (reverseto)
+			chdir(reverseto);
 		unpack_fiasco_image(fiasco_image);
 		return 0;
 	}
