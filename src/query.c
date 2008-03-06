@@ -24,6 +24,8 @@
 #include <stdlib.h>
 #include <usb.h>
 
+char strbuf[1024];
+
 /* wait for status = 0 */
 int get_status()
 {
@@ -76,7 +78,8 @@ int get_usb_mode()
 		return -1;
 	}
 
-	printf("Device's USB mode is '%s'\n", (mode) ? "host" : "client");
+	sprintf(strbuf, "Device's USB mode is '%s'\n", (mode) ? "host" : "client");
+	printf(strbuf);
 
 	return 0;
 }
@@ -160,11 +163,12 @@ int get_rd_mode()
 {
 	char isrd = 1;
 
+	strbuf[0]='\0';
 	if (usb_control_msg(dev, CMD_QUERY, NOLO_GET_RDFLAGS, 0, 0, (char *)&isrd, 1, 2000) == -1) {
 		fprintf(stderr, "Cannot query rd mode.\n");
 		return -1;
 	}
-	printf("RD mode is: %s\n", isrd?"on":"off");
+	sprintf(strbuf, "RD mode is: %s\n", isrd?"on":"off");
 
 	return isrd;
 }
@@ -173,16 +177,19 @@ int get_root_device()
 {
 	unsigned char opcode;
 
+	strbuf[0] = '\0';
 	if (usb_control_msg(dev, CMD_QUERY, NOLO_GET_RDFLAGS, 0, 1, (char *)&opcode, 1, 2000) < 0) {
 		fprintf(stderr, "Cannot query root device\n");
 		return -1;
 	}
 
 	if (opcode>2) { // use sizeof || enum
-		printf("Invalid root device received from the device '%d'.\n", opcode);
+		fprintf(stderr, "Invalid root device received from the device '%d'.\n", opcode);
+		return -1;
 	}
 
-	printf("Root device is: %s\n", root_devices[opcode]);
+	sprintf(strbuf, "Root device is: %s\n", root_devices[opcode]);
+	printf(strbuf);
 
 	return 0;
 }
@@ -286,15 +293,23 @@ int get_rd_flags()
 	
 	if (usb_control_msg(dev, CMD_QUERY, NOLO_GET_RDFLAGS, 0, 3, (void *) &flags, sizeof(flags), 2000) == -1) {
 		fprintf(stderr, "Cannot get rd flags\n");
+		sprintf(strbuf, "error: Cannot read rd flags\n");
 		return -1;
 	}
 	
-	printf("Current rd flag setting:\n");
-	printf("disable OMAP watchdog  : %s\n", (flags & 0x02) ? "set" : "not set"); 
-	printf("disable RETU watchdog  : %s\n", (flags & 0x04) ? "set" : "not set"); 
-	printf("disable lifeguard reset: %s\n", (flags & 0x08) ? "set" : "not set"); 
-	printf("enable serial console  : %s\n", (flags & 0x10) ? "set" : "not set"); 
-	printf("disable USB timeout    : %s\n", (flags & 0x20) ? "set" : "not set");
+	sprintf(strbuf,
+	"Current rd flag setting:\n"
+	"disable OMAP watchdog  : %s\n"
+	"disable RETU watchdog  : %s\n"
+	"disable lifeguard reset: %s\n"
+	"enable serial console  : %s\n"
+	"disable USB timeout    : %s\n"
+		, (flags & 0x02) ? "set" : "not set"
+		, (flags & 0x04) ? "set" : "not set"
+		, (flags & 0x08) ? "set" : "not set"
+		, (flags & 0x10) ? "set" : "not set"
+		, (flags & 0x20) ? "set" : "not set");
+	printf(strbuf);
 	
 	return 0; 
 }
@@ -306,10 +321,12 @@ int get_nolo_version()
 	//if (usb_control_msg(dev, CMD_QUERY, 3, 0, 1, (char *)&version, 4 , 2000) < 0) {
 	if (usb_control_msg(dev, CMD_QUERY, NOLO_GET_VERSION, 0, 0, (char *)&version, 4 , 2000) < 0) {
 		fprintf(stderr, "Cannot query nolo version. Old bootloader version?\n");
-		exit(1);
+		sprintf(strbuf, "error: Cannot query nolo version. Old bootloader?");
+		return -1;
 	}
 
-	printf("NOLO Version %d.%d.%d\n",
+	sprintf(strbuf,
+		"NOLO Version %d.%d.%d\n",
 		version >> 20 & 15,
 		version >> 16 & 15,
 		version >> 8 & 255);
@@ -319,6 +336,7 @@ int get_nolo_version()
 
 	return 0;
 }
+
 
 int get_sw_version()
 {
@@ -337,7 +355,11 @@ int get_sw_version()
 		fprintf(stderr, "error: b0rken swversion read!\n");
 		return 0;
 	}
-	printf("SWVERSION GOT: %s\n", bytes); //???+strlen(bytes)+1));
+	if (bytes[0]) {
+		sprintf(strbuf, "Software Version: %s\n", bytes);
+		printf("Software Version: %s\n", bytes); //???+strlen(bytes)+1));
+	} else
+		printf("No software version detected\n");
 	return 1;
 }
 

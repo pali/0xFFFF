@@ -6,6 +6,8 @@
 #include "nolo.h"
 #include "os.h"
 
+extern char strbuf[1024];
+
 #define _FILE_OFFSET_BITS 64
 #define _GNU_SOURCE
 
@@ -82,6 +84,7 @@ enum {
 	PIECE_INITFS,
 	PIECE_ROOTFS,
 	PIECE_OMAPNAND,
+	PIECE_FIASCO,
 	PIECE_LAST
 };
 

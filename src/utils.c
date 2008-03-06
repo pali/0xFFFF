@@ -42,16 +42,28 @@ void progressbar(unsigned long long part, unsigned long long total)
 	int pc;
         int tmp, cols = 80;
 
+	/* percentage calculation */
 	pc = (int)(part*100/total);
-        (pc<0)?pc=0:(pc>100)?pc=100:0;
-        printf("\e[K  %3d%% [", pc);
-        if (columns)
-                cols = atoi(columns);
-        cols-=15;
-        for(tmp=cols*pc/100;tmp;tmp--) printf("#");
-        for(tmp=cols-(cols*pc/100);tmp;tmp--) printf("-");
-        printf("]\r");
-        fflush(stdout);
+	(pc<0)?pc=0:(pc>100)?pc=100:0;
+
+#if HAVE_SQUEUE
+	if (qmode) {
+		char msg[128];
+		sprintf(msg, "%d%%", pc);
+		squeue_push2(p, "bar", msg, 0);
+	} else {
+#endif
+		printf("\e[K  %3d%% [", pc);
+		if (columns)
+			cols = atoi(columns);
+		cols-=15;
+		for(tmp=cols*pc/100;tmp;tmp--) printf("#");
+		for(tmp=cols-(cols*pc/100);tmp;tmp--) printf("-");
+		printf("]\r");
+		fflush(stdout);
+#if HAVE_SQUEUE
+	}
+#endif
 }
 
 void eprintf(const char *format, ...)

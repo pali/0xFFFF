@@ -20,6 +20,29 @@
 #include <stdio.h>
 #include <string.h>
 
+/* global structs */
+char *pieces[] = {
+	"xloader",    // xloader.bin
+	"2nd",        // 2nd
+	"secondary",  // secondary.bin
+	"kernel",     // zImage
+	"initfs",     // jffs'd initfs
+	"rootfs",     // 80mB of blob
+	"omap-nand",  // 8kB of food for the nand
+	"fiasco",     // FIASCO IMAGE
+	NULL
+};
+
+long fpid_size(const char *filename)
+{
+	long sz;
+	FILE *fd = fopen(filename, "r");
+	fseek(fd, 0, SEEK_END);
+	sz = ftell(fd);
+	fclose(fd);
+	return sz;
+}
+
 const char *fpid_file(const char *filename)
 {
 	FILE *fd;
@@ -45,6 +68,9 @@ const char *fpid_file(const char *filename)
 	size = ftell(fd);
 	fclose(fd);
 
+	if (!memcmp(b, "\xb4", 1))
+		return pieces[PIECE_FIASCO];
+	else
 	if (!memcmp(b+0x34, "2NDAPE", 6))
 		return pieces[PIECE_2ND];
 	else

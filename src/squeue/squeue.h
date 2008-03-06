@@ -22,6 +22,7 @@ struct squeue_t *squeue_open(const char *file, int init);
 int squeue_close(struct squeue_t *q);
 void squeue_free(struct squeue_t *q);
 int squeue_push(struct squeue_t *q, const char *str, int lock);
+int squeue_push2(struct squeue_t *q, const char *head, const char *str, int lock);
 int squeue_pop(struct squeue_t *q);
 char *squeue_get(struct squeue_t *q, int lock);
 void squeue_stats(struct squeue_t *q);

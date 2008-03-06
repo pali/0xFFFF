@@ -19,8 +19,8 @@
 #include "main.h"
 #include "os.h"
 #include <stdio.h>
+#include <signal.h>
 #if HAVE_SQUEUE
-#include "squeue/squeue.h"
 
 struct squeue_t *q;
 struct squeue_t *p;
@@ -35,14 +35,63 @@ int dofork()
 
 void process_message(char *msg)
 {
-	squeue_push(p, "nice shot!", 0);
-	printf("childa (%s)\n", msg);
+	char *str;
+	char *arg;
+	int c;
+	if (msg == NULL)
+		return;
+	printf("[x] (%s)\n", msg);
+	str = strdup(msg);
+	arg = strchr(str, ':');
+	if (c!=NULL) {
+		arg[0]='\0';
+		arg = arg +1;
+		if (!strcmp(str, "flash")) {
+			char buf[1024];
+			char *type = fpid_file(arg);
+			if (type == NULL) {
+				squeue_push2(p, "error", "Unknown piece format", 1);
+			} else {
+				flash_image(arg, type, NULL);
+			}
+		} else
+		if (!strcmp(str, "reset")) {
+			if (reboot_board() == 0) {
+				squeue_push2(p,"info", "Device reboots", 1);
+			} else
+				squeue_push2(p,"error", "Cannot reboot device", 1);
+		} else
+		if (!strcmp(str, "info")) {
+			get_rd_flags();
+			squeue_push2(p, "info", strbuf, 1);
+			get_nolo_version();
+			squeue_push2(p, "info", strbuf, 1);
+			get_usb_mode();
+			squeue_push2(p, "info", strbuf, 1);
+		} else
+			squeue_push2(p, "error", "invalid command", 0);
+	} else {
+		squeue_push2(p, "error", "invalid command format", 0);
+	}
+	free(str);
+}
+
+static void cc()
+{
+	squeue_close(p);
+	squeue_close(q);
+	printf("pipes closed\n");
+	squeue_release("/tmp/0xFFFF.1");
+	squeue_release("/tmp/0xFFFF.2");
+	exit(1);
 }
 
 int queue_mode()
 {
 	int pid = 0;
 	char *msg;
+
+	signal(SIGINT, cc);
 
 	pid = dofork();
 	if (pid) {
@@ -55,21 +104,33 @@ int queue_mode()
 			fprintf(stderr, "Cannot open queue files\n");
 			return 0;
 		}
+		chmod("/tmp/0xFFFF.1", 0666);
+		chmod("/tmp/0xFFFF.2", 0666);
 		pid = dofork();
 		if (pid) {
 			printf( "Entering into shared queue server mode.\n"
 			"Type $ kill -9 %d # to stop\n"
 			"NOTE: Manually remove the /tmp/.0xFFFF.* files to solve perm problems\n", pid);
 		} else {
-			printf("Waiting for a client in shared queues..\n");
-			setsid();
-			while(1) {
-				msg = squeue_get(q, 1);
-				if (msg) {
-					process_message(msg);
-					squeue_pop(q);
+			do {
+#if HAVE_USB
+				if (connect_via_usb()) {
+					fprintf(stderr, "Cannot connect to device. It is possibly not in boot stage.\n");
+					squeue_push2(p, "error", "Cannot connect to the device", 1);
+					return 0;
 				}
-			}
+#endif
+				printf("Waiting for a client in shared queues..\n");
+				setsid();
+				while(1) {
+					msg = squeue_get(q, 1);
+					if (msg) {
+						process_message(msg);
+						squeue_pop(q);
+					}
+				}
+			printf("Connection restarted\n");
+			} while (1);
 		}
 	}
 	return 0;

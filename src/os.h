@@ -7,4 +7,13 @@
 #define HAVE_SQUEUE 0
 #endif
 
+#if HAVE_SQUEUE
+
+#include "squeue/squeue.h"
+extern int qmode;
+extern struct squeue_t *p;
+
 #endif
+
+#endif
+

@@ -19,6 +19,8 @@ namespace SQueues {
 		public static SQueue* open(string file, int mode);
 		[CCode (cname = "squeue_push")]
 		public int push(string msg, int l);
+		[CCode (cname = "squeue_push2")]
+		public int push2(string cmd, string msg, int l);
 		[CCode (cname = "squeue_get")]
 		public weak string get(int l);
 		[CCode (cname = "squeue_pop")]

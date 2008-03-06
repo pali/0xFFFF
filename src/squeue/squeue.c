@@ -1,5 +1,6 @@
 #include "squeue.h"
 #include <unistd.h>
+#include <errno.h>
 #include <stdlib.h>
 #include <sys/ipc.h>
 #include <signal.h>
@@ -10,7 +11,7 @@
 #include <string.h>
 
 #define POOL_SIZE ITEM_MAX*ITEM_SIZE
-#define ITEM_SIZE 80
+#define ITEM_SIZE 512
 #define ITEM_MAX 10
 
 int squeue_release(const char *file)
@@ -29,36 +30,63 @@ int squeue_release(const char *file)
 	return shmctl(shmid, IPC_RMID,NULL);
 }
 
+extern int errno;
 struct squeue_t *squeue_open(const char *file, int mode)
 {
 	struct squeue_t *q;
 	char *pool;
 	int shmid;
-	key_t k = ftok(file, 0xa3);
-_retry:
-	shmid = shmget(k, POOL_SIZE, 0666);
-	if (shmid == -1) {
-		if (mode == Q_WAIT) {
-			usleep(200);
-			goto _retry;
-		}
-		shmid = shmget(k, POOL_SIZE, 0666|IPC_EXCL|((mode==Q_CREAT)?IPC_CREAT:0));
-		if (shmid == -1) {
-			if (mode == Q_WAIT) {
-				usleep(200);
-				goto _retry;
-			}
-			perror("shmget");
+	key_t k;
+
+	k = ftok(file, 0x34);
+	if (k == -1) {
+		perror("ftok");
+		squeue_release(file);
+		close(creat(file, 0666));
+		chmod(file, 0666);
+		k = ftok(file, 0xa3);
+		if (k == -1) {
+			perror("ftok");
 			return NULL;
+		}
+	}
+_retry:
+	shmid = shmget(k, POOL_SIZE, 0666|(mode==Q_CREAT)?IPC_CREAT:0);
+	if (shmid == -1) {
+		perror("shmget1");
+		shmid = shmget(k, POOL_SIZE, 0666|((mode==Q_CREAT)?IPC_CREAT:0));
+		if (shmid == -1) {
+			perror("shmget2");
+			if (errno == EEXIST)
+				shmid = shmget(k, POOL_SIZE, 0666 |IPC_CREAT);
+
+			if (shmid == -1) {
+				if (mode == Q_WAIT) {
+					usleep(100);
+					goto _retry;
+				}
+				perror("shmget");
+				return NULL;
+			}
 		}
 	}
 
 	if (mode == Q_WAIT)
 		mode = Q_OPEN;
 
-	pool = shmat(shmid, NULL, k);
+	/* fix perms */
+	if (mode == Q_CREAT) {
+		struct shmid_ds sd;
+		shmctl(shmid, IPC_STAT, &sd);
+		sd.shm_perm.uid = 1000;
+		sd.shm_perm.gid = 1000;
+		sd.shm_perm.mode = sd.shm_perm.mode|0666;
+		shmctl(shmid, IPC_SET, &sd);
+	}
+
+	pool = shmat(shmid, NULL, 0);
 	if (((int)pool) == -1) {
-		perror("shmat\n");
+		perror("shmat");
 		return NULL;
 	}
 
@@ -113,7 +141,7 @@ int squeue_push(struct squeue_t *q, const char *str, int lock)
 					printf("buffer is full\n");
 					return -1;
 				}
-				usleep(200);
+				usleep(100);
 			}
 			q->squeue_idx = 0;
 		}
@@ -130,6 +158,18 @@ int squeue_push(struct squeue_t *q, const char *str, int lock)
 	q->squeue_lost++;
 
 	return 0;
+}
+
+int squeue_push2(struct squeue_t *q, const char *head, const char *str, int lock)
+{
+	int ret;
+	char *buf = malloc(strlen(head) + strlen(str) + 2);
+	strcpy(buf, head);
+	strcat(buf, ":");
+	strcat(buf, str);
+	ret = squeue_push(q, buf, lock);
+	free(buf);
+	return ret;
 }
 
 int squeue_pop(struct squeue_t *q)
@@ -175,7 +215,7 @@ char *squeue_get(struct squeue_t *q, int lock)
 					return q->pool+i;
 		}
 		if (lock)
-			usleep(500);
+			usleep(100);
 	} while (lock);
 	return NULL;
 }
@@ -226,7 +266,7 @@ int main()
 				printf("get: (%s)\n", uh);
 				squeue_pop(q);
 			}
-			usleep(200);
+			usleep(100);
 		}
 		squeue_close(q);
 	} else {

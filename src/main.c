@@ -23,10 +23,6 @@
 #include <stdlib.h>
 #include <getopt.h>
 
-#if HAVE_SQUEUE
-#include "squeue/squeue.h"
-#endif
-
 /* global pr0n */
 #if HAVE_USB
 #include <usb.h>
@@ -46,18 +42,6 @@ int    moboreboot          = 0;
 int    unpack              = 0;
 int    qmode               = 0;
 int    info                = 0;
-
-/* global structs */
-char *pieces[] = {
-	"xloader",    // xloader.bin
-	"2nd",        // 2nd
-	"secondary",  // secondary.bin
-	"kernel",     // zImage
-	"initfs",     // jffs'd initfs
-	"rootfs",     // 80mB of blob
-	"omap-nand",  // 8kB of food for the nand
-	NULL
-};
 
 char *modes[]={
 	"host",
@@ -331,7 +315,7 @@ int main(int argc, char **argv)
 	&&	(rd_flags     == -1)
 	&&	(rd_mode      == -1)
 	&&	(info         == 0)
-	&&	(moboreboot       == 0)
+	&&	(moboreboot   == 0)
 	&&	(usb_mode     == -1)
 	&& 	(root_device  == -1))
 	{
