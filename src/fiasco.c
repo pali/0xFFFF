@@ -27,16 +27,17 @@
 #include "main.h"
 #include "hash.h"
 
-void (*fiasco_callback)(struct header_t *header) = NULL;
+int (*fiasco_callback)(struct header_t *header) = NULL;
 
 int openfiasco(char *name)
 {
 	struct header_t header;
 	unsigned char buf[128];
 	unsigned char data[128];
+	unsigned char *pdata;
 	unsigned int namelen;
-	off_t off;
-	int i;
+	off_t off, here;
+	int i,j;
 	header.fd = open(name, O_RDONLY);
 
 	if (header.fd == -1) {
@@ -66,14 +67,22 @@ int openfiasco(char *name)
 
 	/* walk the tree */
 	while(1) {
+		here = lseek(header.fd, 0, SEEK_CUR);
 		if (read(header.fd, buf, 9)<9)
 			break;
-
 		if (buf[0] != 0x54) { // 'T'
-			printf("unexpected header at 0x%x, found %02x %02x %02x\n", 
-				((int)lseek(header.fd, 0, SEEK_CUR))-9,
-				buf[0], buf[1], buf[2]);
-			break;
+			/* skipping some bytes */
+			lseek(header.fd, -9, SEEK_CUR);
+			for(i=0;buf[0]!=0x54;i++) {
+				j = read(header.fd, buf, 1);
+				if (j == -1) {
+					printf("Cannot find next FIASCO header\n");
+					return close(header.fd);
+				}
+			}
+			printf("Skipping %d padding bytes\n", i);
+			lseek(header.fd, -1, SEEK_CUR);
+			continue;
 		}
 		header.hash = buf[7]<<8|buf[8];
 
@@ -92,6 +101,7 @@ int openfiasco(char *name)
 			break;
 		memcpy(&header.size, buf,4);
 		header.size = ntohl(header.size);
+		printf("   offset:  0x%08x\n", (unsigned int)here);
 		printf("   size:    %d bytes\n", header.size);
 		printf("   hash:    %04x\n", header.hash);
 		//printf("BYTE: %02x %02x %02x %02x %02x\n", 
@@ -104,18 +114,31 @@ int openfiasco(char *name)
 			i = data[0];
 			if (read(header.fd, data, i)<i)
 				break;
-			if (data[0])
-			printf("   version: %s\n", data);
+			if (data[0]) {
+				printf("   version-length: %d\n", i);
+				printf("   version: %s\n", data);
+				pdata = data;
+				while(pdata<data+i) {
+					strcat(header.name,pdata==data?"-":",");
+					strcat(header.name, (char*)pdata);
+					printf("   sub-version: %s\n", pdata);
+					pdata=pdata+strlen((char*)pdata)+1;
+					for(;*pdata=='\0'&&pdata<data+i;pdata=pdata+1);
+				}
+			}
 			strcpy(header.version, (char *)data);
 			if (read(header.fd, buf+8, 1)<1)
 				break;
 		}
+		printf("   name: %s\n", header.name);
 		/* callback */
 		off = lseek(header.fd, 0, SEEK_CUR);
+		printf("   body-at:   0x%08x\n", (unsigned int)off);
 		if (fiasco_callback != NULL) {
 			fiasco_callback(&header);
 			free(header.data);
 			continue;
+		} else {
 		}
 		// XXX dup
 		lseek(header.fd, off, SEEK_SET);

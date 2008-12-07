@@ -32,6 +32,7 @@ struct usb_dev_handle *dev = NULL;
 char  *fiasco_image        = NULL;
 char  *boot_cmdline        = NULL;
 char  *reverseto           = NULL;
+char  *subverstr           = NULL;
 int    rd_mode             = -1;
 int    rd_flags            = -1;
 int    usb_mode            = -1;
@@ -42,6 +43,7 @@ int    moboreboot          = 0;
 int    unpack              = 0;
 int    qmode               = 0;
 int    info                = 0;
+int    nomode              = 0;
 
 char *modes[]={
 	"host",
@@ -86,6 +88,8 @@ void show_usage()
 	printf("Local stuff:\n");
 	printf(" -s [serial]     serial port console (minicom like terminal)\n");
 	printf(" -h              show this help message\n");
+	printf(" -S [subversion] unpacks/flash pieces matching this sub-version information\n");
+	printf(" -n              do not flash or write to disk (simulation)\n");
 	printf(" -C [/dev/mtd]   check bad blocks on mtd\n");
 	printf(" -e [path]       dump/extract pieces to path\n");
 	printf(" -F [fiasco]     flash a fiasco firmware image\n");
@@ -105,16 +109,50 @@ void show_usage()
 }
 
 
-void unpack_callback(struct header_t *header)
+int unpack_callback(struct header_t *header)
 {
-	FILE *fd = fopen(header->name, "wb");
+	FILE *fd;
+
+	fiasco_data_read(header);
+	if (subverstr) {
+		if (strchr(header->name, ',') != NULL) {
+			if (!strstr(header->name, subverstr)) {
+				printf("Skipping '%s' does not matches -S subversion\n",
+					header->name);
+				return 1;
+			}
+		}
+	}
+	if (nomode)
+		return 1;
+
+	fd = fopen(header->name, "wb");
 	if (fd == NULL) {
 		printf("Cannot open file.\n");
-		return;
+		return 1;
 	}
-	fiasco_data_read(header);
 	fwrite(header->data, header->size, 1, fd);
 	fclose(fd);
+
+	return 0;
+}
+
+int flash_callback(struct header_t *header)
+{
+	int ret;
+	char *type;
+
+	ret = unpack_callback(header);
+	if (ret) {
+		printf("ignored\n");
+		return 1;
+	}
+
+	type = (char *)fpid_file(header->name);
+	printf("Flashing %s (%s)\n", header->name, type);
+	flash_image(header->name, type, NULL);
+
+	return 0;
 }
 
 void unpack_fiasco_image(char *file)
@@ -126,21 +164,23 @@ void unpack_fiasco_image(char *file)
 
 int fiasco_flash(char *file)
 {
-	/* TODO */
-	fiasco_callback = NULL;
+	check_nolo_order();
+	get_sw_version();
+	get_nolo_version();
+
+	fiasco_callback = &flash_callback;
 	openfiasco( file );
 
-	printf("\nTODO: Implement the fiasco flashing here.\n");
-	return -1;
+	return 0;
 }
 
 #if HAVE_USB
 int connect_via_usb()
 {
+	static char pbc[]={'/','-','\\', '|'};
         struct usb_device_descriptor udd;
         struct devices it_device;
 	int    c = 0;
-	static char pbc[]={'/','-','\\', '|'};
 
 	// usb_set_debug(5);
 	usb_init();
@@ -214,7 +254,7 @@ int main(int argc, char **argv)
 {
 	int c;
 
-	while((c = getopt(argc, argv, "QC:cp:PvVhRu:ib:U:r:e:ld:I:D:f:F:s:xH:")) != -1) {
+	while((c = getopt(argc, argv, "QC:cp:PvVhRu:ib:U:r:e:ld:I:D:f:F:s:xH:S:n")) != -1) {
 		switch(c) {
 		case 'H':
 			printf("xorpair: %04x\n", do_hash_file(optarg));
@@ -226,6 +266,12 @@ int main(int argc, char **argv)
 			return console_prompt();
 		case 'b':
 			boot_cmdline = optarg;
+			break;
+		case 'S':
+			subverstr = optarg;
+			break;
+		case 'n':
+			nomode = 1;
 			break;
 		case 'U':
 			usb_mode = atoi(optarg);
@@ -321,8 +367,8 @@ int main(int argc, char **argv)
 	{
 
 		printf("# The Free Fiasco Firmware Flasher v"VERSION"\n"
-		"0xFFFF [-chilQRvVx] [-C mtd-dev] [-d vid:pid] [-D 0|1|2] [-e path] [-f flags]\n"
-		"       [-F fiasco] [-H hash-file] [-I piece] [-p [piece%%]file]] [-r 0|1]\n"
+		"0xFFFF [-chinlQRvVx] [-C mtd-dev] [-d vid:pid] [-D 0|1|2] [-e path] [-f flags]\n"
+		"       [-F fiasco] [-H hash-file] [-I piece] [-p [piece%%]file]] [-r 0|1] [-S subver]\n"
 		"       [-s serial-dev] [-u fiasco-image] [-U 0|1] | [-P new-fiasco] [piece1] [2] ..\n");
 		return 1;
 	}

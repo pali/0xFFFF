@@ -1,13 +1,17 @@
 #include "squeue.h"
+#define _XOPEN_SOURCE 500     /* Or: #define _BSD_SOURCE */
 #include <unistd.h>
 #include <errno.h>
 #include <stdlib.h>
 #include <sys/ipc.h>
 #include <signal.h>
 #include <sys/shm.h>
+#include <sys/types.h>
+#include <sys/stat.h>
 #include <sys/mman.h>
 #include <fcntl.h>
 #include <stdio.h>
+#include <unistd.h>
 #include <string.h>
 
 #define POOL_SIZE ITEM_MAX*ITEM_SIZE

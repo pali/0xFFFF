@@ -19,7 +19,13 @@
 #include "main.h"
 #include "os.h"
 #include <stdio.h>
+#include <string.h>
+#include <stdlib.h>
 #include <signal.h>
+#include <sys/types.h>
+#include <sys/wait.h>
+#include <sys/stat.h>
+
 #if HAVE_SQUEUE
 
 struct squeue_t *q;
@@ -43,23 +49,19 @@ void process_message(char *msg)
 	printf("[x] (%s)\n", msg);
 	str = strdup(msg);
 	arg = strchr(str, ':');
-	if (c!=NULL) {
+	if (c!=0) {
 		arg[0]='\0';
 		arg = arg +1;
 		if (!strcmp(str, "flash")) {
-			char buf[1024];
-			char *type = fpid_file(arg);
+			const char *type = fpid_file(arg);
 			if (type == NULL) {
 				squeue_push2(p, "error", "Unknown piece format", 1);
-			} else {
-				flash_image(arg, type, NULL);
-			}
+			} else flash_image(arg, type, NULL);
 		} else
 		if (!strcmp(str, "reset")) {
 			if (reboot_board() == 0) {
 				squeue_push2(p,"info", "Device reboots", 1);
-			} else
-				squeue_push2(p,"error", "Cannot reboot device", 1);
+			} else squeue_push2(p,"error", "Cannot reboot device", 1);
 		} else
 		if (!strcmp(str, "info")) {
 			get_rd_flags();
@@ -95,7 +97,7 @@ int queue_mode()
 
 	pid = dofork();
 	if (pid) {
-		wait(pid);
+		wait(&pid);
 		return 0;
 	} else {
 		p = squeue_open("/tmp/0xFFFF.1", Q_CREAT);

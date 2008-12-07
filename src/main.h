@@ -5,7 +5,6 @@
 #include "hash.h"
 #include "nolo.h"
 #include "os.h"
-
 extern char strbuf[1024];
 
 #define _FILE_OFFSET_BITS 64
@@ -16,11 +15,11 @@ struct devices;
 
 int queue_mode();
 int reverse_extract_pieces(char *dir);
-void flash_image(char *filename, char *piece, char *version);
+void flash_image(const char *filename, const char *piece, const char *version);
 int fiasco_read_image(char *file);
 void check_nolo_order();
 extern struct usb_dev_handle *dev;
-unsigned long get_file_size(char *file);
+unsigned long get_file_size(const char *file);
 void progressbar(unsigned long long part, unsigned long long total);
 const char *fpid_file(const char *filename);
 int add_piece(char *piece);
@@ -107,10 +106,15 @@ int openfiasco(char *name);
 int fiasco_new(const char *filename, const char *name);
 void fiasco_data_read(struct header_t *header);
 int fiasco_add_eof(int fd);
-extern void (*fiasco_callback)(struct header_t *header);
+extern int (*fiasco_callback)(struct header_t *header);
 int fiasco_add(int fd, const char *name, const char *file, const char *version);
 int fiasco_pack(int optind, char *argv[]);
 int nanddump(char *mtddev, unsigned long start_addr, unsigned long length, char *dumpfile, int isbl, int ioob);
 
+//
+int reboot_board();
+int get_rd_flags();
+int get_usb_mode();
+int get_nolo_version();
 
 #endif

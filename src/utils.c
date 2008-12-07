@@ -22,7 +22,7 @@
 #include <stdarg.h>
 #include <stdlib.h>
 
-unsigned long get_file_size(char *file)
+unsigned long get_file_size(const char *file)
 {
 	FILE *fd = fopen(file, "r");
 	unsigned long len = 0;
@@ -53,7 +53,7 @@ void progressbar(unsigned long long part, unsigned long long total)
 		squeue_push2(p, "bar", msg, 0);
 	} else {
 #endif
-		printf("\e[K  %3d%% [", pc);
+		printf("\x1b[K  %3d%% [", pc);
 		if (columns)
 			cols = atoi(columns);
 		cols-=15;

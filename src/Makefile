@@ -10,7 +10,9 @@ CFLAGS+=-pedantic -std=c99 -DHAVE_USB=${HAVE_USB}
 USBOBJ=../libusb/error.o ../libusb/usb.o ../libusb/descriptors.o
 USBOBJ+=../libusb/linux.o ## XXX not portable
 
-all: ${OBJ}
+all: ${BIN}
+
+${BIN}: ${OBJ}
 	${CC} ${LDFLAGS} -o ${BIN} ${OBJ} ${LIBS}
 
 allusb: ${OBJ}
