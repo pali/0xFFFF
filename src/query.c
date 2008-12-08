@@ -134,27 +134,28 @@ int set_rd_mode(unsigned short mode)
 /*
  * query root device
  */
-int get_hw_revision()
+int get_hw_revision(char *str, int len)
 {
 	unsigned char string[512];
-	int i = 0;
+	char tmpstr[64];
+	int i = 0, j=0, mod=0;
 
+	if (str == NULL)
+		str = tmpstr;
 	memset(string,'\0',512);
 	if (usb_control_msg(dev, CMD_QUERY, NOLO_GET_HWVERSION, 0, 0, (char *)string, 512, 2000) == -1) {
 		fprintf(stderr, "Cannot query hw revision.\n");
 		return -1;
 	}
 
-	printf("HW revision string: '");
-	for(i=0;i<44;i++) { // XXX ??
-		if (string[i]==0) {
-			printf(" ");
-		} else {
-			if (string[i]>19)
-				printf("%c", string[i]);
+	for(i=0;i<44&&i<len;i++) { // XXX ??
+		if (string[i]>19) {
+			if (i>0 && string[i-1]<19)
+				str[j++] = (++mod%2)?':':',';
+			str[j++] = string[i];
 		}
 	}
-	printf("'\n");
+	printf("HW revision string: '%s'\n", str);
 
 	return 0;
 }

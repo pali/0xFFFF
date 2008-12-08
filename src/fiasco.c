@@ -29,7 +29,7 @@
 
 int (*fiasco_callback)(struct header_t *header) = NULL;
 
-int openfiasco(char *name)
+int openfiasco(char *name, char *piece_grep, int v)
 {
 	struct header_t header;
 	unsigned char buf[128];
@@ -38,6 +38,7 @@ int openfiasco(char *name)
 	unsigned int namelen;
 	off_t off, here;
 	int i,j;
+
 	header.fd = open(name, O_RDONLY);
 
 	if (header.fd == -1) {
@@ -60,8 +61,9 @@ int openfiasco(char *name)
 	memset(buf,'\0', 128);
 	read(header.fd, buf, namelen);
 
-	printf("Fiasco version: %2d\n", buf[3]);
+	if (v) printf("Fiasco version: %2d\n", buf[3]);
 	strcpy(header.fwname, (char *)buf+6);
+	if (v)
 	for(i=6;i<namelen;i+=strlen((char *)(buf+i))+1)
 		printf("Name: %s\n", buf+i);
 
@@ -80,7 +82,7 @@ int openfiasco(char *name)
 					return close(header.fd);
 				}
 			}
-			printf("Skipping %d padding bytes\n", i);
+			if (v) printf("Skipping %d padding bytes\n", i);
 			lseek(header.fd, -1, SEEK_CUR);
 			continue;
 		}
@@ -94,16 +96,18 @@ int openfiasco(char *name)
 		if (data[0] == 0xff) {
 			printf(" [eof]\n");
 			break;
-		} else printf(" %s\n", data);
+		} else if (v) printf(" %s\n", data);
 		strcpy(header.name, (char *)data);
 
 		if (read(header.fd, buf, 9)<9)
 			break;
 		memcpy(&header.size, buf,4);
 		header.size = ntohl(header.size);
-		printf("   offset:  0x%08x\n", (unsigned int)here);
-		printf("   size:    %d bytes\n", header.size);
-		printf("   hash:    %04x\n", header.hash);
+		if (v)  {
+			printf("   offset:  0x%08x\n", (unsigned int)here);
+			printf("   size:    %d bytes\n", header.size);
+			printf("   hash:    %04x\n", header.hash);
+		}
 		//printf("BYTE: %02x %02x %02x %02x %02x\n", 
 		//	buf[4], buf[5], buf[6], buf[7], buf[8]);
 		/* XXX this is not ok */
@@ -115,14 +119,16 @@ int openfiasco(char *name)
 			if (read(header.fd, data, i)<i)
 				break;
 			if (data[0]) {
-				printf("   version-length: %d\n", i);
-				printf("   version: %s\n", data);
+				if (v) {
+					printf("   version-length: %d\n", i);
+					printf("   version: %s\n", data);
+				}
 				pdata = data;
 				while(pdata<data+i) {
 					strcat(header.name,pdata==data?"-":",");
 					strcat(header.name, (char*)pdata);
-					printf("   sub-version: %s\n", pdata);
-					pdata=pdata+strlen((char*)pdata)+1;
+					if (v) printf("   sub-version: %s\n", pdata);
+					pdata = pdata+strlen((char*)pdata)+1;
 					for(;*pdata=='\0'&&pdata<data+i;pdata=pdata+1);
 				}
 			}
@@ -130,21 +136,27 @@ int openfiasco(char *name)
 			if (read(header.fd, buf+8, 1)<1)
 				break;
 		}
-		printf("   name: %s\n", header.name);
 		/* callback */
 		off = lseek(header.fd, 0, SEEK_CUR);
-		printf("   body-at:   0x%08x\n", (unsigned int)off);
-		if (fiasco_callback != NULL) {
-			fiasco_callback(&header);
-			free(header.data);
-			continue;
-		} else {
+		if (v) {
+			printf("   name: %s\n", header.name);
+			printf("   body-at:   0x%08x\n", (unsigned int)off);
+		}
+		if (piece_grep==NULL || (strstr(header.name, piece_grep))) {
+			printf("==> (%s) %s\n", piece_grep, header.name);
+			if (fiasco_callback != NULL) {
+				fiasco_callback(&header);
+				free(header.data);
+				continue;
+			} else {
+				// ??huh
+			}
 		}
 		// XXX dup
 		lseek(header.fd, off, SEEK_SET);
 		lseek(header.fd, header.size, SEEK_CUR);
 	}
-	return 0;
+	return close(header.fd);
 }
 
 void fiasco_data_read(struct header_t *header)

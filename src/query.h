@@ -16,7 +16,7 @@ int set_rd_mode(unsigned short mode);
 int get_rd_flags();
 int set_rd_flags(unsigned short flags);
 
-int get_hw_revision();
+int get_hw_revision(char *str, int len);
 
 int get_root_device();
 int set_root_device(unsigned short);

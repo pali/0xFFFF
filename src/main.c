@@ -159,17 +159,41 @@ void unpack_fiasco_image(char *file)
 {
 	printf("Dumping firmware pieces to disk.\n");
 	fiasco_callback = &unpack_callback;
-	openfiasco( file );
+	openfiasco(file, NULL ,1);
 }
 
 int fiasco_flash(char *file)
 {
+	char *p,version[64];
+
+        if (connect_via_usb()) {
+                fprintf(stderr, "Cannot connect to device. It is possibly not in boot stage.\n");
+                return 0;
+        }
+
+	// if (info)
+	cmd_info("");
+
 	check_nolo_order();
 	get_sw_version();
+	get_hw_revision(version, 44);
+
+	if (subverstr == NULL) {
+		p = strstr(version, "hw_rev:");
+		if (p) {
+			subverstr = strdup(p+7);
+			// TODO: delimit string by comma
+			printf("SubVersionString autodetected: '%s'\n", subverstr);
+		}
+	}
 	get_nolo_version();
 
 	fiasco_callback = &flash_callback;
-	openfiasco( file );
+	openfiasco(file, "xloader", 0);
+	openfiasco(file, "secondary", 0);
+	openfiasco(file, "kernel", 0);
+	openfiasco(file, "initfs", 0);
+	openfiasco(file, "rootfs", 0);
 
 	return 0;
 }
@@ -277,7 +301,8 @@ int main(int argc, char **argv)
 			usb_mode = atoi(optarg);
 			break;
 		case 'F':
-			return fiasco_flash(optarg);
+			fiasco_image = optarg;
+			break;
 		case 'd':
 			sscanf(optarg, "%04hx:%04hx", 
 				&supported_devices[SUPPORTED_DEVICES-2].vendor_id,
@@ -350,6 +375,9 @@ int main(int argc, char **argv)
 	if (qmode)
 		return queue_mode();
 
+	if (!unpack && fiasco_image)
+		return fiasco_flash(fiasco_image);
+
 	if (identify)
 		return 0;
 
@@ -395,10 +423,18 @@ int main(int argc, char **argv)
 	cmd_info("");
 	
 	if (pcs_n) {
-		int c;
-
+		char version[64];
 		check_nolo_order();
 		get_sw_version();
+		get_hw_revision(version, 44);
+		if (subverstr == NULL) {
+			char *p = strstr(version, "hw_rev:");
+			if (p) {
+				subverstr = strdup(p+7);
+				// TODO: delimit string by comma
+				printf("SubVersionString autodetected: '%s'\n", subverstr);
+			}
+		}
 		get_nolo_version();
 
 		for(c=0;c<pcs_n;c++) {

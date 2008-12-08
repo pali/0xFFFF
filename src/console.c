@@ -46,8 +46,13 @@ void cmd_help(char *line)
 
 void cmd_info(char *line)
 {
+	char *p, str[128];
 	get_sw_version();
-	get_hw_revision(); // get hardware revision:
+	get_hw_revision(str, 128); // get hardware revision:
+	p = strstr(str, "hw_rev:");
+	if (p) // TODO: delimit string by comma
+		printf("SubVersionString autodetected: '%s'\n", p+7);
+	else printf("SubVersionString autodetected: (error)\n");
 	get_root_device(); // only for flashing
 	get_usb_mode();
 	get_rd_mode();

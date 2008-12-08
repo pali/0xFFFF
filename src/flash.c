@@ -86,6 +86,16 @@ void flash_image(const char *filename, const char *piece, const char *version)
 	unsigned char nolofiller[128];
 	ushort hash = do_hash_file(filename);
 
+	if (piece == NULL) {
+		//exit(1);
+		piece = fpid_file(filename);
+		if (piece == NULL) {
+			printf("Unknown piece type\n");
+			return;
+		}
+		printf("Piece type: %s\n", piece);
+	}
+
 	if (version)
 		vlen = strlen(version)+1;
 
