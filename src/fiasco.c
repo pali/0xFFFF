@@ -208,7 +208,6 @@ int fiasco_add_eof(int fd)
 	return 0;
 }
 
-
 int fiasco_add(int fd, const char *name, const char *file, const char *version)
 {
 	int gd,ret;

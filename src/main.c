@@ -108,7 +108,6 @@ void show_usage()
 	exit(0);
 }
 
-
 int unpack_callback(struct header_t *header)
 {
 	FILE *fd;
@@ -149,7 +148,7 @@ int flash_callback(struct header_t *header)
 	}
 
 	type = (char *)fpid_file(header->name);
-	printf("Flashing %s (%s)\n", header->name, type);
+	printf("\nFlashing %s (%s)\n", header->name, type);
 	flash_image(header->name, type, NULL);
 
 	return 0;
@@ -164,7 +163,8 @@ void unpack_fiasco_image(char *file)
 
 int fiasco_flash(char *file)
 {
-	char *p,version[64];
+	char *p;
+	char version[64];
 
         if (connect_via_usb()) {
                 fprintf(stderr, "Cannot connect to device. It is possibly not in boot stage.\n");
@@ -175,6 +175,7 @@ int fiasco_flash(char *file)
 	cmd_info("");
 
 	check_nolo_order();
+	get_nolo_version();
 	get_sw_version();
 	get_hw_revision(version, 44);
 
@@ -186,7 +187,7 @@ int fiasco_flash(char *file)
 			printf("SubVersionString autodetected: '%s'\n", subverstr);
 		}
 	}
-	get_nolo_version();
+	printf("\n");
 
 	fiasco_callback = &flash_callback;
 	openfiasco(file, "xloader", 0);
