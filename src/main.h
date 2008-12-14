@@ -33,6 +33,7 @@ void eprintf(const char *format, ...);
 #if HAVE_USB
 #include <usb.h>
 
+int fiasco_flash(const char *file);
 extern struct usb_device *device;
 extern struct usb_dev_handle *dev;
 int is_valid_device(struct usb_device_descriptor *udd);

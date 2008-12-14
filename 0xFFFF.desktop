@@ -1,0 +1,9 @@
+[Desktop Entry]
+Encoding=UTF-8
+Name=0xFFFF
+Comment=Free flasher for the Nokia internet tablets
+Exec=gnome-terminal -e goxf
+Icon=gnome-terminal.png
+Terminal=false
+Type=Application
+Categories=GTK;Application;Utility;

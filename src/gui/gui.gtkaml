@@ -12,8 +12,8 @@
         xmlns:SQueues="SQueues"
         xmlns:class="http://gtkaml.org/0.2"
         class:name="MainWindow"
-        title="0xFFFF GUI"
-        delete-event="{OnWindow1DeleteEvent}">
+        title="0xFFFF GUI">
+        <!-- delete-event="{OnWindow1DeleteEvent}" -->
 <VBox>
   <MenuBar expand="false">
     <MenuItem label="_File" with-mnemonic="true">
@@ -32,6 +32,7 @@
     <submenu>
       <Menu>
       <ImageMenuItem stock-id="gtk-connect" activate="{OnConnect}"/>
+      <ImageMenuItem stock-id="gtk-stop" activate="{OnStop}"/>
       <ImageMenuItem stock-id="gtk-info" activate="{OnGetInformation}"/>
       <ImageMenuItem label="Reset" activate="{OnReset}"/>
       </Menu>
@@ -58,6 +59,7 @@
    </VBox>
    <VBox expand="false" border-width="3" spacing="3">
       <Button label="gtk-connect" use-stock="true" expand="false" clicked="{OnConnect}"/>
+      <Button label="gtk-stop" use-stock="true" expand="false" clicked="{OnStop}"/>
       <Button label="gtk-info" use-stock="true" expand="false" clicked="{OnGetInformation}"/>
     <Label label="" />
 <!--      <Button label="Options" use-stock="false" expand="false"/>
@@ -84,11 +86,6 @@
 
 <![CDATA[
 
-
-private void OnWindow1DeleteEvent ()
-{
-	doCloseApplication ();
-}
 
 private void doCloseApplication ()
 {
@@ -202,7 +199,6 @@ private void OnFileNewEvent ()
 private void OnQuitEvent ()
 {
 	doCloseApplication();
-	External.system("sudo pkill 0xFFFF");
 	// TODO: send message to gracefully kill 0xFFFF
 	// TODO: handle ^C when flashing
 }
@@ -216,19 +212,13 @@ public void list_del()
 {
         TreeIter iter;
         TreeModel model;
-        weak string str = "";
 
         TreeSelection sel = tv.get_selection();
 
         if (sel.count_selected_rows() == 1) {
                 sel.get_selected(out model, out iter);
-		//((ListStore)tv.model)).get(ref iter, 2, out str, -1);
-		
-		//stdout.printf("NAME IS: "+str);
                 ((ListStore)tv.model).remove(iter);
         }
-
-        //return str;
 }
 
 public void add_file(string type, string size, string file)
@@ -304,11 +294,16 @@ private void OnGetInformation()
 private void OnConnect()
 {
 	//msg("connect:device");
-	External.system("sudo pkill 0xFFFF");
-	External.system("sudo ../0xFFFF -Q &");
+	OnStop();
+	External.system("sudo 0xFFFF -Q &");
 	p->close();
 	q->close();
 	p = q = null;
+}
+
+private void OnStop()
+{
+	External.system("sudo pkill 0xFFFF");
 }
 
 
@@ -348,9 +343,10 @@ static int main (string[] args)
 		viewer.loadFile (args[1]);
 	viewer.resize(600,400);
 	viewer.set_position(WindowPosition.CENTER);
+	viewer.delete_event += (x,y) => { Gtk.main_quit(); };
 	setup_treeview(viewer.tv);
 	viewer.show_all ();
-	viewer.showMessage("This software is beta and does not guaranties correct functionality", MessageType.WARNING);
+//	viewer.showMessage("This software is beta and does not guaranties correct functionality", MessageType.WARNING);
 	Timeout.add(200, (SourceFunc)(readFunc));
 	Gtk.main ();
 	return 0;

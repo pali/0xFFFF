@@ -43,7 +43,7 @@ void process_message(char *msg)
 {
 	char *str;
 	char *arg;
-	int c;
+	int c=1;
 	if (msg == NULL)
 		return;
 	printf("[x] (%s)\n", msg);

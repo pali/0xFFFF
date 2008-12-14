@@ -1,5 +1,6 @@
 include config.mk
 PREFIX?=/usr/local
+DESTDIR?=
 
 all: logot frontend
 	cd src && ${MAKE} all
@@ -10,6 +11,7 @@ frontend:
 static: logot
 	cd libusb && ${MAKE} all
 	cd src && ${MAKE} static
+	cd logotool && ${MAKE} static
 
 allusb: logot
 	cd libusb && ${MAKE} all
@@ -23,10 +25,15 @@ clean:
 	cd logotool && ${MAKE} clean
 
 install:
-	cp src/0xFFFF ${PREFIX}/bin
-	-cp src/gui/goxf ${PREFIX}/bin
-	cp logotool/logotool ${PREFIX}/bin
+	mkdir -p ${DESTDIR}${PREFIX}/bin
+	mkdir -p ${DESTDIR}${PREFIX}/share/applications/
+	cp src/0xFFFF ${DESTDIR}${PREFIX}/bin
+	-cp src/gui/goxf ${DESTDIR}${PREFIX}/bin
+	cp logotool/logotool ${DESTDIR}${PREFIX}/bin
+	cp 0xFFFF.desktop ${DESTDIR}${PREFIX}/share/applications/
 
 deinstall:
-	rm -f ${PREFIX}/bin/0xFFFF
-	rm -f ${PREFIX}/bin/logotool
+	rm -f ${DESTDIR}${PREFIX}/bin/0xFFFF
+	rm -f ${DESTDIR}${PREFIX}/bin/logotool
+	rm -f ${DESTDIR}${PREFIX}/bin/goxf
+	rm ${DESTDIR}${PREFIX}/share/applications/0xFFFF.desktop

@@ -5,7 +5,7 @@ OBJ+=squeue/squeue.o
 BIN=0xFFFF
 #LIBS=`${HAVE_USB} && echo -- '-lusb'`
 LIBS=`if [ "${HAVE_USB}" = 1 ]; then echo '-lusb'; fi`
-CFLAGS+=-DVERSION=\"${VERSION}\" -Wall -g -I .
+CFLAGS+=-DVERSION=\"${VERSION}\" -Wall -I .
 CFLAGS+=-pedantic -std=c99 -DHAVE_USB=${HAVE_USB}
 USBOBJ=../libusb/error.o ../libusb/usb.o ../libusb/descriptors.o
 USBOBJ+=../libusb/linux.o ## XXX not portable

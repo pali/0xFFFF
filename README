@@ -27,8 +27,15 @@ Feel free to join to the mailing list and visit the homepage for more info:
   0xffff@lists.nopcode.org
   http://www.nopcode.org/0xFFFF
 
+-----------8<---------------------------------------------------------------
+
+Build:
+ $ make
+
+To install: (by default is /usr/local)
+ $ make install PREFIX=/usr DESTDIR=/
+
+
 
 Have phun!
-
-
                                                          --pancake

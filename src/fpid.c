@@ -48,7 +48,6 @@ const char *fpid_file(const char *filename)
 	FILE *fd;
 	char buf[512];
 	unsigned char *b = (unsigned char *)&buf;
-	char *piece = NULL;
 	long size;
 
 	// 2nd      : +0x34 = 2NDAPE
@@ -80,10 +79,15 @@ const char *fpid_file(const char *filename)
 	if (!memcmp(b+0x14, "X-LOADER", 8))
 		return pieces[PIECE_XLOADER];
 	else
-	if (!memcmp(b+0x0c, "NOLOXldr", 8)) // TODO: this is xloader800, not valid on 770?
+	if (!memcmp(b+0x0c, "NOLOXldr", 8))
 		return pieces[PIECE_XLOADER];
 	else
-	if (!memcmp(b+0x00, "\x00\x00\xa0\xe1\x00\x00\xa0\xe1", 8))
+	if (!memcmp(b+4,"NOLOXldr",8))
+		// TODO: this is xloader800, not valid on 770?
+		return pieces[PIECE_2ND];
+	else
+	if (!memcmp(b+0x00, "\x00\x00\xa0\xe1\x00\x00\xa0\xe1", 8)
+	|| (!memcmp(b, "\x21\x01\x01", 3)))
 		return pieces[PIECE_KERNEL];
 	else
 	// JFFS2 MAGIC
@@ -94,5 +98,5 @@ const char *fpid_file(const char *filename)
 		return pieces[PIECE_ROOTFS];
 	}
 
-	return piece;
+	return NULL;
 }

@@ -161,7 +161,7 @@ void unpack_fiasco_image(char *file)
 	openfiasco(file, NULL ,1);
 }
 
-int fiasco_flash(char *file)
+int fiasco_flash(const char *file)
 {
 	char *p;
 	char version[64];
