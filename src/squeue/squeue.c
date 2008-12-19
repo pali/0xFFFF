@@ -40,13 +40,18 @@ struct squeue_t *squeue_open(const char *file, int mode)
 	struct squeue_t *q;
 	char *pool;
 	int shmid;
+	int fd;
 	key_t k;
 
 	k = ftok(file, 0x34);
 	if (k == -1) {
 		perror("ftok");
 		squeue_release(file);
-		close(creat(file, 0666));
+		if ((fd = creat(file, 0666)) == -1) {
+			perror("creat");
+			return NULL;
+		}
+		close(fd);
 		chmod(file, 0666);
 		k = ftok(file, 0xa3);
 		if (k == -1) {

@@ -62,7 +62,7 @@ int openfiasco(char *name, char *piece_grep, int v)
 	read(header.fd, buf, namelen);
 
 	if (v) printf("Fiasco version: %2d\n", buf[3]);
-	strcpy(header.fwname, (char *)buf+6);
+	strncpy(header.fwname, (char *)buf+6, sizeof(header.fwname) - 1);
 	if (v)
 	for(i=6;i<namelen;i+=strlen((char *)(buf+i))+1)
 		printf("Name: %s\n", buf+i);

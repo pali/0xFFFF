@@ -69,17 +69,14 @@ __rf_extract_exit:
  * This function was covardly copied from nanddump.c @ mtd-utils-20060907
  */
 #define _GNU_SOURCE
-#include <ctype.h>
 #include <errno.h>
 #include <fcntl.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <string.h>
 #include <unistd.h>
 #include <getopt.h>
 #include <sys/ioctl.h>
 #include <sys/types.h>
-#include <sys/stat.h>
 //#include <asm/types.h>
 #include <mtd/mtd-user.h>
 #ifndef loff_t
@@ -170,6 +167,9 @@ int check_badblocks(char *mtddev)
 		printf("cannot open mtd\n");
 		return 1;
 	}
+
+	memset(&stat1, 0, sizeof(stat1));
+	memset(&stat2, 0, sizeof(stat2));
 
         fprintf(stderr, "Block size %u, page size %u, OOB size %u\n",
                 meminfo.erasesize, meminfo.writesize, meminfo.oobsize);
@@ -498,7 +498,7 @@ int dump_config()
 			break;
 		if (!memcmp(buf,"ConF", 4)) {
 		loop:
-			read(fd, buf, 4);
+			ret = read(fd, buf, 4);
 			if (ret == -1) break;
 			printf("\n0x%08x : ConF %02x %02x %02x %02x : ", i,
 				buf[0], buf[1], buf[2], buf[3]);

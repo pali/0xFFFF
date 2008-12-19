@@ -43,38 +43,33 @@ void process_message(char *msg)
 {
 	char *str;
 	char *arg;
-	int c=1;
 	if (msg == NULL)
 		return;
 	printf("[x] (%s)\n", msg);
 	str = strdup(msg);
 	arg = strchr(str, ':');
-	if (c!=0) {
-		arg[0]='\0';
-		arg = arg +1;
-		if (!strcmp(str, "flash")) {
-			const char *type = fpid_file(arg);
-			if (type == NULL) {
-				squeue_push2(p, "error", "Unknown piece format", 1);
-			} else flash_image(arg, type, NULL);
-		} else
-		if (!strcmp(str, "reset")) {
-			if (reboot_board() == 0) {
-				squeue_push2(p,"info", "Device reboots", 1);
-			} else squeue_push2(p,"error", "Cannot reboot device", 1);
-		} else
-		if (!strcmp(str, "info")) {
-			get_rd_flags();
-			squeue_push2(p, "info", strbuf, 1);
-			get_nolo_version();
-			squeue_push2(p, "info", strbuf, 1);
-			get_usb_mode();
-			squeue_push2(p, "info", strbuf, 1);
-		} else
-			squeue_push2(p, "error", "invalid command", 0);
-	} else {
-		squeue_push2(p, "error", "invalid command format", 0);
-	}
+	arg[0]='\0';
+	arg = arg +1;
+	if (!strcmp(str, "flash")) {
+		const char *type = fpid_file(arg);
+		if (type == NULL) {
+			squeue_push2(p, "error", "Unknown piece format", 1);
+		} else flash_image(arg, type, NULL);
+	} else
+	if (!strcmp(str, "reset")) {
+		if (reboot_board() == 0) {
+			squeue_push2(p,"info", "Device reboots", 1);
+		} else squeue_push2(p,"error", "Cannot reboot device", 1);
+	} else
+	if (!strcmp(str, "info")) {
+		get_rd_flags();
+		squeue_push2(p, "info", strbuf, 1);
+		get_nolo_version();
+		squeue_push2(p, "info", strbuf, 1);
+		get_usb_mode();
+		squeue_push2(p, "info", strbuf, 1);
+	} else
+		squeue_push2(p, "error", "invalid command", 0);
 	free(str);
 }
 

@@ -107,5 +107,7 @@ int rgb2yuv(char *from, char *to, int width, int height)
 	for ( i = 0 ; i < height ; i+=2 )
 		for ( j = 0; j < width ; j +=2 )
 			write ( fout,&dstV[j+(i*width)], 1);
+
+	free(dstV); free(dstU); free(dstY); free(src);
 	return 1;
 }	

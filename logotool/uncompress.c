@@ -119,5 +119,6 @@ int uncompress_image(char *srcf, char *dstf)
 	//printf("logotool -w %d -h %d -v %s\n", width, height, dstf);
 	printf("eval PATH=$PWD:$PATH logotool -w %d -h %d -m %s\n", width, height, dstf);
 
+	free(dst); free(src);
 	return 0;
 }

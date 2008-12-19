@@ -60,6 +60,7 @@ int compress_image(char *srcf, char *dstf, int w, int h)
 	fdout  = open( dstf, O_TRUNC | O_CREAT | O_WRONLY , 0660 );
 	if (fdout == -1) {
 		printf("Cannot open file '%s' for writing\n", dstf);
+		fclose(fd);
 		return 1;
 	}
 

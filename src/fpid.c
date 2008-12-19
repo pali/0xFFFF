@@ -37,7 +37,12 @@ long fpid_size(const char *filename)
 {
 	long sz;
 	FILE *fd = fopen(filename, "r");
-	fseek(fd, 0, SEEK_END);
+	if (fd == NULL)
+		return -1;
+	if (fseek(fd, 0, SEEK_END) != 0) {
+		fclose(fd);
+		return -1;
+	}
 	sz = ftell(fd);
 	fclose(fd);
 	return sz;
