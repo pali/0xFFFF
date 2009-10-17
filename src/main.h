@@ -56,7 +56,6 @@ extern int verbose;
 #define CMD_WRITE 64
 #define CMD_QUERY 192
 
-
 struct piece_t {
 	char *name;
 	char *type;
@@ -103,7 +102,7 @@ extern char *modes[];
 extern char *root_devices[];
 
 // fiasco
-int openfiasco(char *name, char *grep, int v);
+int openfiasco(char *name, const char *grep, int v);
 int fiasco_new(const char *filename, const char *name);
 void fiasco_data_read(struct header_t *header);
 int fiasco_add_eof(int fd);

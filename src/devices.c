@@ -1,6 +1,6 @@
 /*
  *  0xFFFF - Open Free Fiasco Firmware Flasher
- *  Copyright (C) 2007  pancake <pancake@youterm.com>
+ *  Copyright (C) 2007-2009  pancake <pancake@nopcode.org>
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -32,13 +32,16 @@
  *           boot       os
  * n770   0421:0105  0421:0431
  * n800              0421:0431
+ * n900   0421:0105  0421:01c7
  *
  */
 struct devices supported_devices[SUPPORTED_DEVICES] = {
   { "FFFF", 0x000, 0x0000, 0x0000 },  // dummy
   { "unkn", 0x421, 0x3f00, 0x0000 },  // probably a development board
-  { "n770/n810", 0x421, 0x0105, 0x0001 },  // my n770 
+  { "n770/n810/n900", 0x421, 0x0105, 0x0001 },
   { "n800", 0x421, 0x04c3, 0x0001 },  // a n800 
+// { "n900", 0x421, 0x01c7, 0x0001 }, // a pre-production n900
+// { "n900", 0x421, 0x0105, 0x0001 }, // a pre-production n900
   { 0 },
   { 0 }
 };
@@ -82,39 +85,30 @@ void list_valid_devices()
  *   structures for the specified device.
  * Otherwise returns false (0)
  */
-
 int usb_device_found(struct usb_device_descriptor *udd, struct devices *it_device)
 {
+	int dev_index = 0;
 	struct usb_bus *bus;
-        int dev_index = 0;
-
-	if (usb_find_busses() < 0) {
-		fprintf(stderr, "\nerror: no usb busses found.\n");
+	if ((usb_find_busses()<0) || (usb_find_devices()==-1)) {
+		fprintf(stderr, "\nerror: no usb bus or device found.\n");
 		exit(1);
 	} else {
-		switch(usb_find_devices()) {
-		case -1:
-			fprintf(stderr, "\nerror: no devices found.\n");
-			exit(1);
-		default:
-			for (bus = usb_busses; bus; bus = bus->next) {
-				struct usb_device *dev = bus->devices;
-				D printf("bus: \n");
-				for (; dev; dev = dev->next) { 
-					*udd = dev->descriptor;
-					D printf(" dev (%s) - ", dev->filename);
-					D printf("vendor: %04x product: %04x\n", udd->idVendor, udd->idProduct);
+		for (bus = usb_busses; bus; bus = bus->next) {
+			struct usb_device *dev = bus->devices;
+			D printf("bus: \n");
+			for (; dev; dev = dev->next) { 
+				*udd = dev->descriptor;
+				D printf(" dev (%s) - ", dev->filename);
+				D printf("vendor: %04x product: %04x\n", udd->idVendor, udd->idProduct);
 
-					if ((dev_index = is_valid_device(udd))) {
-						device = dev;
-                                                *it_device = supported_devices[dev_index];
-						return 1;
-					}
+				if ((dev_index = is_valid_device(udd))) {
+					device = dev;
+					*it_device = supported_devices[dev_index];
+					return 1;
 				}
 			}
 		}
 	}
-
 	return 0;
 }
 #endif

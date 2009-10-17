@@ -29,7 +29,7 @@
 
 int (*fiasco_callback)(struct header_t *header) = NULL;
 
-int openfiasco(char *name, char *piece_grep, int v)
+int openfiasco(char *name, const char *piece_grep, int v)
 {
 	struct header_t header;
 	unsigned char buf[128];

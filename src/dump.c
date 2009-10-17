@@ -1,6 +1,6 @@
 /*
  *  0xFFFF - Open Free Fiasco Firmware Flasher
- *  Copyright (C) 2007  pancake <pancake@youterm.com>
+ *  Copyright (C) 2007-2009  pancake <pancake@nopcode.org>
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -161,6 +161,7 @@ int check_badblocks(char *mtddev)
 	unsigned char oobbuf[64];
 	struct nand_oobinfo old_oobinfo;
 	struct mtd_oob_buf oob = {0, 16, oobbuf};
+	/* XXX stat1 is never initialized !!! */
 	struct mtd_ecc_stats stat1, stat2;
 	mtd_info_t meminfo;
 
@@ -175,7 +176,6 @@ int check_badblocks(char *mtddev)
                 meminfo.erasesize, meminfo.writesize, meminfo.oobsize);
         fprintf(stderr, "Size %u, flags %u, type 0x%x\n",
                 meminfo.size, meminfo.flags, (int)meminfo.type);
-
 
 	oob.length = meminfo.oobsize;
 	for(i = 0; i < meminfo.size; i+= meminfo.writesize) {
@@ -245,6 +245,7 @@ closeall:
 }
 
 // XXX warning ioob is not used
+// isbl is used to skip bad blocks ?
 int nanddump(char *mtddev, unsigned long start_addr, unsigned long length, char *dumpfile, int isbl, int ioob)
 {
 	unsigned char readbuf[2048];
@@ -453,22 +454,35 @@ __done:
 	return 1;
 }
 
-int is_n800()
+static int is_n900()
 {
 	int n800 = 0;
 	unsigned char buf[4];
 	FILE *fd = fopen("/dev/mtd0", "rb");
-
 	if (!fd) {
 		fprintf(stderr, "Cannot open /dev/mtd0.\n");
 		exit(1);
 	}
-	fread(buf, 4, 1,fd);
+	fread(buf, 4, 1, fd);
 	if (!memcmp("\xff\xff\xff\xff", buf, 4))
 		n800 = 1;
-	
 	fclose(fd);
+	return n800;
+}
 
+static int is_n800()
+{
+	int n800 = 0;
+	unsigned char buf[4];
+	FILE *fd = fopen("/dev/mtd2", "rb");
+	if (!fd) {
+		fprintf(stderr, "Cannot open /dev/mtd2.\n");
+		exit(1);
+	}
+	fread(buf, 4, 1, fd);
+	if (!memcmp("\xff\xff\xff\xff", buf, 4))
+		n800 = 1;
+	fclose(fd);
 	return n800;
 }
 
@@ -539,9 +553,50 @@ int dump_config()
 	return 0;
 }
 
+int reverse_extract_pieces_n900(char *dir)
+{
+	char reply;
+	chdir(dir);
+	printf("Device detected: n900\n");
+	// Some of the values here are probably not correct
+	// I need a firmware to identify if the sizes of the pieces are ok
+
+	nanddump("/dev/mtd0", 0, 0, "xloader.bin", 1, 0); // fix size?
+	nanddump("/dev/mtd1", 0, 0, "config.bin", 1, 0);
+	nanddump("/dev/mtd3", 0, 0, "nolo.bin", 0, 0);
+
+	printf("\n\nExtract rootfs? (y/N): "); fflush(stdout);
+	read(0, &reply, 1);
+	if (reply=='y'||reply=='Y') {
+		//rf_extract("/dev/mtd4", 0x000000, 0x6000000, "rootfs.jffs2");
+		nanddump("/dev/mtd5", 0x000000, 0, "rootfs.jffs2", 0,0);
+	} else	printf("*** Ignoring rootfs\n");
+
+	printf("\n\nStrip dumped files? (y/N): "); fflush(stdout);
+	read(0, &reply, 1);
+	if (reply=='y'||reply=='Y') {
+		rf_strip("xloader.bin");
+		rf_strip("config.bin");
+		rf_strip("nolo.bin");
+	} else  printf("*** Ignoring strip\n");
+
+	printf("\nIdentifying extracted files...\n");
+	printf("%s: xloader\n", fpid_file("xloader.bin"));
+	printf("%s: config.bin\n", fpid_file("config.bin"));
+	printf("%s: nolo.bin\n", fpid_file("nolo.bin"));
+	printf("%s: rootfs.jffs2\n", fpid_file("rootfs.jffs2"));
+
+	return 1;
+}
+
 int reverse_extract_pieces(char *dir)
 {
 	char reply;
+
+	if (n900)
+		return reverse_extract_pieces_n900(dir);
+
+	printf("Device detected: n770/n800/n900\n");
 	chdir(dir);
 
 	// TODO: get values from /proc/mtd ???
