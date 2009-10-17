@@ -593,7 +593,7 @@ int reverse_extract_pieces(char *dir)
 {
 	char reply;
 
-	if (n900)
+	if (is_n900())
 		return reverse_extract_pieces_n900(dir);
 
 	printf("Device detected: n770/n800/n900\n");
