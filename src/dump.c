@@ -141,8 +141,8 @@ int mtd_close(int fd, struct nand_oobinfo *old_oobinfo, int oobinfochanged)
 
 // configuration for nanddump //
 //int	noecc = 0;		// don't error correct
-int	omitoob = 1;		// omit oob data
-int	omitbad = 1;
+static int omitoob = 1;		// omit oob data
+static int omitbad = 1;
 // configuration for nanddump //
 
 #define CONFIGURE_FLAGS(x) \
@@ -456,27 +456,27 @@ __done:
 
 static int is_n900()
 {
-	int n800 = 0;
+	int n900 = 0;
 	unsigned char buf[4];
-	FILE *fd = fopen("/dev/mtd0", "rb");
+	FILE *fd = fopen("/dev/mtd2", "rb");
 	if (!fd) {
-		fprintf(stderr, "Cannot open /dev/mtd0.\n");
+		fprintf(stderr, "Cannot open /dev/mtd2.\n");
 		exit(1);
 	}
 	fread(buf, 4, 1, fd);
 	if (!memcmp("\xff\xff\xff\xff", buf, 4))
-		n800 = 1;
+		n900 = 1;
 	fclose(fd);
-	return n800;
+	return n900;
 }
 
 static int is_n800()
 {
 	int n800 = 0;
 	unsigned char buf[4];
-	FILE *fd = fopen("/dev/mtd2", "rb");
+	FILE *fd = fopen("/dev/mtd0", "rb");
 	if (!fd) {
-		fprintf(stderr, "Cannot open /dev/mtd2.\n");
+		fprintf(stderr, "Cannot open /dev/mtd0.\n");
 		exit(1);
 	}
 	fread(buf, 4, 1, fd);

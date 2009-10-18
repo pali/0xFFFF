@@ -22,6 +22,7 @@ logot:
 
 clean:
 	cd src && ${MAKE} clean
+	cd libusb && ${MAKE} clean
 	cd logotool && ${MAKE} clean
 
 install:
