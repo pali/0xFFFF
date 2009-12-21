@@ -1,6 +1,5 @@
-VERSION=0.4.0
-PREFIX=/usr
-
+VERSION=0.5
+PREFIX=/usr/local
 
 # NetBSD stuff
 CFLAGS+=-I/usr/pkg/include -g -O2
