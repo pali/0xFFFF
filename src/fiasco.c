@@ -1,6 +1,6 @@
 /*
  *  0xFFFF - Open Free Fiasco Firmware Flasher
- *  Copyright (C) 2007  pancake <pancake@youterm.com>
+ *  Copyright (C) 2007-2009  pancake <pancake@youterm.com>
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -29,12 +29,12 @@
 
 int (*fiasco_callback)(struct header_t *header) = NULL;
 
-int openfiasco(char *name, const char *piece_grep, int v)
+int openfiasco(const char *name, const char *piece_grep, int v)
 {
 	struct header_t header;
-	unsigned char buf[128];
-	unsigned char data[128];
-	unsigned char *pdata;
+	unsigned char buf[256];
+	unsigned char data[256];
+	unsigned char *pdata, *pdataend;
 	unsigned int namelen;
 	off_t off, here;
 	int i,j;
@@ -47,7 +47,10 @@ int openfiasco(char *name, const char *piece_grep, int v)
 	}
 
 	/* read header */
-	read(header.fd, buf, 5);
+	if (read(header.fd, buf, 5) != 5) {
+		printf("Invalid read of 5 bytes\n");
+		return close(header.fd);
+	}
 	if (buf[0] != 0xb4) {
 		printf("Invalid header\n");
 		return close(header.fd);
@@ -59,18 +62,19 @@ int openfiasco(char *name, const char *piece_grep, int v)
 		return close(header.fd);
 	}
 	memset(buf,'\0', 128);
-	read(header.fd, buf, namelen);
-
+	if (read(header.fd, buf, namelen) != namelen) {
+		printf("Invalid read of %d bytes\n", namelen);
+		return close(header.fd);
+	}
 	if (v) printf("Fiasco version: %2d\n", buf[3]);
 	strcpy(header.fwname, (char *)buf+6);
-	if (v)
-	for(i=6;i<namelen;i+=strlen((char *)(buf+i))+1)
-		printf("Name: %s\n", buf+i);
+	if (v) for(i=6;i<namelen;i+=strlen((char *)(buf+i))+1)
+			printf("Name: %s\n", buf+i);
 
 	/* walk the tree */
 	while(1) {
 		here = lseek(header.fd, 0, SEEK_CUR);
-		if (read(header.fd, buf, 9)<9)
+		if (read(header.fd, buf, 9) != 9)
 			break;
 		if (buf[0] != 0x54) { // 'T'
 			/* skipping some bytes */
@@ -124,12 +128,13 @@ int openfiasco(char *name, const char *piece_grep, int v)
 					printf("   version: %s\n", data);
 				}
 				pdata = data;
-				while(pdata<data+i) {
-					strcat(header.name,pdata==data?"-":",");
+				pdataend = data+i;
+				while(pdata<pdataend) {
+					strcat(header.name, pdata==data?"-":",");
 					strcat(header.name, (char*)pdata);
 					if (v) printf("   sub-version: %s\n", pdata);
 					pdata = pdata+strlen((char*)pdata)+1;
-					for(;*pdata=='\0'&&pdata<data+i;pdata=pdata+1);
+					for(;*pdata=='\0' && pdata<pdataend; pdata++);
 				}
 			}
 			strcpy(header.version, (char *)data);
@@ -166,7 +171,10 @@ void fiasco_data_read(struct header_t *header)
 		printf("Cannot alloc %d bytes\n", header->size);
 		return;
 	}
-	read(header->fd, header->data, header->size);
+	if (read (header->fd, header->data, header->size) != header->size) {
+		printf("Cannot read %d bytes\n", header->size);
+		return;
+	}
 }
 
 /* fiasco writer */
@@ -179,8 +187,16 @@ int fiasco_new(const char *filename, const char *name)
 	if (fd == -1)
 		return -1;
 #if 1
-	write(fd, "\xb4\x00\x00\x00\x14\x00\x00\x00\x01\xe8\x0e", 11);
-	write(fd, "OSSO UART+USB", 14);
+	if (write(fd, "\xb4\x00\x00\x00\x14\x00\x00\x00\x01\xe8\x0e", 11) != 11) {
+		fprintf (stderr, "Cannot write 11 bytes to target file\n");
+		close (fd);
+		return -1;
+	}
+	if (write(fd, "OSSO UART+USB", 14) != 14) {
+		fprintf (stderr, "Cannot write 14 bytes to target file\n");
+		close (fd);
+		return -1;
+	}
 #else
 	/* 2nd format doesnt works. atm stay with old one */
 	write(fd, "\xb4", 1);
@@ -230,7 +246,11 @@ int fiasco_add(int fd, const char *name, const char *file, const char *version)
 	lseek(gd, 0, SEEK_SET);
 	// 4 bytes big endian
 	//write(fd, "T\x02\x2e\x19\x01\x01\x00", 7); // header?
-	write(fd, "T\x01\x2e\x19\x01\x01\x00", 7); // header (old piece format)
+	// header (old piece format)
+	if (write (fd, "T\x01\x2e\x19\x01\x01\x00", 7) != 7) {
+		fprintf (stderr, "Cannot write 7 bytes\n");
+		return -1;
+	}
 	/* checksum */
 	hash = do_hash_file(file);
 	ptr[0]^=ptr[1]; ptr[1]=ptr[0]^ptr[1]; ptr[0]^=ptr[1];
@@ -246,7 +266,6 @@ int fiasco_add(int fd, const char *name, const char *file, const char *version)
 
 	strncpy(bname, name, 12);
 	write(fd, bname, 12);
-
 	write(fd, &sz, 4);
 	if (version) {
 		/* append metadata */
@@ -263,7 +282,10 @@ int fiasco_add(int fd, const char *name, const char *file, const char *version)
 		ret = read(gd, buf, 4096);
 		if (ret<1)
 			break;
-		write(fd, buf, ret);
+		if (write(fd, buf, ret) != ret) {
+			fprintf (stderr, "Cannot write %d bytes\n", ret);
+			return -1;
+		}
 	}
 
 	return 0;

@@ -79,7 +79,7 @@ int get_usb_mode()
 	}
 
 	sprintf(strbuf, "Device's USB mode is '%s'\n", (mode) ? "host" : "client");
-	printf(strbuf);
+	printf("%s", strbuf);
 
 	return 0;
 }
@@ -178,7 +178,6 @@ int get_root_device()
 {
 	unsigned char opcode;
 
-	strbuf[0] = '\0';
 	if (usb_control_msg(dev, CMD_QUERY, NOLO_GET_RDFLAGS, 0, 1, (char *)&opcode, 1, 2000) < 0) {
 		fprintf(stderr, "Cannot query root device\n");
 		return -1;
@@ -189,8 +188,7 @@ int get_root_device()
 		return -1;
 	}
 
-	sprintf(strbuf, "Root device is: %s\n", root_devices[opcode]);
-	printf(strbuf);
+	printf("Root device is: %s\n", root_devices[opcode]);
 
 	return 0;
 }
@@ -292,13 +290,13 @@ int get_rd_flags()
 {
 	unsigned short flags = 0;
 	
-	if (usb_control_msg(dev, CMD_QUERY, NOLO_GET_RDFLAGS, 0, 3, (void *) &flags, sizeof(flags), 2000) == -1) {
+	if (usb_control_msg (dev, CMD_QUERY, NOLO_GET_RDFLAGS, 0, 3, (void *) &flags,sizeof(flags), 2000) == -1) {
 		fprintf(stderr, "Cannot get rd flags\n");
 		sprintf(strbuf, "error: Cannot read rd flags\n");
 		return -1;
 	}
 	
-	sprintf(strbuf,
+	sprintf (strbuf,
 	"Current rd flag setting:\n"
 	"disable OMAP watchdog  : %s\n"
 	"disable RETU watchdog  : %s\n"
@@ -310,7 +308,7 @@ int get_rd_flags()
 		, (flags & 0x08) ? "set" : "not set"
 		, (flags & 0x10) ? "set" : "not set"
 		, (flags & 0x20) ? "set" : "not set");
-	printf(strbuf);
+	puts (strbuf);
 	
 	return 0; 
 }
