@@ -78,7 +78,7 @@
 	<AboutDialog class:standalone="true" class:private="aboutdialog1" delete-event="{aboutdialog1.hide_on_delete}"
 		border-width="5" title="About 0xFFFF gui" resizable="false" modal="true"
 		window-position="{WindowPosition.CENTER_ON_PARENT}" has-separator="false"
-		program-name="0xFFFF" version="0.3.9" copyright="Copyright (c) 2008 pancake"
+		program-name="0xFFFF" version="0.5" copyright="Copyright (c) 2007-2009 pancake"
 		comments="The Free Nokia Internet Tablet flasher"
 		website="http://www.nopcode.org/0xFFFF/" 
 		authors='{new string[] {"pancake (pancake@youterm.com)", null}}'>
@@ -143,7 +143,7 @@ public bool loadFile( string filename )
 {
 	int err = 0;
 	try {
-		string contents; int length;
+		string contents; size_t length;
 		FileUtils.get_contents (filename, out contents, out length);
 		//textview1.buffer.set_text (contents, length);
 	} catch(Error e) {

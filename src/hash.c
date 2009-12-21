@@ -39,7 +39,8 @@ usho do_hash_file(const char *filename)
 		return -1;
 	}
 
-	do {	ret   = fread(&buf, 1, BSIZE, fd);
+	do {
+		ret   = fread(&buf, 1, BSIZE, fd);
 		if (ret == -1)
 			return 0;
 		hash ^= do_hash((usho *)&buf, ret);

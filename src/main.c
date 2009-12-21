@@ -58,7 +58,6 @@ char *root_devices[] = {
 	NULL
 };
 
-
 void show_title()
 {
 	printf("0xFFFF v%s  // The Free Fiasco Firmware Flasher\n", VERSION);
@@ -69,38 +68,38 @@ void show_usage()
 	int i;
 	show_title();
 #if HAVE_USB
-	printf("Over USB:\n");
-	printf(" -b [arg]        boots the kernel with arguments\n");
-	printf(" -c              console prompt mode\n");
-	printf(" -d [vid:pid]    injects a usb device into the supported list\n");
-	printf(" -D [0|1|2]      sets the root device to flash (0), mmc (1) or usb (2)\n");
-	printf(" -f <flags>      set the given RD flags (see '-f help')\n");
-	printf(" -i              show device information (let standby mode)\n");
-	printf(" -l              list supported usb device ids\n");
-	printf(" -p [[p%%]file]   piece-of-firmware %% file-where-this-piece-is\n");
-	printf(" -r [0|1]        disable/enable R&D mode\n");
-	printf(" -R              reboot the omap board\n");
-	printf(" -U [0|1]        disable/enable the usb host mode\n");
+	printf ("Over USB:\n"
+		" -b [arg]        boots the kernel with arguments\n"
+		" -c              console prompt mode\n"
+		" -d [vid:pid]    injects a usb device into the supported list\n"
+		" -D [0|1|2]      sets the root device to flash (0), mmc (1) or usb (2)\n"
+		" -f <flags>      set the given RD flags (see '-f help')\n"
+		" -i              show device information (let standby mode)\n"
+		" -l              list supported usb device ids\n"
+		" -p [[p%%]file]   piece-of-firmware %% file-where-this-piece-is\n"
+		" -r [0|1]        disable/enable R&D mode\n"
+		" -R              reboot the omap board\n"
+		" -U [0|1]        disable/enable the usb host mode\n");
 #endif
 #if HAVE_SQUEUE
 	printf(" -Q              enter shared queues server mode (for gui or remote)\n");
 #endif
-	printf("Local stuff:\n");
-	printf(" -s [serial]     serial port console (minicom like terminal)\n");
-	printf(" -h              show this help message\n");
-	printf(" -S [subversion] unpacks/flash pieces matching this sub-version information\n");
-	printf(" -n              do not flash or write to disk (simulation)\n");
-	printf(" -C [/dev/mtd]   check bad blocks on mtd\n");
-	printf(" -e [path]       dump/extract pieces to path\n");
-	printf(" -F [fiasco]     flash a fiasco firmware image\n");
-	printf(" -H [file]       calculate hash for file\n");
-	printf(" -I [piece]      identify a firmware piece\n");
-	printf(" -P [new-fiasco] creates a new fiasco package, pieces as arguments\n");
-	printf(" -u [fiasco]     unpack target fiasco image\n");
-	printf(" -v              be verbose and noisy\n");
-	printf(" -V              show 0xFFFF version information\n");
-	printf(" -x              extract configuration entries from /dev/mtd1\n");
-	printf("Pieces are: ");
+	printf ("Local stuff:\n"
+		" -s [serial]     serial port console (minicom like terminal)\n"
+		" -h              show this help message\n"
+		" -S [subversion] unpacks/flash pieces matching this sub-version information\n"
+		" -n              do not flash or write to disk (simulation)\n"
+		" -C [/dev/mtd]   check bad blocks on mtd\n"
+		" -e [path]       dump/extract pieces to path\n"
+		" -F [fiasco]     flash a fiasco firmware image\n"
+		" -H [file]       calculate hash for file\n"
+		" -I [piece]      identify a firmware piece\n"
+		" -P [new-fiasco] creates a new fiasco package, pieces as arguments\n"
+		" -u [fiasco]     unpack target fiasco image\n"
+		" -v              be verbose and noisy\n"
+		" -V              show 0xFFFF version information\n"
+		" -x              extract configuration entries from /dev/mtd1\n"
+		"Pieces are: ");
 	for(i=0;pieces[i];i++) printf("%s ", pieces[i]); printf("\n");
 	// serial port support is not yet done (cold flash is for flashing the 8kB nand)
 	// TODO: commandline shell prompt for nolo comm

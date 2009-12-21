@@ -1,6 +1,6 @@
 /*
  *  0xFFFF - Open Free Fiasco Firmware Flasher
- *  Copyright (C) 2007,2008  pancake <@youterm.com>
+ *  Copyright (C) 2007-2009  pancake <@youterm.com>
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -46,8 +46,7 @@ int get_status()
  */
 int set_usb_mode(unsigned int mode)
 {
-	if (mode > 1)
-	{
+	if (mode > 1) {
 		printf("Invalid USB mode specified '%d'.\n", mode);
 		return -1;
 	}
@@ -336,7 +335,6 @@ int get_nolo_version()
 	return 0;
 }
 
-
 int get_sw_version()
 {
 	int ret;
@@ -357,8 +355,8 @@ int get_sw_version()
 	if (bytes[0]) {
 		sprintf(strbuf, "Software Version: %s\n", bytes);
 		printf("Software Version: %s\n", bytes); //???+strlen(bytes)+1));
-	} else
-		printf("No software version detected\n");
+	} else printf("No software version detected\n");
+
 	return 1;
 }
 

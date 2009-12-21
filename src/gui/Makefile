@@ -1,7 +1,12 @@
 include ../../config.mk
 
 ifeq (${HAVE_GUI},1)
-all:
+all: goxf
+
+goxf:
+	${CC} -I../squeue ../squeue/squeue.c ../fpid.c gui.c `pkg-config --cflags --libs gtk+-2.0` -o goxf
+
+c:
 	gtkamlc --save-temps --Xcc=-I../squeue ../squeue/squeue.c ../fpid.c ../squeue/squeue.vapi gui.gtkaml extras.vapi --pkg gtk+-2.0 -o goxf
 
 test:
