@@ -116,7 +116,7 @@ int unpack_callback(struct header_t *header)
 		if (strchr(header->name, ',') != NULL) {
 			if (!strstr(header->name, subverstr)) {
 				printf("Skipping '%s' does not matches -S subversion\n",
-					header->name);
+						header->name);
 				return 1;
 			}
 		}
@@ -165,10 +165,10 @@ int fiasco_flash(const char *file)
 	char *p;
 	char version[64];
 
-        if (connect_via_usb()) {
-                fprintf(stderr, "Cannot connect to device. It is possibly not in boot stage.\n");
-                return 0;
-        }
+	if (connect_via_usb()) {
+		fprintf(stderr, "Cannot connect to device. It is possibly not in boot stage.\n");
+		return 0;
+	}
 
 	// if (info)
 	cmd_info("");
@@ -202,67 +202,75 @@ int fiasco_flash(const char *file)
 int connect_via_usb()
 {
 	static char pbc[]={'/','-','\\', '|'};
-        struct usb_device_descriptor udd;
-        struct devices it_device;
+	struct usb_device_descriptor udd;
+	struct devices it_device;
 	int    c = 0;
 
 	// usb_set_debug(5);
 	usb_init();
 
-        /* Tries to get access to the Internet Tablet and retries
-         * if any of the neccessary steps fail.
-         *
-         * Note: While a proper device may be found on the bus it may
-         * not be in the right state to be accessed (e.g. the Nokia is
-         * not in the boot stage any more).
-         */
+	/* Tries to get access to the Internet Tablet and retries
+	 * if any of the neccessary steps fail.
+	 *
+	 * Note: While a proper device may be found on the bus it may
+	 * not be in the right state to be accessed (e.g. the Nokia is
+	 * not in the boot stage any more).
+	 */
 	while(!dev) {
 		usleep(0xc350); // 0.5s
-                
-                if(!usb_device_found(&udd, &it_device)) {
+
+		if(!usb_device_found(&udd, &it_device)) {
 			printf("\rWaiting for device... %c", pbc[++c%4]);
 			fflush(stdout);
 			continue;
 		}
 
-        	/* open device */
-        	if(!(dev = usb_open(device))) {
-	        	perror("usb_open");
-                        return 1;
-	        }
+		/* open device */
+		if(!(dev = usb_open(device))) {
+			perror("usb_open");
+			return 1;
+		}
 
-        	if ( usb_claim_interface(dev, 2) < 0) {
-		//device->config->interface->altsetting->bInterfaceNumber) < 0) { // 2 or 0
-	        	D perror("usb_claim_interface");
+#if 1
+{
+char name[32];
+name[0] = '\0';
+usb_get_driver_np(dev, 2, name, sizeof(name));
+printf ("Driver: %s\n", name);
+usb_detach_kernel_driver_np(dev, 2);
+}
+#endif
+		if (usb_claim_interface(dev, 2) < 0) {
+			//device->config->interface->altsetting->bInterfaceNumber) < 0) { // 2 or 0
+			perror("usb_claim_interface");
 
-                        // Something is broken if closing fails.
-                        if(usb_close(dev)) {
-                          perror("usb_close");
-                          return 1;
-                        }
+			// Something is broken if closing fails.
+			if(usb_close(dev)) {
+				perror("usb_close");
+				return 1;
+			}
+			dev = NULL;
+			// Try again later.?
+			exit(1);
+		}
 
-                        dev = NULL;
+		if (usb_set_altinterface(dev, 1) <0) { //device->config->interface->altsetting->bAlternateSetting) < 0) {
+			perror("usb_set_altinterface");
 
-                        // Try again later.
-                        continue;
-        	}
+			// Something is broken if closing fails.
+			if(usb_close(dev)) {
+				perror("usb_close");
+				return 1;
+			}
 
-        	if (usb_set_altinterface(dev, 1) <0) { //device->config->interface->altsetting->bAlternateSetting) < 0) {
-	        	D perror("usb_set_altinterface");
+			dev = NULL;
+			// Try again later.
+			continue;
+		}
+		break;
+	}
 
-                        // Something is broken if closing fails.
-                        if(usb_close(dev)) {
-                          perror("usb_close");
-                          return 1;
-                        }
-
-                        dev = NULL;
-                        // Try again later.
-                        continue;
-        	}
-        }
-
-        printf("found %s (%04x:%04x)\n", it_device.name,
+	printf("found %s (%04x:%04x)\n", it_device.name,
 		it_device.vendor_id, it_device.product_id);
 
 	/* go go go! */
@@ -305,8 +313,8 @@ int main(int argc, char **argv)
 			break;
 		case 'd':
 			sscanf(optarg, "%04hx:%04hx", 
-				&supported_devices[SUPPORTED_DEVICES-2].vendor_id,
-				&supported_devices[SUPPORTED_DEVICES-2].product_id);
+					&supported_devices[SUPPORTED_DEVICES-2].vendor_id,
+					&supported_devices[SUPPORTED_DEVICES-2].product_id);
 			supported_devices[SUPPORTED_DEVICES-2].name = strdup("user");
 			break;
 		case 'D':
@@ -314,14 +322,14 @@ int main(int argc, char **argv)
 			break;
 		case 'f':
 			if (!strcmp(optarg,"help")) {
-			printf("* Flags are composed of:\n");
-			printf("  0x02 - disable OMAP watchdog (possibly)\n");
-			printf("  0x04 - disable RETU watchdog (possibly)\n");
-			printf("  0x08 - disable lifeguard reset\n");
-			printf("  0x10 - enable serial console\n");
-			printf("  0x20 - disable USB timeout\n");
-			exit(1);
- 			}
+				printf("* Flags are composed of:\n");
+				printf("  0x02 - disable OMAP watchdog (possibly)\n");
+				printf("  0x04 - disable RETU watchdog (possibly)\n");
+				printf("  0x08 - disable lifeguard reset\n");
+				printf("  0x10 - enable serial console\n");
+				printf("  0x20 - disable USB timeout\n");
+				exit(1);
+			}
 			rd_flags = (unsigned short) strtoul(optarg, NULL, 16);
 			break;
 		case 'r':
@@ -382,7 +390,7 @@ int main(int argc, char **argv)
 		return 0;
 
 	// flags ok?
-	if (    (fiasco_image == NULL)
+	if (	(fiasco_image == NULL)
 	&&	(boot_cmdline == NULL)
 	&&	(reverseto    == NULL)
 	&&	(pcs_n        == 0)
@@ -395,9 +403,9 @@ int main(int argc, char **argv)
 	{
 
 		printf("# The Free Fiasco Firmware Flasher v"VERSION"\n"
-		"0xFFFF [-chinlQRvVx] [-C mtd-dev] [-d vid:pid] [-D 0|1|2] [-e path] [-f flags]\n"
-		"       [-F fiasco] [-H hash-file] [-I piece] [-p [piece%%]file]] [-r 0|1] [-S subver]\n"
-		"       [-s serial-dev] [-u fiasco-image] [-U 0|1] | [-P new-fiasco] [piece1] [2] ..\n");
+				"0xFFFF [-chinlQRvVx] [-C mtd-dev] [-d vid:pid] [-D 0|1|2] [-e path] [-f flags]\n"
+				"       [-F fiasco] [-H hash-file] [-I piece] [-p [piece%%]file]] [-r 0|1] [-S subver]\n"
+				"       [-s serial-dev] [-u fiasco-image] [-U 0|1] | [-P new-fiasco] [piece1] [2] ..\n");
 		return 1;
 	}
 
@@ -414,14 +422,14 @@ int main(int argc, char **argv)
 	}
 
 #if HAVE_USB
-        if (connect_via_usb()) {
-                fprintf(stderr, "Cannot connect to device. It is possibly not in boot stage.\n");
-                return 0;
-        }
+	if (connect_via_usb()) {
+		fprintf(stderr, "Cannot connect to device. It is possibly not in boot stage.\n");
+		return 0;
+	}
 
 	// if (info)
 	cmd_info("");
-	
+
 	if (pcs_n) {
 		char version[64];
 		check_nolo_order();
@@ -444,10 +452,10 @@ int main(int argc, char **argv)
 	}
 
 	if (rd_mode != -1)
-	  set_rd_mode(rd_mode);
-	  
+		set_rd_mode(rd_mode);
+
 	if (rd_flags != -1)
-	  set_rd_flags(rd_flags);
+		set_rd_flags(rd_flags);
 
 	if (root_device != -1)
 		set_root_device(root_device);

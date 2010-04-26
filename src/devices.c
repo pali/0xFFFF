@@ -103,6 +103,7 @@ int usb_device_found(struct usb_device_descriptor *udd, struct devices *it_devic
 
 				if ((dev_index = is_valid_device(udd))) {
 					device = dev;
+					printf("%s found!\n", dev->filename);
 					*it_device = supported_devices[dev_index];
 					return 1;
 				}
