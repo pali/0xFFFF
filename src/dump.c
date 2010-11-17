@@ -204,8 +204,9 @@ int check_badblocks(char *mtddev)
 		}
 
 		/* ECC stats available ? */
+		memset (&stat1, 0, sizeof (stat1));
 		if (eccstats) {
-			if (ioctl(fd, ECCGETSTATS, &stat2)) {
+			if (ioctl (fd, ECCGETSTATS, &stat2)) {
 				perror("ioctl(ECCGETSTATS)");
 				goto closeall;
 			}

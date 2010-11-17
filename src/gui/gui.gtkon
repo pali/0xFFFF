@@ -1,0 +1,321 @@
+/*
+ | Frontend for the 0xFFFF flasher in gtkaml
+ | author: pancake <youterm.com>
+ */
+
+Window using="Gtk" gtkon:version=0.4
+	using:Extras="Extras"
+	using:SQueues="SQueues"
+	name="MainWindow"
+	title="0xFFFF GUI"
+{
+	/* delete-event="{OnWindow1DeleteEvent}" */
+	VBox {
+		MenuBar !expand {
+			MenuItem label="_File" with-mnemonic {
+				submenu {
+					Menu {
+						ImageMenuItem stock-id="gtk-new" activate=OnFileNewEvent;
+						ImageMenuItem stock-id="gtk-open" activate=OnFileOpenEvent;
+						SeparatorMenuItem;
+						ImageMenuItem stock-id="gtk-quit" activate=OnQuitEvent;
+					}
+				}
+			}
+			MenuItem label="_Target" with-mnemonic {
+				submenu {
+					Menu {
+						ImageMenuItem stock-id="gtk-connect" activate=OnConnect;
+						ImageMenuItem stock-id="gtk-stop" activate=OnStop;
+						ImageMenuItem stock-id="gtk-info" activate=OnGetInformation;
+						ImageMenuItem label="Reset" activate=OnReset;
+					}
+				}
+			}
+			MenuItem label="_Help" with-mnemonic {
+				submenu {
+					Menu {
+						ImageMenuItem stock-id="gtk-about" activate=OnMenuHelpAboutActivatedEvent;
+					}
+				}
+			}
+		}
+
+		HBox border-width="5" {
+			VBox border-width="3" spacing="3" {
+				ScrolledWindow can-focus="true" hscrollbar-policy="{PolicyType.AUTOMATIC}" vscrollbar-policy="{PolicyType.AUTOMATIC}" {
+					TreeView $.tv;
+				}
+
+			}
+			VBox !expand border-width="3" spacing="3" {
+				Button label="gtk-connect" use-stock !expand clicked=OnConnect;
+				Button label="gtk-stop" use-stock !expand clicked=OnStop;
+				Button label="gtk-info" use-stock !expand clicked=OnGetInformation;
+				Label label="";
+				/*
+				   <!--      <Button label="Options" use-stock="false" expand="false"/>
+				   <Button label="Fiasco!" use-stock="false" expand="false"/>
+				   <Button label="Unpack!" use-stock="false" expand/> -->
+				 */
+				Button label="gtk-add" use-stock="true" !expand clicked=OnFileOpenEvent;
+				Button label="gtk-remove" use-stock="true" expand="false" clicked=list_del;
+				Label label="";
+				Button label="gtk-media-record" use-stock="true" expand="false" clicked=OnFileFlashEvent;
+			}
+		}
+		ProgressBar $.pb !expand;
+
+		//<!-- <Statusbar expand="false"/> -->
+	}
+	AboutDialog gtkaml:standalone $.aboutdialog1 delete-event=aboutdialog1.hide_on_delete
+		border-width="5" title="About 0xFFFF gui" resizable="false" modal="true"
+		window-position="{WindowPosition.CENTER_ON_PARENT}" has-separator="false"
+		program-name="0xFFFF" version="0.5" copyright="Copyright (c) 2007-2009 pancake"
+		comments="The Free Nokia Internet Tablet flasher"
+		website="http://www.nopcode.org/0xFFFF/" 
+		authors='{new string[] {"pancake (pancake@youterm.com)", null}}';
+
+	-{
+
+
+		private void doCloseApplication () {
+			Gtk.main_quit ();
+		}
+
+		private void OnReset() {
+			q->push("reset:device", 1);
+		}
+
+		private void OnFileFlashEvent() {
+			ListStore ls = (ListStore)tv.get_model();
+			weak string str;
+			TreeIter iter;
+
+			int n = ls.iter_n_children(null);
+			if (n >0) {
+				if (showYesNo("Do you want to flash these files?")) {
+					ls.get_iter_first(out iter);
+					do {
+						ls.get(iter, 2, out str, -1);
+						//stdout.printf("polla:%s\n", str);
+						q->push2("flash", str, 1);
+					} while(ls.iter_next(ref iter));
+				}
+			} else showMessage("No files selected", MessageType.ERROR);
+		}
+
+		private void OnFileOpenEvent () {
+			FileChooserDialog fc = new FileChooserDialog("Select file to open",
+					this, FileChooserAction.OPEN,
+					"gtk-cancel", ResponseType.CANCEL,
+					"gtk-open", ResponseType.ACCEPT);
+			int resp = fc.run ();
+			fc.hide ();
+			if (resp == ResponseType.ACCEPT) {
+				string file = fc.get_filename();
+				string *type = External.fpid_file(file);
+				string size = "%ld".printf(External.fpid_size(file));
+				if (type == null)
+					showMessage("Invalid file type", MessageType.ERROR);
+				else add_file(type, size, file);
+			}
+			fc.destroy ();
+		}
+
+		public bool loadFile( string filename ) {
+			int err = 0;
+			try {
+				string contents; size_t length;
+				FileUtils.get_contents (filename, out contents, out length);
+				//textview1.buffer.set_text (contents, length);
+			} catch(Error e) {
+				showError ("Unexpected error while loading the file, please contact the author with the following information:\n\n" + e.message);
+				err++;
+			}
+			return err == 0;
+		}
+
+		public bool showYesNo(string s) {
+			MessageDialog md = new MessageDialog (this,
+					DialogFlags.DESTROY_WITH_PARENT,
+					MessageType.QUESTION, ButtonsType.YES_NO, s);
+			int ret = md.run ();
+			md.destroy ();
+			return ret==ResponseType.YES;
+		}
+
+		public void showMessage(string s, MessageType mt) {
+			MessageDialog md = new MessageDialog (this,
+					DialogFlags.DESTROY_WITH_PARENT,
+					mt, ButtonsType.CLOSE, s);
+			md.run ();
+			md.destroy ();
+		}
+
+		private void OnMenuHelpAboutActivatedEvent () {
+			aboutdialog1.transient_for = this;
+			aboutdialog1.response.connect ((x)=> { aboutdialog1.hide (); });
+			aboutdialog1.run ();
+		}
+
+		public void showError (string s) {
+			MessageDialog md = new MessageDialog (this,
+					DialogFlags.DESTROY_WITH_PARENT,
+					MessageType.ERROR,
+					ButtonsType.CLOSE,
+					s);
+			md.run ();
+			md.destroy ();
+		}
+
+		private void OnFileNewEvent () {
+			list_clear();
+			// TODO: clear file list
+		}
+
+		private void OnQuitEvent () {
+			doCloseApplication();
+			// TODO: send message to gracefully kill 0xFFFF
+			// TODO: handle ^C when flashing
+		}
+
+		public void list_clear() {
+			((ListStore)tv.model).clear();
+		}
+
+		public void list_del() {
+			TreeIter iter;
+			TreeModel model;
+
+			TreeSelection sel = tv.get_selection();
+
+			if (sel.count_selected_rows() == 1) {
+				sel.get_selected(out model, out iter);
+				((ListStore)tv.model).remove(iter);
+			}
+		}
+
+		public void add_file(string type, string size, string file) {
+			ListStore listmodel = (ListStore)tv.get_model();
+			Gtk.TreeIter iter;
+			listmodel.append (out iter);
+			listmodel.set (iter, 0, type, 1, size, 2, file, -1);
+		}
+
+		public static void setup_treeview (Gtk.TreeView view) {
+			/* use liststore to hold accountname, accounttype, balance and color attribute */
+			/* for more info how gtkTreeview works take a look in the GTK API */
+
+			var listmodel = new Gtk.ListStore(4, typeof(string), typeof(string), typeof(string), typeof(string));       
+			view.set_model(listmodel);
+
+			view.insert_column_with_attributes (-1, "Type", new Gtk.CellRendererText(), "text", 0, null);
+			view.insert_column_with_attributes (-1, "Size", new Gtk.CellRendererText(), "text", 1, null);
+
+			var cell = new Gtk.CellRendererText (); 
+			cell.set ("foreground_set", true, null);
+			view.insert_column_with_attributes (-1, "Name", cell, "text", 2, "foreground", 3, null);
+
+			//        Gtk.TreeIter iter;
+			//       listmodel.append (out iter);
+			//      listmodel.set (iter, 0, "initfs", 1, "3M", 2, "initfs.jffs", -1);
+			//listmodel.set (iter, 0, "initfs", 1, "3M", 2, "initfs.jffs", 3, "green", -1);
+
+			//     listmodel.append (out iter);
+			//    listmodel.set (iter, 0, "rootfs", 1, "52M", 2, "rootfs.jffs", -1);
+		}
+
+		public static bool readFunc() {
+			weak string msg = p->get(0);
+
+			if (msg != null && msg[0]!='\0') {
+				stdout.printf("[<] msg received: %s\n", msg);
+				string[] foo = msg.split(":",2);
+				if (foo[1] != null) {
+					switch(foo[0]) {
+						case "bar":
+							viewer.pb.fraction = foo[1].to_int() / 100;
+							viewer.pb.text = foo[1]+"%";
+							break;
+						case "error":
+							viewer.showMessage(foo[1], MessageType.ERROR);
+							break;
+						case "info":
+							viewer.showMessage(foo[1], MessageType.INFO);
+							break;
+						default:
+							stderr.printf("[E] Unknown message type\n");
+							break;
+					}
+					//viewer.showMessage(msg, MessageType.INFO);
+				}
+				p->pop();
+			}
+			return true;
+		}
+
+		static SQueue *q = null;
+		static SQueue *p = null;
+
+		private void OnGetInformation() {
+			msg("info:device");
+		}
+
+		private void OnConnect() {
+			//msg("connect:device");
+			OnStop();
+			External.system("sudo 0xFFFF -Q &");
+			p->close();
+			q->close();
+			p = q = null;
+		}
+
+		private void OnStop() {
+			External.system("sudo pkill 0xFFFF");
+		}
+
+		private bool chk_queues() {
+			if (p == null)
+				p = SQueue.open("/tmp/0xFFFF.1", SQueueMode.OPEN);
+			if (q == null)
+				q = SQueue.open("/tmp/0xFFFF.2", SQueueMode.OPEN);
+			if (p == null || q == null) {
+				showMessage("Cannot connect to queues", MessageType.ERROR);
+				return false;
+			}
+			return true;
+		}
+
+		public void msg(string str) {
+			if (!chk_queues())
+				return;
+			if (q->push(str, 0)<1) {
+				stderr.printf("Oops on push\n");
+				q->free();
+				q = null;
+				p->free();
+				p = null;
+			}
+		}
+
+		static MainWindow viewer;
+
+		static int main (string[] args) {
+			Gtk.init (ref args);
+			viewer = new MainWindow();
+			if (args.length > 1)
+				viewer.loadFile (args[1]);
+			viewer.resize(600,400);
+			viewer.set_position(WindowPosition.CENTER);
+			viewer.delete_event.connect ((x,y) => { Gtk.main_quit(); return false; });
+			setup_treeview(viewer.tv);
+			viewer.show_all ();
+			//	viewer.showMessage("This software is beta and does not guaranties correct functionality", MessageType.WARNING);
+			Timeout.add(200, (SourceFunc)(readFunc));
+			Gtk.main ();
+			return 0;
+		}
+
+	}-
+}

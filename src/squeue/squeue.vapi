@@ -22,7 +22,7 @@ namespace SQueues {
 		[CCode (cname = "squeue_push2")]
 		public int push2(string cmd, string msg, int l);
 		[CCode (cname = "squeue_get")]
-		public weak string get(int l);
+		public unowned string get(int l);
 		[CCode (cname = "squeue_pop")]
 		public int pop();
 		[CCode (cname = "squeue_stats")]
