@@ -32,6 +32,8 @@ install:
 	-cp src/gui/goxf ${DESTDIR}${PREFIX}/bin
 	cp logotool/logotool ${DESTDIR}${PREFIX}/bin
 	cp 0xFFFF.desktop ${DESTDIR}${PREFIX}/share/applications/
+	mkdir -p ${DESTDIR}${PREFIX}/share/man/man1
+	cp man/*.1 ${DESTDIR}${PREFIX}/share/man/man1
 
 deinstall:
 	rm -f ${DESTDIR}${PREFIX}/bin/0xFFFF

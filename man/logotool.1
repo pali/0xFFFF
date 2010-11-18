@@ -1,0 +1,41 @@
+.TH LOGOTOOL 1 "November 18, 2010"
+.\" Please adjust this date whenever revising the manpage.
+.SH NAME
+logotool \- FIASCO logo file tool
+.SH SYNOPSIS
+.B logotool
+.RB [OPTION]...
+.SH DESCRIPTION
+Tool to compress, uncompress or watch FIASCO logo files.
+.SH OPTIONS
+.TP
+.BI -u	img
+uncompress image to img.rgb
+.TP
+.BI -c	img
+compres a 24 bit rgb raw image to a 16(565) one
+.TP
+.BI -m	img
+show image using mplayer (dumps to <img>.yuv)
+.TP
+.BI -v	img
+view uncompressed image using the 'display' command from ImageMagick (in monochrome)
+.TP
+.BI -w
+specify width (required for -v and -c)
+.TP
+.BI -a
+force RGBA instead of RGB when compressing (use with -c)
+.TP
+.BI -h
+specify height (required for -v and -c)
+.TP
+.BI -V
+show version information and exit.
+.SH SEE ALSO
+.B 0xFFFF(1)
+.SH AUTHOR
+logotool was written by pancake and esteve.
+.PP
+This manual page was written by Sebastian Reichel <elektranox@gmail.com>,
+for the Debian project (but may be used by others).

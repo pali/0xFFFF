@@ -1,0 +1,99 @@
+.TH 0xFFFF 1 "November 18, 2010"
+.\" Please adjust this date whenever revising the manpage.
+.SH NAME
+0xFFFF \- Open Free Fiasco Firmware Flasher
+
+.SH SYNOPSIS
+.B 0xFFFF
+.RB [OPTION]...
+.SH DESCRIPTION
+The 'Open Free Fiasco Firmware Flasher' aka 0xFFFF utility implements
+a free (GPL3) userspace handler for the NOLO bootloader and related
+utilities for the Nokia Internet Tablets like flashing, setting device
+options, packing/unpacking FIASCO firmware format and more.
+
+.SH OPTIONS
+.TP
+.BI -b	[args]
+boots the kernel with arguments
+.TP
+.BI -c
+console prompt mode
+.TP
+.BI -d	[vid:pid]
+injects a usb device into the supported list
+.TP
+.BI -D	[0|1|2]
+sets the root device to flash (0), mmc (1) or usb (2)
+.TP
+.BI -f	<flags>
+set the given RD flags (see '-f help')
+.TP
+.BI -i
+show device information (let standby mode)
+.TP
+.BI -l
+list supported usb device ids
+.TP
+.BI -p	[[p%]file]
+piece-of-firmware % file-where-this-piece-is
+.TP
+.BI -r	[0|1]
+disable/enable R&D mode
+.TP
+.BI -R
+reboot the omap board
+.TP
+.BI -U	[0|1]
+disable/enable the usb host mode
+.TP
+.BI -Q
+enter shared queues server mode (for gui or remote)
+.TP
+.BI -s	[serial]
+serial port console (minicom like terminal)
+.TP
+.BI -h
+show help message
+.TP
+.BI -S	[subversion]
+unpacks/flash pieces matching this sub-version information
+.TP
+.BI -n
+do not flash or write to disk (simulation)
+.TP
+.BI -C	[/dev/mtd]
+check bad blocks on mtd
+.TP
+.BI -e	[path]
+dump/extract pieces to path
+.TP
+.BI -F	[fiasco]
+flash a fiasco firmware image
+.TP
+.BI -H	[file]
+calculate hash for file
+.TP
+.BI -I	[piece]
+identify a firmware piece
+.TP
+.BI -P	[new-fiasco]
+creates a new fiasco package, pieces as arguments
+.TP
+.BI -u	[fiasco]
+unpack target fiasco image
+.TP
+.BI -v
+be verbose and noisy
+.TP
+.BI -V
+show version information and exit.
+.TP
+.BI -x
+extract configuration entries from /dev/mtd1
+
+.SH AUTHOR
+0xFFFF was written by pancake.
+.PP
+This manual page was written by Sebastian Reichel <elektranox@gmail.com>,
+for the Debian project (but may be used by others).
