@@ -1,6 +1,6 @@
 /*
  *  0xFFFF - Open Free Fiasco Firmware Flasher
- *  Copyright (C) 2007-2009  pancake <pancake@youterm.com>
+ *  Copyright (C) 2007-2011  pancake <pancake@youterm.com>
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -37,7 +37,7 @@ int openfiasco(const char *name, const char *piece_grep, int v)
 	unsigned char *pdata, *pdataend;
 	unsigned int namelen;
 	off_t off, here;
-	int i,j;
+	int i;
 
 	header.fd = open(name, O_RDONLY);
 
@@ -74,22 +74,20 @@ int openfiasco(const char *name, const char *piece_grep, int v)
 	/* walk the tree */
 	while(1) {
 		here = lseek(header.fd, 0, SEEK_CUR);
-		if (read(header.fd, buf, 9) != 9)
-			break;
-		if (buf[0] != 0x54) { // 'T'
-			/* skipping some bytes */
-			lseek(header.fd, -9, SEEK_CUR);
-			for(i=0;buf[0]!=0x54;i++) {
-				j = read(header.fd, buf, 1);
-				if (j == -1) {
-					printf("Cannot find next FIASCO header\n");
-					return close(header.fd);
-				}
-			}
-			if (v) printf("Skipping %d padding bytes\n", i);
-			lseek(header.fd, -1, SEEK_CUR);
-			continue;
+
+		i = 0;
+		while(1) {
+			if (read(header.fd, buf, 7)<7)
+				return close(header.fd);
+			if (buf[0] == 0x54 /*&& buf[1] == 0x04*/ && buf[2] == 0x2E && buf[3] == 0x19 && buf[4] == 0x01 && buf[5] == 0x01 && buf[6] == 0x00)
+				break;
+			lseek(header.fd, -6, SEEK_CUR);
+			++i;
 		}
+		if (i && v) printf("Skipping %d padding bytes\n", i);
+
+		if (read(header.fd, buf+7, 2)<2)
+			break;
 		header.hash = buf[7]<<8|buf[8];
 
 		/* piece name */
@@ -102,6 +100,12 @@ int openfiasco(const char *name, const char *piece_grep, int v)
 			break;
 		} else if (v) printf(" %s\n", data);
 		strcpy(header.name, (char *)data);
+
+		if (v)  {
+			printf("   header: ");
+			for (i=0; i<7;++i) printf(" 0x%.2X", (unsigned int)buf[i]);
+			printf("\n");
+		}
 
 		if (read(header.fd, buf, 9)<9)
 			break;
@@ -136,6 +140,10 @@ int openfiasco(const char *name, const char *piece_grep, int v)
 					pdata = pdata+strlen((char*)pdata)+1;
 					for(;*pdata=='\0' && pdata<pdataend; pdata++);
 				}
+			} else {
+				/* End of comments, ignore one char and next is image data */
+				lseek(header.fd, 1, SEEK_CUR);
+				break;
 			}
 			strcpy(header.version, (char *)data);
 			if (read(header.fd, buf+8, 1)<1)
@@ -148,7 +156,10 @@ int openfiasco(const char *name, const char *piece_grep, int v)
 			printf("   body-at:   0x%08x\n", (unsigned int)off);
 		}
 		if (piece_grep==NULL || (strstr(header.name, piece_grep))) {
-			printf("==> (%s) %s\n", piece_grep, header.name);
+			if (piece_grep)
+				printf("==> (%s) %s\n", piece_grep, header.name);
+			else
+				printf("==> %s\n", header.name);
 			if (fiasco_callback != NULL) {
 				fiasco_callback(&header);
 				free(header.data);
