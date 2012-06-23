@@ -103,7 +103,6 @@ enum {
 struct header_t {
 	int fd;
 	char fwname[128];
-	char name[128];
 	char type[128];
 	char device[16];
 	char hwrevs[128];
@@ -111,6 +110,7 @@ struct header_t {
 	unsigned short hash;
 	unsigned int size;
 	unsigned char *data;
+	char *name;
 	char *layout;
 };
 

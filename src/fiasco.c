@@ -85,7 +85,10 @@ int openfiasco(const char *name, const char *piece_grep, int v)
 		if (pdata[0] == 0xe8) {
 			if (v) printf("Header: %s\n", pdata+2);
 		} else if (pdata[0] == 0x31) {
-			strncpy(header.fwname, (char *)pdata+2, (int)pdata[1]);
+			i = pdata[1];
+			if (i >= sizeof(header.fwname)) i = sizeof(header.fwname)-1;
+			memset(header.fwname, 0, sizeof(header.fwname));
+			strncpy(header.fwname, (char *)pdata+2, i);
 			if (v) printf("Name: %s\n", header.fwname);
 		} else {
 			if (v) printf("Unknown header 0x%x, length %d, data %s\n", pdata[0], pdata[1], pdata+2);
@@ -123,7 +126,8 @@ int openfiasco(const char *name, const char *piece_grep, int v)
 			printf(" [eof]\n");
 			break;
 		} else if (v) printf(" %s\n", data);
-		strcpy(header.type, (char *)data);
+		memset(header.type, 0, sizeof(header.type));
+		strncpy(header.type, (char *)data, sizeof(header.type)-1);
 
 		if (v)  {
 			printf("   header: ");
@@ -191,12 +195,12 @@ int openfiasco(const char *name, const char *piece_grep, int v)
 							printf(": (not printing)\n");
 					}
 					if (buf[8] == '1') {
-						strcpy(header.version, (char *)pdata);
+						strncpy(header.version, (char *)pdata, sizeof(header.version)-1);
 					} else if (buf[8] == '2' && pdata == data) {
-						strcpy(header.device, (char *)pdata);
+						strncpy(header.device, (char *)pdata, sizeof(header.device)-1);
 					} else if (buf[8] == '2' && pdata != data) {
 						if (header.hwrevs[0] == 0)
-							strcpy(header.hwrevs, buf2);
+							strncpy(header.hwrevs, buf2, sizeof(header.hwrevs)-1);
 						else {
 							strcat(header.hwrevs, ",");
 							strcat(header.hwrevs, buf2);
@@ -219,6 +223,11 @@ int openfiasco(const char *name, const char *piece_grep, int v)
 			}
 			if (read(header.fd, buf+8, 1)<1)
 				return close(header.fd);
+		}
+		header.name = malloc(strlen(header.type)+strlen(header.device)+strlen(header.hwrevs)+strlen(header.version)+4);
+		if (!header.name) {
+			printf("malloc error\n");
+			exit(1);
 		}
 		strcpy(header.name, header.type);
 		if (header.device[0]) {
@@ -253,6 +262,7 @@ int openfiasco(const char *name, const char *piece_grep, int v)
 					free(header.layout);
 					header.layout = NULL;
 				}
+				free(header.name);
 				free(header.data);
 				continue;
 			} else {
@@ -266,6 +276,7 @@ int openfiasco(const char *name, const char *piece_grep, int v)
 			free(header.layout);
 			header.layout = NULL;
 		}
+		free(header.name);
 	}
 	return close(header.fd);
 }
