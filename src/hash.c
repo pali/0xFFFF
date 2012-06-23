@@ -17,6 +17,7 @@
  */
 
 #include <stdio.h>
+#include <string.h>
 #include "hash.h"
 
 usho do_hash(usho *b, int len)
@@ -27,11 +28,12 @@ usho do_hash(usho *b, int len)
 	return result;
 }
 
-usho do_hash_file(const char *filename)
+usho do_hash_file(const char *filename, const char *type)
 {
 	unsigned char buf[BSIZE];
 	FILE *fd = fopen(filename, "r");
 	usho hash = 0;
+	int size;
 	int ret;
 
 	if (fd == NULL) {
@@ -46,7 +48,19 @@ usho do_hash_file(const char *filename)
 		hash ^= do_hash((usho *)&buf, ret);
 	} while(ret);
 
+	size = ftell(fd);
 	fclose(fd);
+
+	/* mmc image must be aligned */
+	if (type && strcmp(type, "mmc") == 0) {
+		int align = ((size >> 8) + 1) << 8;
+		printf("align from %d to %d\n", size, align);
+		buf[0] = 0xff;
+		while (size < align) {
+			hash ^= do_hash((usho *)&buf, 1);
+			++size;
+		}
+	}
 
 	return hash;
 }

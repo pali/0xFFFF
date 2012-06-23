@@ -291,7 +291,7 @@ int main(int argc, char **argv)
 	while((c = getopt(argc, argv, "QC:cp:PvVhRu:ib:U:r:e:ld:I:D:f:F:s:xH:S:n")) != -1) {
 		switch(c) {
 		case 'H':
-			printf("xorpair: %04x\n", do_hash_file(optarg));
+			printf("xorpair: %04x\n", do_hash_file(optarg, NULL));
 			return 0;
 		case 'x':
 			return dump_config();

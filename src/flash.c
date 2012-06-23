@@ -84,7 +84,7 @@ void flash_image(const char *filename, const char *piece, const char *device, co
 	unsigned long long size, off;
 	unsigned char bsize[4], tmp;
 	unsigned char nolofiller[128];
-	ushort hash = do_hash_file(filename);
+	ushort hash = do_hash_file(filename, piece);
 
 	if (piece == NULL) {
 		//exit(1);
