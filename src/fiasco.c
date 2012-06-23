@@ -389,18 +389,6 @@ int fiasco_new(const char *filename, const char *swver)
 	return fd;
 }
 
-int fiasco_add_eof(int fd)
-{
-#if 0
-	unsigned char buf[120];
-	if (fd == -1)
-		return -1;
-	memset(buf,'\xff', 120);
-	write(fd, buf, 120);
-#endif
-	return 0;
-}
-
 int fiasco_add(int fd, const char *name, const char *file, const char *layout, const char *device, const char *hwrevs, const char *version)
 {
 	int i;
@@ -643,38 +631,7 @@ int fiasco_pack(int optind, char *argv[])
 			return 1;
 		}
 	}
-	fiasco_add_eof(fd);
 	printf("Done!\n");
 	close(fd);
 	return 0;
 }
-
-/* local code */
-#if 0
-void my_callback(int fd, struct header_t *header)
-{
-	fiasco_data_read(header);
-	//read(fd, buf, header->size);
-	printf("Dumping %s\n", header->name);
-	printf("DATA: %02x\n", header->data[0]);
-	fiasco_data_free(header);
-}
-
-int main(int argc, char **argv)
-{
-	if (argc!=2) {
-		printf("Usage: unfiasco [file]\n");
-		return 1;
-	}
-
-/*
-	fd = fiasco_new("myfiasco", "pancake-edition");
-	fiasco_add(fd, "kernel", "zImage", "2.6.22");
-	close(fd);
-*/
-
-//	fiasco_callback = &my_callback;
-
-	return openfiasco(argv[1]);
-}
-#endif

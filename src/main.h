@@ -122,7 +122,6 @@ extern char *root_devices[];
 int openfiasco(const char *name, const char *type, const char *device, const char *hwrev, const char *version, int v);
 int fiasco_new(const char *filename, const char *name);
 void fiasco_data_read(struct header_t *header);
-int fiasco_add_eof(int fd);
 extern int (*fiasco_callback)(struct header_t *header);
 int fiasco_add(int fd, const char *name, const char *file, const char *layout, const char *device, const char *hwrevs, const char *version);
 int fiasco_pack(int optind, char *argv[]);
