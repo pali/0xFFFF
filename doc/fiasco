@@ -1,3 +1,6 @@
+ Copyright (C) 2007-2011  pancake <pancake@youterm.com>
+ Copyright (C) 2011-2012  Pali Rohár <pali.rohar@gmail.com>
+
 SPECS FOR TEH FIASCO FIRMWARE FILE FORMAT ffff!
 -----------------------------------------------
 
@@ -8,36 +11,39 @@ SPECS FOR TEH FIASCO FIRMWARE FILE FORMAT ffff!
 FILE HEADER
 
    1 byte = 0xb4    --  signature
-   4 bytes          --  firmware name length (big endian)
-   6 bytes          --  versioning info ( byte 4 is format version )
-   N-6 bytes        --  firmware name (zero fill)
+   4 bytes          --  FW header length (big endian)
 
 
-PIECE HEADER
+FW HEADER
 
-   1 byte = 0x54    --  piece signature
-   1 byte           --  unknown:
-                          N800/N810:
-                            0x02 - initfs, rootfs, kernel (2007)
-                            0x03 - xloader, 2nd, secondary, kernel (DIABLO)
-                          N900:
-                            0x03 - kernel, rootfs, cmt-2nd, cmt-algo, cmt-mcusw
-                            0x04 - xloader, 2nd, secondary
-                            0x05 - mmc
+   4 bytes          --  count of blocks (big endian)
+             block {
+   1 byte           --  type of block
+                          0xE8 - header
+                          0x31 - FW name
+   1 byte           --  length of data
+   N bytes          --  block data
+             }
+
+
+IMAGE
+
+   1 byte = 0x54    --  signature
+   1 byte           --  number of subsections + 1
    5 bytes          --  unknown (always 0x2e 0x19 0x01 0x01 0x00)
-   2 bytes          --  checksum for the piece contents (xorpair)
-  12 bytes          --  piece name (first byte is FF if is the last)
-   4 bytes          --  piece size (big endian)
+   2 bytes          --  checksum for the image contents (xorpair)
+  12 bytes          --  image name type (first byte is FF if is the last)
+   4 bytes          --  image size (big endian)
    4 bytes          --  unknown (always 0x00 0x00 0x00 0x00)
              block {
-   1 byte           --  if (value '1'-'4' or '/') { ..there's a comment.. }
+   1 byte           --  type of subsection
                           '1' - version
-                          '2' - device & hw revisions
+                          '2' - device & hw revisions (separated by char 0, max size of device is 16, hw revision 8)
                           '3' - layout
                           '4' - unknown
                           '/' - unknown
-   1 byte           --  length of comment
-   N bytes          --  comment
+   1 byte           --  length of subsection
+   N bytes          --  subsection data
              }
-   N bytes          -- piece data
-  
+   1 byte           --  unknown (maybe end of subsections?)
+   N bytes          --  image data
