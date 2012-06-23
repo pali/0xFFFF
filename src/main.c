@@ -106,7 +106,7 @@ void show_usage()
 
 	printf ("Fiasco options:\n"
 		" -u [dir]        unpack fiasco image to directory\n"
-		" -g              generate fiasco image\n"
+		" -g [ver]        generate fiasco image for SW version\n"
 		"\n"
 		);
 
@@ -120,7 +120,6 @@ void show_usage()
 		"                   file is image file name\n"
 		"                   layout is file name for layout file\n"
 		" -F [file]       specify Fiasco image\n"
-		"                 (see '-p help' for supported types)\n"
 		" -t [type]       specify image type\n"
 		" -s [ver]        specify image with version\n"
 		" -d [dev]        specify image for device\n"
@@ -140,7 +139,7 @@ void show_usage()
 		);
 
 #if HAVE_SQUEUE
-	printf( " -Q              enter shared queues server mode (for gui or remote)\n");
+	printf( " -Q              enter shared queues server mode (for gui or remote)\n\n");
 #endif
 
 	printf( "R&D flags:\n"
@@ -195,6 +194,7 @@ void show_usage()
 		" -H [file]       calculate hash for file\n"
 		" -I [piece]      identify a firmware piece\n"
 		" -P [new-fiasco] creates a new fiasco package, pieces as arguments\n"
+		"                   optional argument 'version:<version>'\n"
 		" -u [fiasco]     unpack target fiasco image\n"
 		" -v              be verbose and noisy\n"
 		" -V              show 0xFFFF version information\n"
@@ -229,7 +229,8 @@ int unpack_callback(struct header_t *header)
 		printf("Cannot open file.\n");
 		return 1;
 	}
-	fwrite(header->data, header->size, 1, fd);
+	if (fwrite(header->data, header->size, 1, fd) != 1)
+		printf("Writing failed\n");
 	fclose(fd);
 
 	return 0;

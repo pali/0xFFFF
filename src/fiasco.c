@@ -302,37 +302,56 @@ void fiasco_data_read(struct header_t *header)
 }
 
 /* fiasco writer */
-int fiasco_new(const char *filename, const char *name)
+int fiasco_new(const char *filename, const char *swver)
 {
 	int fd;
-	//int len = htonl(strlen(name)+1+6+14);
+	unsigned int len;
+	uint8_t len8;
+	const char *str = "OSSO UART+USB";
 
-	fd = open(filename, O_RDWR|O_CREAT, 0644);
+	if (swver && strlen(swver)+1 > UINT8_MAX) {
+		printf("SW version is too long\n");
+		return -1;
+	}
+
+	fd = open(filename, O_RDWR|O_CREAT|O_TRUNC, 0644);
 	if (fd == -1)
 		return -1;
-#if 1
-	if (write(fd, "\xb4\x00\x00\x00\x14\x00\x00\x00\x01\xe8\x0e", 11) != 11) {
-		fprintf (stderr, "Cannot write 11 bytes to target file\n");
-		close (fd);
-		return -1;
-	}
-	if (write(fd, "OSSO UART+USB", 14) != 14) {
-		fprintf (stderr, "Cannot write 14 bytes to target file\n");
-		close (fd);
-		return -1;
-	}
-#else
-	/* 2nd format doesnt works. atm stay with old one */
-	write(fd, "\xb4", 1);
+
+	printf("Writing header\n");
+
+	write(fd, "\xb4", 1); //signature
+
+	len = 4;
+	len += strlen(str) + 3;
+	if (swver)
+		len += strlen(swver) + 3;
+	len = htonl(len);
 	write(fd, &len, 4);
-	/* version header */
-	write(fd, "\x00\x00\x00\x02\xe8\x0e", 6);
-	/* firmware type */
-	write(fd, "OSSO UART+USB", 14);
-	/* firmware name */
-	write(fd, name, strlen(name));
-	write(fd, "", 1);
-#endif
+
+	if (swver)
+		len = htonl(2);
+	else
+		len = htonl(1);
+	write(fd, &len, 4);
+
+	// header
+	len = strlen(str)+1;
+	len8 = len;
+	write(fd, "\xe8", 1);
+	write(fd, &len8, 1);
+	write(fd, str, len);
+
+	// sw version
+	if (swver) {
+		printf("Writing SW version: %s\n", swver);
+		len = strlen(swver)+1;
+		len8 = len;
+		write(fd, "\x31", 1);
+		write(fd, &len8, 1);
+		write(fd, swver, len);
+	};
+
 	return fd;
 }
 
@@ -350,6 +369,7 @@ int fiasco_add_eof(int fd)
 
 int fiasco_add(int fd, const char *name, const char *file, const char *layout, const char *device, const char *hwrevs, const char *version)
 {
+	int i;
 	int gd,ret;
 	int size;
 	unsigned int sz;
@@ -370,16 +390,23 @@ int fiasco_add(int fd, const char *name, const char *file, const char *layout, c
 	sz = lseek(gd, 0, SEEK_END);
 	if (name && strcmp(name, "mmc") == 0) // align mmc
 		sz = ((sz >> 8) + 1) << 8;
+
+	printf("  size: %d\n", sz);
 	sz = htonl((unsigned int) sz);
 
 	lseek(gd, 0, SEEK_SET);
 
 	write(fd, "T", 1);
 
-	// FIXME: What is this char? If incorrect nokia flasher refuse fiasco image
-	// \x03 - mmc?
-	// \x04 - normal?
-	write(fd, "\x04", 1);
+	/* number of subsections */
+	len = 1;
+	if (version)
+		++len;
+	if (device)
+		++len;
+	if (layout)
+		++len;
+	write(fd, &len, 1);
 
 	write(fd, "\x2e\x19\x01\x01\x00", 5);
 
@@ -387,8 +414,9 @@ int fiasco_add(int fd, const char *name, const char *file, const char *layout, c
 	hash = do_hash_file(file, name);
 	ptr[0]^=ptr[1]; ptr[1]=ptr[0]^ptr[1]; ptr[0]^=ptr[1];
 	write(fd, &hash, 2);
-	printf("hash: %04x\n", hash);
+	printf("  hash: %04x\n", hash);
 
+	/* image type name */
 	memset(bname, '\0', 13);
 	if (name == NULL)
 		name = fpid_file(file);
@@ -400,47 +428,57 @@ int fiasco_add(int fd, const char *name, const char *file, const char *layout, c
 	write(fd, bname, 12);
 	write(fd, &sz, 4);
 	write(fd, "\x00\x00\x00\x00", 4);
+
+	/* append version subsection */
 	if (version) {
-		/* append version */
 		write(fd, "1", 1); /* 1 - version */
 		len = strlen(version)+1;
 		write(fd, &len, 1);
 		write(fd, version, len);
 	}
+
+
+	/* append device & hwrevs subsection */
 	if (device) {
-		/* append device & hwrevs */
 		const char *ptr = hwrevs;
 		const char *oldptr = hwrevs;
-		int i;
 		write(fd, "2", 1); /* 2 - device & hwrevs */
 		len = 16;
 		if (hwrevs) {
 			i = 1;
 			while ((ptr = strchr(ptr, ','))) { i++; ptr++; }
+			if ((int)len + i*8 > 255) {
+				printf("Device string and HW revisions are too long\n");
+				return -1;
+			}
 			len += i*8;
 		}
 		write(fd, &len, 1);
 		len = strlen(device);
 		if (len > 15) len = 15;
 		write(fd, device, len);
-		lseek(fd, 16-len, SEEK_CUR);
+		for (i=0; i<16-len; ++i)
+			write(fd, "\x00", 1);
 		ptr = hwrevs;
 		oldptr = hwrevs;
 		while ((ptr = strchr(ptr, ','))) {
 			len = ptr-oldptr;
 			if (len > 8) len = 8;
 			write(fd, oldptr, len);
-			lseek(fd, 8-len, SEEK_CUR);
+			for (i=0; i<8-len; ++i)
+				write(fd, "\x00", 1);
 			++ptr;
 			oldptr = ptr;
 		}
 		len = strlen(oldptr);
 		if (len > 8) len = 8;
 		write(fd, oldptr, len);
-		lseek(fd, 8-len, SEEK_CUR);
+		for (i=0; i<8-len; ++i)
+			write(fd, "\x00", 1);
 	}
+
+	/* append layout subsection */
 	if (layout) {
-		/* append layout */
 		int lfd = open(layout, O_RDONLY);
 		if (lfd >= 0) {
 			len = read(lfd, buf, sizeof(buf));
@@ -450,15 +488,14 @@ int fiasco_add(int fd, const char *name, const char *file, const char *layout, c
 				write(fd, buf, len);
 			}
 			close(lfd);
+		} else {
+			printf("Cannot open layout file %s\n", layout);
+			return -1;
 		}
 	}
-	write(fd, "4", 1); /* 4 - piece size */
-	len = 16;
-	write(fd, &len, 1);
-	lseek(fd, len-4, SEEK_CUR);
-	write(fd, &sz, 4);
 
-	write(fd, "\x00", 1); /* FIXME: last char is unknown, maybe nokia flasher ignore it? */
+	/* dummy byte - end of all subsections */
+	write(fd, "\x00", 1);
 
 	size = 0;
 	while(1) {
@@ -472,7 +509,7 @@ int fiasco_add(int fd, const char *name, const char *file, const char *layout, c
 		}
 	}
 
-	/* align mmc (add \xff) */
+	/* align mmc (fill with 0xff) */
 	if (name && strcmp(name, "mmc") == 0) {
 		int align = ((size >> 8) + 1) << 8;
 		while (size < align) {
@@ -487,7 +524,7 @@ int fiasco_add(int fd, const char *name, const char *file, const char *layout, c
 int fiasco_pack(int optind, char *argv[])
 {
 	char *file = argv[optind];
-	int fd, ret;
+	int fd, ret, i;
 
 	char *ptr;
 	char *arg;
@@ -497,15 +534,28 @@ int fiasco_pack(int optind, char *argv[])
 	char *version;
 	char *layout;
 
-	fd = fiasco_new(file, file); // TODO use a format here
+	char *swver = NULL;
+
+	i = optind;
+	while((arg=argv[++i])) {
+		if (strncmp(arg, "version:", strlen("version:"))==0) {
+			swver = arg+strlen("version:");
+			break;
+		}
+	}
+
+	printf("Package: %s\n", file);
+	fd = fiasco_new(file, swver);
 	if (fd == -1)
 		return 1;
 
-	printf("Package: %s\n", file);
 	while((arg=argv[++optind])) {
-//		[[[[dev:hw:]ver:]type:]file[%%layout]
-		ptr = strdup(arg);
 
+		if (strncmp(arg, "version:", strlen("version:"))==0)
+			continue;
+
+//		format: [[[[dev:hw:]ver:]type:]file[%layout]
+		ptr = strdup(arg);
 		layout = strchr(ptr, '%');
 		if (layout) {
 			*(layout++) = 0;
@@ -543,8 +593,15 @@ int fiasco_pack(int optind, char *argv[])
 		if (!type)
 			type = (char *)fpid_file(file);
 
-		printf("Adding %s (%s:%s %s): %s..\n", type, device, hwrevs, version, file);
+		printf("Adding file: %s\n", file);
+		printf("  type: %s\n", type);
+		if (device) printf("  device: %s\n", device);
+		if (hwrevs) printf("  hw revisions: %s\n", hwrevs);
+		if (version) printf("  version: %s\n", version);
+		if (layout) printf("  layout file: %s\n", layout);
+
 		ret = fiasco_add(fd, type, file, layout, device, hwrevs, version);
+		free(ptr);
 		if (ret<0) {
 			printf("Error\n");
 			close(fd);
