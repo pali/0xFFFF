@@ -459,22 +459,24 @@ int fiasco_add(int fd, const char *name, const char *file, const char *layout, c
 		write(fd, device, len);
 		for (i=0; i<16-len; ++i)
 			write(fd, "\x00", 1);
-		ptr = hwrevs;
-		oldptr = hwrevs;
-		while ((ptr = strchr(ptr, ','))) {
-			len = ptr-oldptr;
+		if (hwrevs) {
+			ptr = hwrevs;
+			oldptr = hwrevs;
+			while ((ptr = strchr(ptr, ','))) {
+				len = ptr-oldptr;
+				if (len > 8) len = 8;
+				write(fd, oldptr, len);
+				for (i=0; i<8-len; ++i)
+					write(fd, "\x00", 1);
+				++ptr;
+				oldptr = ptr;
+			}
+			len = strlen(oldptr);
 			if (len > 8) len = 8;
 			write(fd, oldptr, len);
 			for (i=0; i<8-len; ++i)
 				write(fd, "\x00", 1);
-			++ptr;
-			oldptr = ptr;
 		}
-		len = strlen(oldptr);
-		if (len > 8) len = 8;
-		write(fd, oldptr, len);
-		for (i=0; i<8-len; ++i)
-			write(fd, "\x00", 1);
 	}
 
 	/* append layout subsection */
@@ -554,7 +556,7 @@ int fiasco_pack(int optind, char *argv[])
 		if (strncmp(arg, "version:", strlen("version:"))==0)
 			continue;
 
-//		format: [[[[dev:hw:]ver:]type:]file[%layout]
+//		format: [[[[dev:[hw:]]ver:]type:]file[%layout]
 		ptr = strdup(arg);
 		layout = strchr(ptr, '%');
 		if (layout) {
@@ -576,10 +578,9 @@ int fiasco_pack(int optind, char *argv[])
 				if (version) {
 					*(version++) = 0;
 					hwrevs = strchr(ptr, ':');
-					if (hwrevs) {
+					if (hwrevs)
 						*(hwrevs++) = 0;
-						device = ptr;
-					}
+					device = ptr;
 				} else {
 					version = ptr;
 				}
