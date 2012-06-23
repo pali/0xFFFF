@@ -310,9 +310,10 @@ int fiasco_add_eof(int fd)
 	return 0;
 }
 
-int fiasco_add(int fd, const char *name, const char *file, const char *version)
+int fiasco_add(int fd, const char *name, const char *file, const char *layout, const char *device, const char *hwrevs, const char *version)
 {
 	int gd,ret;
+	int size;
 	unsigned int sz;
 	unsigned char len;
 	unsigned short hash;
@@ -328,17 +329,24 @@ int fiasco_add(int fd, const char *name, const char *file, const char *version)
 	if (gd == -1)
 		return -1;
 
-	sz = htonl((unsigned int) lseek(gd, 0, SEEK_END));
+	sz = lseek(gd, 0, SEEK_END);
+	if (name && strcmp(name, "mmc") == 0) // align mmc
+		sz = ((sz >> 8) + 1) << 8;
+	sz = htonl((unsigned int) sz);
+
 	lseek(gd, 0, SEEK_SET);
-	// 4 bytes big endian
-	//write(fd, "T\x02\x2e\x19\x01\x01\x00", 7); // header?
-	// header (old piece format)
-	if (write (fd, "T\x01\x2e\x19\x01\x01\x00", 7) != 7) {
-		fprintf (stderr, "Cannot write 7 bytes\n");
-		return -1;
-	}
+
+	write(fd, "T", 1);
+
+	// FIXME: What is this char? If incorrect nokia flasher refuse fiasco image
+	// \x03 - mmc?
+	// \x04 - normal?
+	write(fd, "\x04", 1);
+
+	write(fd, "\x2e\x19\x01\x01\x00", 5);
+
 	/* checksum */
-	hash = do_hash_file(file);
+	hash = do_hash_file(file, name);
 	ptr[0]^=ptr[1]; ptr[1]=ptr[0]^ptr[1]; ptr[0]^=ptr[1];
 	write(fd, &hash, 2);
 	printf("hash: %04x\n", hash);
@@ -353,19 +361,71 @@ int fiasco_add(int fd, const char *name, const char *file, const char *version)
 	strncpy(bname, name, 12);
 	write(fd, bname, 12);
 	write(fd, &sz, 4);
+	write(fd, "\x00\x00\x00\x00", 4);
 	if (version) {
-		/* append metadata */
-		write(fd, "\x00\x00\x00\x00\x31", 5);
-		len = strlen(version);
+		/* append version */
+		write(fd, "1", 1); /* 1 - version */
+		len = strlen(version)+1;
 		write(fd, &len, 1);
 		write(fd, version, len);
-		write(fd, "\x00\x9b", 2);
-	} else {
-		write(fd, "\x00\x00\x00\x00\x9b", 5);
 	}
+	if (device) {
+		/* append device & hwrevs */
+		const char *ptr = hwrevs;
+		const char *oldptr = hwrevs;
+		int i;
+		write(fd, "2", 1); /* 2 - device & hwrevs */
+		len = 16;
+		if (hwrevs) {
+			i = 1;
+			while ((ptr = strchr(ptr, ','))) { i++; ptr++; }
+			len += i*8;
+		}
+		write(fd, &len, 1);
+		len = strlen(device);
+		if (len > 15) len = 15;
+		write(fd, device, len);
+		lseek(fd, 16-len, SEEK_CUR);
+		ptr = hwrevs;
+		oldptr = hwrevs;
+		while ((ptr = strchr(ptr, ','))) {
+			len = ptr-oldptr;
+			if (len > 8) len = 8;
+			write(fd, oldptr, len);
+			lseek(fd, 8-len, SEEK_CUR);
+			++ptr;
+			oldptr = ptr;
+		}
+		len = strlen(oldptr);
+		if (len > 8) len = 8;
+		write(fd, oldptr, len);
+		lseek(fd, 8-len, SEEK_CUR);
+	}
+	if (layout) {
+		/* append layout */
+		int lfd = open(layout, O_RDONLY);
+		if (lfd >= 0) {
+			len = read(lfd, buf, sizeof(buf));
+			if (len > 0) {
+				write(fd, "3", 1); /* 3 - layout */
+				write(fd, &len, 1);
+				write(fd, buf, len);
+			}
+			close(lfd);
+		}
+	}
+	write(fd, "4", 1); /* 4 - piece size */
+	len = 16;
+	write(fd, &len, 1);
+	lseek(fd, len-4, SEEK_CUR);
+	write(fd, &sz, 4);
 
+	write(fd, "\x00", 1); /* FIXME: last char is unknown, maybe nokia flasher ignore it? */
+
+	size = 0;
 	while(1) {
 		ret = read(gd, buf, 4096);
+		size += ret;
 		if (ret<1)
 			break;
 		if (write(fd, buf, ret) != ret) {
@@ -374,24 +434,79 @@ int fiasco_add(int fd, const char *name, const char *file, const char *version)
 		}
 	}
 
+	/* align mmc (add \xff) */
+	if (name && strcmp(name, "mmc") == 0) {
+		int align = ((size >> 8) + 1) << 8;
+		while (size < align) {
+			write(fd, "\xff", 1);
+			++size;
+		}
+	}
+
 	return 0;
 }
 
 int fiasco_pack(int optind, char *argv[])
 {
-	const char *file = argv[optind];
-	char *type;
+	char *file = argv[optind];
 	int fd, ret;
+
+	char *ptr;
+	char *arg;
+	char *type;
+	char *device;
+	char *hwrevs;
+	char *version;
+	char *layout;
 
 	fd = fiasco_new(file, file); // TODO use a format here
 	if (fd == -1)
 		return 1;
 
 	printf("Package: %s\n", file);
-	while((file=argv[++optind])) {
-		type = (char *)fpid_file(file);
-		printf("Adding %s: %s..\n", type, file);
-		ret = fiasco_add(fd, type, file, NULL);
+	while((arg=argv[++optind])) {
+//		[[[[dev:hw:]ver:]type:]file[%%layout]
+		ptr = strdup(arg);
+
+		layout = strchr(ptr, '%');
+		if (layout) {
+			*(layout++) = 0;
+		}
+
+		type = NULL;
+		device = NULL;
+		hwrevs = NULL;
+		version = NULL;
+
+		file = strrchr(ptr, ':');
+		if (file) {
+			*(file++) = 0;
+			type = strrchr(ptr, ':');
+			if (type) {
+				*(type++) = 0;
+				version = strrchr(ptr, ':');
+				if (version) {
+					*(version++) = 0;
+					hwrevs = strchr(ptr, ':');
+					if (hwrevs) {
+						*(hwrevs++) = 0;
+						device = ptr;
+					}
+				} else {
+					version = ptr;
+				}
+			} else {
+				type = ptr;
+			}
+		} else {
+			file = ptr;
+		}
+
+		if (!type)
+			type = (char *)fpid_file(file);
+
+		printf("Adding %s (%s:%s %s): %s..\n", type, device, hwrevs, version, file);
+		ret = fiasco_add(fd, type, file, layout, device, hwrevs, version);
 		if (ret<0) {
 			printf("Error\n");
 			close(fd);

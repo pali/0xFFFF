@@ -124,7 +124,7 @@ int fiasco_new(const char *filename, const char *name);
 void fiasco_data_read(struct header_t *header);
 int fiasco_add_eof(int fd);
 extern int (*fiasco_callback)(struct header_t *header);
-int fiasco_add(int fd, const char *name, const char *file, const char *version);
+int fiasco_add(int fd, const char *name, const char *file, const char *layout, const char *device, const char *hwrevs, const char *version);
 int fiasco_pack(int optind, char *argv[]);
 int nanddump(char *mtddev, unsigned long start_addr, unsigned long length, char *dumpfile, int isbl, int ioob);
 
