@@ -1,6 +1,7 @@
 /*
  *  0xFFFF - Open Free Fiasco Firmware Flasher
  *  Copyright (C) 2007-2009  pancake <pancake@nopcode.org>
+ *  Copyright (C) 2012       Pali Rohár <pali.rohar@gmail.com>
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -29,19 +30,20 @@
  *
  * The following table shows this info:
  *
- *           boot       os
- * n770   0421:0105  0421:0431
- * n800              0421:0431
- * n900   0421:0105  0421:01c7
+ *        cold-flash   flash   emmc-flash  mass-stor  pc-suite
+ * n770              0421:0105             0421:0431
+ * n800              0421:04c3             0421:0431
+ * n810              0421:0105
+ * n900   0421:0106  0421:0105  0421:????  0421:01c7  0421:01c8
  *
  */
 struct devices supported_devices[SUPPORTED_DEVICES] = {
-  { "FFFF", 0x000, 0x0000, 0x0000 },  // dummy
-  { "unkn", 0x421, 0x3f00, 0x0000 },  // probably a development board
-  { "n770/n810/n900", 0x421, 0x0105, 0x0001 },
-  { "n800", 0x421, 0x04c3, 0x0001 },  // a n800 
-// { "n900", 0x421, 0x01c7, 0x0001 }, // a pre-production n900
-// { "n900", 0x421, 0x0105, 0x0001 }, // a pre-production n900
+  { "FFFF",           0x0000, 0x0000, FLASH_NORMAL },  // dummy
+  { "unkn",           0x0421, 0x3f00, FLASH_NORMAL },  // probably a development board
+  { "n800",           0x0421, 0x04c3, FLASH_NORMAL },  // a n800 
+  { "n770/n810/n900", 0x0421, 0x0105, FLASH_NORMAL },
+  { "n900",           0x0421, 0x0106, FLASH_COLD   },
+//  { "n900",           0x0421, 0x????, FLASH_EMMC   },
   { 0 },
   { 0 }
 };

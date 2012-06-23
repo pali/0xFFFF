@@ -1,6 +1,7 @@
 /*
  *  0xFFFF - Open Free Fiasco Firmware Flasher
  *  Copyright (C) 2007-2011  pancake <pancake@youterm.com>
+ *  Copyright (C) 2011-2012  Pali Rohár <pali.rohar@gmail.com>
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -39,6 +40,7 @@ int openfiasco(const char *name, const char *piece_grep, int v)
 	off_t off, here;
 	int i;
 
+	memset(&header, 0, sizeof(header));
 	header.fd = open(name, O_RDONLY);
 
 	if (header.fd == -1) {
@@ -77,9 +79,11 @@ int openfiasco(const char *name, const char *piece_grep, int v)
 
 		i = 0;
 		while(1) {
-			if (read(header.fd, buf, 7)<7)
+			if (read(header.fd, buf, 7)<7) {
+				printf("Next valid header not found\n");
 				return close(header.fd);
-			if (buf[0] == 0x54 /*&& buf[1] == 0x04*/ && buf[2] == 0x2E && buf[3] == 0x19 && buf[4] == 0x01 && buf[5] == 0x01 && buf[6] == 0x00)
+			}
+			if (buf[0] == 0x54 && buf[2] == 0x2E && buf[3] == 0x19 && buf[4] == 0x01 && buf[5] == 0x01 && buf[6] == 0x00)
 				break;
 			lseek(header.fd, -6, SEEK_CUR);
 			++i;
@@ -99,7 +103,7 @@ int openfiasco(const char *name, const char *piece_grep, int v)
 			printf(" [eof]\n");
 			break;
 		} else if (v) printf(" %s\n", data);
-		strcpy(header.name, (char *)data);
+		strcpy(header.type, (char *)data);
 
 		if (v)  {
 			printf("   header: ");
@@ -108,7 +112,7 @@ int openfiasco(const char *name, const char *piece_grep, int v)
 		}
 
 		if (read(header.fd, buf, 9)<9)
-			break;
+			return close(header.fd);
 		memcpy(&header.size, buf,4);
 		header.size = ntohl(header.size);
 		if (v)  {
@@ -120,23 +124,61 @@ int openfiasco(const char *name, const char *piece_grep, int v)
 		//	buf[4], buf[5], buf[6], buf[7], buf[8]);
 		/* XXX this is not ok */
 		//printf("BUF8: %02x\n", buf[8]);
-		while (buf[8] && buf[8]>'0' && buf[8] < '9') {
+		memset(header.device, 0, sizeof(header.device));
+		memset(header.hwrev, 0, sizeof(header.hwrev));
+		memset(header.version, 0, sizeof(header.version));
+		if (header.layout) {
+			free(header.layout);
+			header.layout = NULL;
+		}
+		while ((buf[8] >= '1' && buf[8] <= '4') || buf[8] == '/') {
 			if (read(header.fd, data, 1)<1)
-				break;
+				return close(header.fd);
 			i = data[0];
 			if (read(header.fd, data, i)<i)
-				break;
+				return close(header.fd);
 			if (data[0]) {
 				if (v) {
-					printf("   version-length: %d\n", i);
-					printf("   version: %s\n", data);
+					printf("   subinfo\n");
+					printf("     type: ");
+					if (buf[8] == '1') printf("version string");
+					else if (buf[8] == '2') printf("hw revision");
+					else if (buf[8] == '3') printf("layout");
+					else printf("unknown (%c)", buf[8]);
+					printf("\n");
+					printf("     length: %d\n", i);
 				}
 				pdata = data;
 				pdataend = data+i;
 				while(pdata<pdataend) {
-					strcat(header.name, pdata==data?"-":",");
-					strcat(header.name, (char*)pdata);
-					if (v) printf("   sub-version: %s\n", pdata);
+					if (v) {
+						printf("       ");
+						if (buf[8] == '1') printf("version");
+						else if (buf[8] == '2' && pdata == data) printf("device");
+						else if (buf[8] == '2' && pdata != data) printf("hw revision");
+						else if (buf[8] == '3') printf("layout");
+						else printf("data");
+						if (buf[8] != '3' && buf[8] != '/')
+							printf(": %s\n", pdata);
+						else
+							printf(": (not printing)\n");
+					}
+					if (buf[8] == '1') {
+						strcpy(header.version, (char *)pdata);
+					} else if (buf[8] == '2' && pdata == data) {
+						strcpy(header.device, (char *)pdata);
+					} else if (buf[8] == '2' && pdata != data) { 
+						if (header.hwrev[0] == 0)
+							strcpy(header.hwrev, (char *)pdata);
+						else {
+							strcat(header.hwrev, ",");
+							strcat(header.hwrev, (char *)pdata);
+						}
+					} else if (buf[8] == '3') {
+						if (header.layout) free(header.layout);
+						header.layout = malloc(strlen((char*)pdata)+1);
+						if (header.layout) strcpy(header.layout, (char *)pdata);
+					}
 					pdata = pdata+strlen((char*)pdata)+1;
 					for(;*pdata=='\0' && pdata<pdataend; pdata++);
 				}
@@ -145,13 +187,28 @@ int openfiasco(const char *name, const char *piece_grep, int v)
 				lseek(header.fd, 1, SEEK_CUR);
 				break;
 			}
-			strcpy(header.version, (char *)data);
 			if (read(header.fd, buf+8, 1)<1)
-				break;
+				return close(header.fd);
+		}
+		strcpy(header.name, header.type);
+		if (header.device[0]) {
+			strcat(header.name, "-");
+			strcat(header.name, header.device);
+		}
+		if (header.hwrev[0]) {
+			strcat(header.name, "-");
+			strcat(header.name, header.hwrev);
+		}
+		if (header.version[0]) {
+			strcat(header.name, "-");
+			strcat(header.name, header.version);
 		}
 		/* callback */
 		off = lseek(header.fd, 0, SEEK_CUR);
 		if (v) {
+			printf("   version: %s\n", header.version);
+			printf("   device: %s\n", header.device);
+			printf("   hwrev: %s\n", header.hwrev);
 			printf("   name: %s\n", header.name);
 			printf("   body-at:   0x%08x\n", (unsigned int)off);
 		}
@@ -162,6 +219,10 @@ int openfiasco(const char *name, const char *piece_grep, int v)
 				printf("==> %s\n", header.name);
 			if (fiasco_callback != NULL) {
 				fiasco_callback(&header);
+				if (header.layout) {
+					free(header.layout);
+					header.layout = NULL;
+				}
 				free(header.data);
 				continue;
 			} else {
@@ -171,6 +232,10 @@ int openfiasco(const char *name, const char *piece_grep, int v)
 		// XXX dup
 		lseek(header.fd, off, SEEK_SET);
 		lseek(header.fd, header.size, SEEK_CUR);
+		if (header.layout) {
+			free(header.layout);
+			header.layout = NULL;
+		}
 	}
 	return close(header.fd);
 }

@@ -62,11 +62,18 @@ struct piece_t {
 	char *vers;
 };
 
+enum flash_mode {
+	FLASH_COLD,
+	FLASH_NORMAL,
+	FLASH_EMMC,
+	FLASH_ANY
+};
+
 struct devices {
   char *name;
   unsigned short vendor_id;
   unsigned short product_id;
-  unsigned short flags;
+  enum flash_mode mode;
 };
 
 #define SUPPORTED_DEVICES 6
@@ -83,6 +90,10 @@ enum {
 	PIECE_INITFS,
 	PIECE_ROOTFS,
 	PIECE_OMAPNAND,
+	PIECE_MMC,
+	PIECE_CMT_2ND,
+	PIECE_CMT_ALGO,
+	PIECE_CMT_MCUSW,
 	PIECE_FIASCO,
 	PIECE_LAST
 };
@@ -90,11 +101,15 @@ enum {
 struct header_t {
 	int fd;
 	char fwname[128];
-	char name[128];
 	char version[128];
+	char type[128];
+	char device[16];
+	char hwrev[128];
+	char name[128];
 	unsigned short hash;
 	unsigned int size;
 	unsigned char *data;
+	char *layout;
 };
 
 extern char *pieces[];

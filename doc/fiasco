@@ -16,13 +16,26 @@ FILE HEADER
 PIECE HEADER
 
    1 byte = 0x54    --  piece signature
-   6 bytes          --  unknown
+   1 byte           --  unknown:
+                          N800/N810:
+                            0x02 - initfs, rootfs, kernel (2007)
+                            0x03 - xloader, 2nd, secondary, kernel (DIABLO)
+                          N900:
+                            0x03 - kernel, rootfs, cmt-2nd, cmt-algo, cmt-mcusw
+                            0x04 - xloader, 2nd, secondary
+                            0x05 - mmc
+   5 bytes          --  unknown (always 0x2e 0x19 0x01 0x01 0x00)
    2 bytes          --  checksum for the piece contents (xorpair)
   12 bytes          --  piece name (first byte is FF if is the last)
    4 bytes          --  piece size (big endian)
-   4 bytes          --  unknown
+   4 bytes          --  unknown (always 0x00 0x00 0x00 0x00)
              block {
-   1 byte           --  if (value '1'-'9') { ..there's a comment.. }
+   1 byte           --  if (value '1'-'4' or '/') { ..there's a comment.. }
+                          '1' - version
+                          '2' - device & hw revisions
+                          '3' - layout
+                          '4' - unknown
+                          '/' - unknown
    1 byte           --  length of comment
    N bytes          --  comment
              }

@@ -1,6 +1,7 @@
 /*
  *  0xFFFF - Open Free Fiasco Firmware Flasher
  *  Copyright (C) 2007  pancake <pancake@youterm.com>
+ *  Copyright (C) 2012  Pali Rohár <pali.rohar@gmail.com>
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -23,12 +24,16 @@
 /* global structs */
 char *pieces[] = {
 	"xloader",    // xloader.bin
-	"2nd",        // 2nd
+	"2nd",        // 2nd.bin
 	"secondary",  // secondary.bin
 	"kernel",     // zImage
-	"initfs",     // jffs'd initfs
-	"rootfs",     // 80mB of blob
+	"initfs",     // initfs
+	"rootfs",     // rootfs
 	"omap-nand",  // 8kB of food for the nand
+	"mmc",        // raw eMMC image
+	"cmt-2nd",    // cmt-2nd
+	"cmt-algo",   // cmt-algo
+	"cmt-mcusw",  // cmt-mcusw
 	"fiasco",     // FIASCO IMAGE
 	NULL
 };
