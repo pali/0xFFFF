@@ -39,6 +39,7 @@ int openfiasco(const char *name, const char *piece_grep, int v)
 	unsigned int headerlen;
 	unsigned int blockcount;
 	off_t off, here;
+	int subsections;
 	int i;
 
 	memset(&header, 0, sizeof(header));
@@ -113,6 +114,8 @@ int openfiasco(const char *name, const char *piece_grep, int v)
 		}
 		if (i && v) printf("Skipping %d padding bytes\n", i);
 
+		subsections = buf[1]-1;
+
 		if (read(header.fd, buf+7, 2)<2)
 			break;
 		header.hash = buf[7]<<8|buf[8];
@@ -143,11 +146,9 @@ int openfiasco(const char *name, const char *piece_grep, int v)
 			printf("   offset:  0x%08x\n", (unsigned int)here);
 			printf("   size:    %d bytes\n", header.size);
 			printf("   hash:    %04x\n", header.hash);
+			printf("   subsections: %d\n", subsections);
 		}
-		//printf("BYTE: %02x %02x %02x %02x %02x\n", 
-		//	buf[4], buf[5], buf[6], buf[7], buf[8]);
-		/* XXX this is not ok */
-		//printf("BUF8: %02x\n", buf[8]);
+
 		memset(header.device, 0, sizeof(header.device));
 		memset(header.hwrevs, 0, sizeof(header.hwrevs));
 		memset(header.version, 0, sizeof(header.version));
@@ -155,20 +156,21 @@ int openfiasco(const char *name, const char *piece_grep, int v)
 			free(header.layout);
 			header.layout = NULL;
 		}
-		while ((buf[8] >= '1' && buf[8] <= '4') || buf[8] == '/') {
+
+		while (subsections > 0) {
 			if (read(header.fd, data, 1)<1)
 				return close(header.fd);
 			i = data[0];
 			if (read(header.fd, data, i)<i)
 				return close(header.fd);
-			if (data[0]) {
+			{
 				if (v) {
 					printf("   subinfo\n");
 					printf("     type: ");
 					if (buf[8] == '1') printf("version string");
 					else if (buf[8] == '2') printf("hw revision");
 					else if (buf[8] == '3') printf("layout");
-					else printf("unknown (%c)", buf[8]);
+					else printf("unknown (%c:0x%x)", buf[8], buf[8]);
 					printf("\n");
 					printf("     length: %d\n", i);
 				}
@@ -189,10 +191,17 @@ int openfiasco(const char *name, const char *piece_grep, int v)
 						else printf("data");
 						if (buf[8] == '2' && pdata != data)
 							printf(": %s\n", buf2);
-						else if (buf[8] != '3' && buf[8] != '/')
-							printf(": %s\n", pdata);
-						else
+						else if (buf[8] == '3')
 							printf(": (not printing)\n");
+						else if (buf[8] == '1' || buf[8] == '2')
+							printf(": %s\n", pdata);
+						else {
+							char *buf3 = malloc(i+1);
+							memcpy(buf3, pdata, i);
+							buf3[i] = 0;
+							printf(": (raw) %s\n", buf3);
+							free(buf3);
+						}
 					}
 					if (buf[8] == '1') {
 						strncpy(header.version, (char *)pdata, sizeof(header.version)-1);
@@ -216,14 +225,12 @@ int openfiasco(const char *name, const char *piece_grep, int v)
 						pdata += strlen((char*)pdata)+1;
 					for(;*pdata=='\0' && pdata<pdataend; pdata++);
 				}
-			} else {
-				/* End of comments, ignore one char and next is image data */
-				lseek(header.fd, 1, SEEK_CUR);
-				break;
 			}
 			if (read(header.fd, buf+8, 1)<1)
 				return close(header.fd);
+			--subsections;
 		}
+
 		header.name = malloc(strlen(header.type)+strlen(header.device)+strlen(header.hwrevs)+strlen(header.version)+4);
 		if (!header.name) {
 			printf("malloc error\n");
