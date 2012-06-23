@@ -59,7 +59,9 @@ extern int verbose;
 struct piece_t {
 	char *name;
 	char *type;
-	char *vers;
+	char *device;
+	char *hwrevs;
+	char *version;
 };
 
 enum flash_mode {

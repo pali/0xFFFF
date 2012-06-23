@@ -52,7 +52,9 @@ int add_piece(char *piece)
 
 		pcs[pcs_n].name = strdup(file);
 		pcs[pcs_n].type = strdup(piece);
-		pcs[pcs_n].vers = NULL; // TODO version string not yet supported
+		pcs[pcs_n].device = NULL;
+		pcs[pcs_n].hwrevs = NULL;
+		pcs[pcs_n].version = NULL; // TODO version string not yet supported
 	} else {
 		/*/ autodetect piece type */
 		pcs[pcs_n].type = (char *)fpid_file(piece);
@@ -66,7 +68,9 @@ int add_piece(char *piece)
 		} else {
 			pcs[pcs_n].name = strdup(piece);
 			pcs[pcs_n].type = strdup(pcs[pcs_n].type);
-			pcs[pcs_n].vers = NULL;
+			pcs[pcs_n].device = NULL;
+			pcs[pcs_n].hwrevs = NULL;
+			pcs[pcs_n].version = NULL;
 		}
 	}
 
