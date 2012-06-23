@@ -44,8 +44,9 @@ struct devices supported_devices[SUPPORTED_DEVICES] = {
   { "n770/n810/n900", 0x0421, 0x0105, FLASH_NORMAL },
   { "n900",           0x0421, 0x0106, FLASH_COLD   },
 //  { "n900",           0x0421, 0x????, FLASH_EMMC   },
-  { 0 },
-  { 0 }
+  { "n900",           0x0421, 0x01c8, FLASH_MKII   },
+  { NULL },
+  { NULL }
 };
 
 /** Returns 0 when no device was found and a positive
@@ -78,7 +79,7 @@ void list_valid_devices()
 	int i;
 	struct devices ptr = supported_devices[1];
 
-	for(i=1; ptr.vendor_id; ptr = supported_devices[++i])
+	for(i=1; ptr.name; ptr = supported_devices[++i])
 		printf("%04x:%04x  %s\n", ptr.vendor_id, ptr.product_id, ptr.name);
 }
 

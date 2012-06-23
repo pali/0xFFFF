@@ -66,7 +66,7 @@ enum flash_mode {
 	FLASH_COLD,
 	FLASH_NORMAL,
 	FLASH_EMMC,
-	FLASH_ANY
+	FLASH_MKII,
 };
 
 struct devices {
@@ -76,7 +76,7 @@ struct devices {
   enum flash_mode mode;
 };
 
-#define SUPPORTED_DEVICES 6
+#define SUPPORTED_DEVICES 8
 extern struct devices supported_devices[SUPPORTED_DEVICES];
 
 extern int pcs_n;
