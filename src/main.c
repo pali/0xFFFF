@@ -146,9 +146,11 @@ int flash_callback(struct header_t *header)
 		return 1;
 	}
 
-	type = (char *)fpid_file(header->name);
+	type = header->type;
+	if (!type[0])
+		type = (char *)fpid_file(header->name);
 	printf("\nFlashing %s (%s)\n", header->name, type);
-	flash_image(header->name, type, NULL);
+	flash_image(header->name, type, header->device, header->hwrevs, header->version);
 
 	return 0;
 }
@@ -447,7 +449,7 @@ int main(int argc, char **argv)
 
 		for(c=0;c<pcs_n;c++) {
 			printf("Flashing %s (%s)\n", pcs[c].type, pcs[c].name);
-			flash_image(pcs[c].name, pcs[c].type, pcs[c].vers);
+			flash_image(pcs[c].name, pcs[c].type, pcs[c].device, pcs[c].hwrevs, pcs[c].version);
 		}
 	}
 

@@ -74,7 +74,7 @@ void check_nolo_order()
 		check_nolo_order_failed();
 }
 
-void flash_image(const char *filename, const char *piece, const char *version)
+void flash_image(const char *filename, const char *piece, const char *device, const char *hwrevs, const char *version)
 {
 	FILE *fd;
 	int vlen = 0;

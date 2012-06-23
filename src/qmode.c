@@ -56,7 +56,7 @@ void process_message(char *msg)
 			const char *type = fpid_file(arg);
 			if (type == NULL) {
 				squeue_push2(p, "error", "Unknown piece format", 1);
-			} else flash_image(arg, type, NULL);
+			} else flash_image(arg, type, NULL, NULL, NULL);
 		} else
 		if (!strcmp(str, "reset")) {
 			if (reboot_board() == 0) {
