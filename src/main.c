@@ -387,6 +387,7 @@ usb_detach_kernel_driver_np(dev, 2);
 int main(int argc, char **argv)
 {
 	int c;
+	const char *type;
 
 	while((c = getopt(argc, argv, "QC:cp:PvVhRu:ib:U:r:e:ld:I:D:f:F:s:xH:S:n")) != -1) {
 		switch(c) {
@@ -465,7 +466,10 @@ int main(int argc, char **argv)
 		case 'P':
 			return fiasco_pack(optind, argv);
 		case 'I':
-			printf("%s: %s\n", fpid_file(optarg), optarg);
+			type = fpid_file(optarg);
+			printf("%s: %s\n", type, optarg);
+			if (type && strcmp(type, "fiasco") == 0)
+				openfiasco(optarg, NULL, 1);
 			identify = 1;
 			break;
 		case 'C':
