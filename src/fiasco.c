@@ -36,7 +36,8 @@ int openfiasco(const char *name, const char *piece_grep, int v)
 	unsigned char buf[256];
 	unsigned char data[256];
 	unsigned char *pdata, *pdataend;
-	unsigned int namelen;
+	unsigned int headerlen;
+	unsigned int blockcount;
 	off_t off, here;
 	int i;
 
@@ -57,21 +58,40 @@ int openfiasco(const char *name, const char *piece_grep, int v)
 		printf("Invalid header\n");
 		return close(header.fd);
 	}
-	memcpy(&namelen,buf+1,4);
-	namelen = ntohl(namelen);
-	if (namelen>128) {
+
+	memcpy(&headerlen,buf+1,4);
+	headerlen = ntohl(headerlen);
+	if (headerlen>128) {
 		printf("Stupid length at header. Is this a joke?\n");
 		return close(header.fd);
 	}
+
 	memset(buf,'\0', 128);
-	if (read(header.fd, buf, namelen) != namelen) {
-		printf("Invalid read of %d bytes\n", namelen);
+	if (read(header.fd, buf, headerlen) != headerlen) {
+		printf("Invalid read of %d bytes\n", headerlen);
 		return close(header.fd);
 	}
-	if (v) printf("Fiasco version: %2d\n", buf[3]);
-	strcpy(header.fwname, (char *)buf+6);
-	if (v) for(i=6;i<namelen;i+=strlen((char *)(buf+i))+1)
-			printf("Name: %s\n", buf+i);
+
+	memcpy(&blockcount,buf,4);
+	blockcount = ntohl(blockcount);
+	if (blockcount==0) {
+		printf("Error: No block in header\n");
+		return close(header.fd);
+	}
+	if (v) printf("Number of blocks: %d\n", blockcount);
+
+	pdata = buf+4;
+	while (pdata < buf+headerlen-4) {
+		if (pdata[0] == 0xe8) {
+			if (v) printf("Header: %s\n", pdata+2);
+		} else if (pdata[0] == 0x31) {
+			strncpy(header.fwname, (char *)pdata+2, (int)pdata[1]);
+			if (v) printf("Name: %s\n", header.fwname);
+		} else {
+			if (v) printf("Unknown header 0x%x, length %d, data %s\n", pdata[0], pdata[1], pdata+2);
+		}
+		pdata += (int)pdata[1]+2;
+	}
 
 	/* walk the tree */
 	while(1) {
