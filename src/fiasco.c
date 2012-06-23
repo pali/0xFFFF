@@ -125,7 +125,7 @@ int openfiasco(const char *name, const char *piece_grep, int v)
 		/* XXX this is not ok */
 		//printf("BUF8: %02x\n", buf[8]);
 		memset(header.device, 0, sizeof(header.device));
-		memset(header.hwrev, 0, sizeof(header.hwrev));
+		memset(header.hwrevs, 0, sizeof(header.hwrevs));
 		memset(header.version, 0, sizeof(header.version));
 		if (header.layout) {
 			free(header.layout);
@@ -151,6 +151,11 @@ int openfiasco(const char *name, const char *piece_grep, int v)
 				pdata = data;
 				pdataend = data+i;
 				while(pdata<pdataend) {
+					char buf2[9];
+					if (buf[8] == '2' && pdata != data) {
+						memset(buf2, 0, 9);
+						strncpy(buf2, (char *)pdata, 8);
+					}
 					if (v) {
 						printf("       ");
 						if (buf[8] == '1') printf("version");
@@ -158,7 +163,9 @@ int openfiasco(const char *name, const char *piece_grep, int v)
 						else if (buf[8] == '2' && pdata != data) printf("hw revision");
 						else if (buf[8] == '3') printf("layout");
 						else printf("data");
-						if (buf[8] != '3' && buf[8] != '/')
+						if (buf[8] == '2' && pdata != data)
+							printf(": %s\n", buf2);
+						else if (buf[8] != '3' && buf[8] != '/')
 							printf(": %s\n", pdata);
 						else
 							printf(": (not printing)\n");
@@ -167,19 +174,22 @@ int openfiasco(const char *name, const char *piece_grep, int v)
 						strcpy(header.version, (char *)pdata);
 					} else if (buf[8] == '2' && pdata == data) {
 						strcpy(header.device, (char *)pdata);
-					} else if (buf[8] == '2' && pdata != data) { 
-						if (header.hwrev[0] == 0)
-							strcpy(header.hwrev, (char *)pdata);
+					} else if (buf[8] == '2' && pdata != data) {
+						if (header.hwrevs[0] == 0)
+							strcpy(header.hwrevs, buf2);
 						else {
-							strcat(header.hwrev, ",");
-							strcat(header.hwrev, (char *)pdata);
+							strcat(header.hwrevs, ",");
+							strcat(header.hwrevs, buf2);
 						}
 					} else if (buf[8] == '3') {
 						if (header.layout) free(header.layout);
 						header.layout = malloc(strlen((char*)pdata)+1);
 						if (header.layout) strcpy(header.layout, (char *)pdata);
 					}
-					pdata = pdata+strlen((char*)pdata)+1;
+					if (buf[8] == '2' && pdata != data && strlen((char *)pdata) > 8)
+						pdata += 8;
+					else
+						pdata += strlen((char*)pdata)+1;
 					for(;*pdata=='\0' && pdata<pdataend; pdata++);
 				}
 			} else {
@@ -195,9 +205,9 @@ int openfiasco(const char *name, const char *piece_grep, int v)
 			strcat(header.name, "-");
 			strcat(header.name, header.device);
 		}
-		if (header.hwrev[0]) {
+		if (header.hwrevs[0]) {
 			strcat(header.name, "-");
-			strcat(header.name, header.hwrev);
+			strcat(header.name, header.hwrevs);
 		}
 		if (header.version[0]) {
 			strcat(header.name, "-");
@@ -208,7 +218,7 @@ int openfiasco(const char *name, const char *piece_grep, int v)
 		if (v) {
 			printf("   version: %s\n", header.version);
 			printf("   device: %s\n", header.device);
-			printf("   hwrev: %s\n", header.hwrev);
+			printf("   hwrevs: %s\n", header.hwrevs);
 			printf("   name: %s\n", header.name);
 			printf("   body-at:   0x%08x\n", (unsigned int)off);
 		}
