@@ -71,7 +71,7 @@ int uncompress_image(char *srcf, char *dstf)
 	src = malloc ( fsize );
 	dst = malloc ( width*height*2 );
 	deof = dst+width*height*2;
-	if ((int)src == -1 || (int)dst == -1 ) {
+	if (src == (void *)-1 || dst == (void *)-1 ) {
 		printf("Cannot malloc\n");
 		return 1;
 	}
@@ -105,7 +105,7 @@ int uncompress_image(char *srcf, char *dstf)
 			}
 		}
 	}
-	fprintf(stderr, "Output Size: %d\n",dst2-dst);
+	fprintf(stderr, "Output Size: %lld\n",(long long int)(dst2-dst));
 
 	if ((dst2-dst)!=(width*height*2))
 		fprintf(stderr, "failed?\n");

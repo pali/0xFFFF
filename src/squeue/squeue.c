@@ -89,7 +89,7 @@ _retry:
 	}
 
 	pool = shmat(shmid, NULL, 0);
-	if (((int)pool) == -1) {
+	if (pool == (void *)-1) {
 		perror("shmat");
 		return NULL;
 	}

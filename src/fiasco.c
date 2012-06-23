@@ -28,6 +28,8 @@
 #include "main.h"
 #include "hash.h"
 
+char *strdup(const char *s);
+
 int (*fiasco_callback)(struct header_t *header) = NULL;
 
 int openfiasco(const char *name, const char *piece_grep, int v)
@@ -306,7 +308,7 @@ int fiasco_new(const char *filename, const char *swver)
 {
 	int fd;
 	unsigned int len;
-	uint8_t len8;
+	unsigned char len8;
 	const char *str = "OSSO UART+USB";
 
 	if (swver && strlen(swver)+1 > UINT8_MAX) {

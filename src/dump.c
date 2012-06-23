@@ -37,7 +37,7 @@ int rf_extract(char *dev, off_t from, off_t to, char *file)
 	FILE *fd = fopen(file, "wb+");
 
 	if (from>to) {
-		printf("Bad range %lld - %lld for %s\n", from, to, file);
+		printf("Bad range %lld - %lld for %s\n", (long long int)from, (long long int)to, file);
 		goto __rf_extract_exit;
 	}
 	if (fs == NULL) { perror(dev);  goto __rf_extract_exit; }
@@ -56,7 +56,7 @@ int rf_extract(char *dev, off_t from, off_t to, char *file)
 	}
 
 	printf("\r%s: %lld bytes dumped from %s\n",
-		file, to-from, dev);
+		file, (long long int)(to-from), dev);
 
 __rf_extract_exit:
 	if (fs) fclose(fs);

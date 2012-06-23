@@ -517,8 +517,12 @@ int main(int argc, char **argv)
 	}
 
 	if (unpack) {
-		if (reverseto)
-			chdir(reverseto);
+		if (reverseto) {
+			if (chdir(reverseto) < 0) {
+				printf("Error: Cannot change directory to %s\n", reverseto);
+				return 1;
+			}
+		}
 		unpack_fiasco_image(fiasco_image);
 		return 0;
 	}
