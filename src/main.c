@@ -67,6 +67,99 @@ void show_usage()
 {
 	int i;
 	show_title();
+
+#if 0
+	// TODO: remove console: serial.c
+
+#if HAVE_USB
+	printf ("Over USB:\n"
+		" -d [vid:pid]    injects a usb device into the supported list\n"
+		" -l              list supported usb device ids\n"
+		"\n"
+		" -b [cmdline]    boot default or loaded kernel with cmdline\n"
+		" -R              reboot device\n"
+		" -l              load all specified images to RAM\n"
+		" -f              flash all specified images\n"
+		" -c              cold flash all specified images\n"
+		"\n"
+		);
+#endif
+
+	printf ("On device:\n"
+		" -R              reboot device\n"
+		" -f              flash all specified images\n"
+		" -C [/dev/mtd]   check for bad blocks on mtd\n"
+		" -e [dir]        dump all specified images to directory\n"
+		"\n"
+		);
+
+	printf ("Device configuration:\n"
+		" -i              show all device information\n"
+		" -D [0|1|2]      sets root device to: flash (0), mmc (1) or usb (2)\n"
+		" -U [0|1]        disable/enable USB host mode\n"
+		" -r [0|1]        disable/enable R&D mode\n"
+		" -f <flags>      set all R&D flags\n"
+		" -H [rev]        set HW revision\n"
+		" -S [ver]        set SW version\n"
+		"\n"
+		);
+
+	printf ("Fiasco options:\n"
+		" -u [dir]        unpack fiasco image to directory\n"
+		" -g              generate fiasco image\n"
+		"\n"
+		);
+
+	printf ("Image specification:\n"
+		" -p [arg]        specify normal image\n"
+		"                 arg is [[[dev:hw:]ver:]type:]file[%%layout]\n"
+		"                   hw is device HW revision\n"
+		"                   dev is device string\n"
+		"                   ver is image version string\n"
+		"                   type is image type\n"
+		"                   file is image file name\n"
+		"                   layout is file name for layout file\n"
+		" -F [file]       specify Fiasco image\n"
+		"                 (see '-p help' for supported types)\n"
+		" -t [type]       specify image type\n"
+		" -s [ver]        specify image with version\n"
+		" -d [dev]        specify image for device\n"
+		" -o [hw]         specify image for HW revision\n"
+		"\n"
+		);
+
+	printf( "Other options:\n"
+		" -I [file]       identify a firmware image file\n"
+		" -H [file]       calculate hash for file\n"
+		" -c              console prompt mode\n"
+		" -n              do not flash or write to disk (simulation)\n"
+		" -v              be verbose and noisy\n"
+		" -V              show 0xFFFF version information\n"
+		" -h              show this help message\n"
+		"\n"
+		);
+
+#if HAVE_SQUEUE
+	printf( " -Q              enter shared queues server mode (for gui or remote)\n");
+#endif
+
+	printf( "R&D flags:\n"
+		"  0x02 - disable OMAP watchdog\n"
+		"  0x04 - disable RETU/EXT watchdog \n"
+		"  0x08 - disable lifeguard reset\n"
+		"  0x10 - enable serial console\n"
+		"  0x20 - disable USB timeout\n"
+		"  0x?? - enable STI console\n"
+		"  0x?? - disable charging\n"
+		"  0x?? - force power key boot reason\n"
+		"\n"
+		);
+
+	printf( "Image types:\n");
+	for(i=0;pieces[i];i++) printf("%s ", pieces[i]); printf("\n");
+
+#endif
+
 #if HAVE_USB
 	printf ("Over USB:\n"
 		" -b [arg]        boots the kernel with arguments\n"
