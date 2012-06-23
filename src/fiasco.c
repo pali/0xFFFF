@@ -32,7 +32,7 @@ char *strdup(const char *s);
 
 int (*fiasco_callback)(struct header_t *header) = NULL;
 
-int openfiasco(const char *name, const char *piece_grep, int v)
+int openfiasco(const char *name, const char *type, const char *device, const char *hwrev, const char *version, int v)
 {
 	struct header_t header;
 	unsigned char buf[256];
@@ -42,6 +42,7 @@ int openfiasco(const char *name, const char *piece_grep, int v)
 	unsigned int blockcount;
 	off_t off, here;
 	int subsections;
+	int match;
 	int i;
 
 	memset(&header, 0, sizeof(header));
@@ -251,7 +252,7 @@ int openfiasco(const char *name, const char *piece_grep, int v)
 			strcat(header.name, "-");
 			strcat(header.name, header.version);
 		}
-		/* callback */
+
 		off = lseek(header.fd, 0, SEEK_CUR);
 		if (v) {
 			printf("   version: %s\n", header.version);
@@ -260,11 +261,40 @@ int openfiasco(const char *name, const char *piece_grep, int v)
 			printf("   name: %s\n", header.name);
 			printf("   body-at:   0x%08x\n", (unsigned int)off);
 		}
-		if (piece_grep==NULL || (strstr(header.name, piece_grep))) {
-			if (piece_grep)
-				printf("==> (%s) %s\n", piece_grep, header.name);
-			else
-				printf("==> %s\n", header.name);
+
+		match = 1;
+
+		if (match && type && strcmp(header.type, type) != 0)
+			match = 0;
+
+		if (match && device && strcmp(header.device, device) != 0)
+			match = 0;
+
+		if (match && version && strcmp(header.version, version) != 0)
+			match = 0;
+
+		if (match && hwrev) {
+			char *tmp1 = malloc(strlen(header.hwrevs)+3);
+			char *tmp2 = malloc(strlen(hwrev)+3);
+
+			if (!tmp1 || !tmp2) {
+				printf("malloc error\n");
+				return close(header.fd);
+			}
+
+			sprintf(tmp1, ",%s,", header.hwrevs);
+			sprintf(tmp2, ",%s,", hwrev);
+
+			if (!strstr(tmp1, tmp2))
+				match = 0;
+
+			free(tmp1);
+			free(tmp2);
+		}
+
+		/* callback */
+		if (match) {
+			printf("==> %s\n", header.name);
 			if (fiasco_callback != NULL) {
 				fiasco_callback(&header);
 				if (header.layout) {
@@ -277,6 +307,8 @@ int openfiasco(const char *name, const char *piece_grep, int v)
 			} else {
 				// ??huh
 			}
+		} else {
+			printf("ignored %s\n", header.name);
 		}
 		// XXX dup
 		lseek(header.fd, off, SEEK_SET);

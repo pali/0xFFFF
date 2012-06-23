@@ -224,6 +224,15 @@ int unpack_callback(struct header_t *header)
 	if (nomode)
 		return 1;
 
+	printf("Unpacking file: %s\n", header->name);
+	printf("  type: %s\n", header->type);
+	if (header->device[0]) printf("  device: %s\n", header->device);
+	if (header->hwrevs[0]) printf("  hw revisions: %s\n", header->hwrevs);
+	if (header->version[0]) printf("  version: %s\n", header->version);
+	if (header->layout) printf("  layout file: %s\n", header->layout);
+	printf("  size: %d\n", header->size);
+	printf("  hash: %04x\n", header->hash);
+
 	fd = fopen(header->name, "wb");
 	if (fd == NULL) {
 		printf("Cannot open file.\n");
@@ -260,7 +269,7 @@ void unpack_fiasco_image(char *file)
 {
 	printf("Dumping firmware pieces to disk.\n");
 	fiasco_callback = &unpack_callback;
-	openfiasco(file, NULL ,1);
+	openfiasco(file, NULL, NULL, NULL, NULL, 0);
 }
 
 int fiasco_flash(const char *file)
@@ -292,11 +301,11 @@ int fiasco_flash(const char *file)
 	printf("\n");
 
 	fiasco_callback = &flash_callback;
-	openfiasco(file, "xloader", 0);
-	openfiasco(file, "secondary", 0);
-	openfiasco(file, "kernel", 0);
-	openfiasco(file, "initfs", 0);
-	openfiasco(file, "rootfs", 0);
+	openfiasco(file, "xloader", NULL, NULL, NULL, 0);
+	openfiasco(file, "secondary", NULL, NULL, NULL, 0);
+	openfiasco(file, "kernel", NULL, NULL, NULL, 0);
+	openfiasco(file, "initfs", NULL, NULL, NULL, 0);
+	openfiasco(file, "rootfs", NULL, NULL, NULL, 0);
 
 	return 0;
 }
@@ -470,7 +479,7 @@ int main(int argc, char **argv)
 			type = fpid_file(optarg);
 			printf("%s: %s\n", type, optarg);
 			if (type && strcmp(type, "fiasco") == 0)
-				openfiasco(optarg, NULL, 1);
+				openfiasco(optarg, NULL, NULL, NULL, NULL, 1);
 			identify = 1;
 			break;
 		case 'C':

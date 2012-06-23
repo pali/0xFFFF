@@ -119,7 +119,7 @@ extern char *modes[];
 extern char *root_devices[];
 
 // fiasco
-int openfiasco(const char *name, const char *grep, int v);
+int openfiasco(const char *name, const char *type, const char *device, const char *hwrev, const char *version, int v);
 int fiasco_new(const char *filename, const char *name);
 void fiasco_data_read(struct header_t *header);
 int fiasco_add_eof(int fd);
