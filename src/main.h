@@ -102,7 +102,7 @@ enum {
 
 struct header_t {
 	int fd;
-	char fwname[128];
+	char swver[128];
 	char type[128];
 	char device[16];
 	char hwrevs[128];

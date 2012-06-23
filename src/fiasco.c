@@ -87,10 +87,10 @@ int openfiasco(const char *name, const char *piece_grep, int v)
 			if (v) printf("Header: %s\n", pdata+2);
 		} else if (pdata[0] == 0x31) {
 			i = pdata[1];
-			if (i >= sizeof(header.fwname)) i = sizeof(header.fwname)-1;
-			memset(header.fwname, 0, sizeof(header.fwname));
-			strncpy(header.fwname, (char *)pdata+2, i);
-			if (v) printf("Name: %s\n", header.fwname);
+			if (i >= sizeof(header.swver)) i = sizeof(header.swver)-1;
+			memset(header.swver, 0, sizeof(header.swver));
+			strncpy(header.swver, (char *)pdata+2, i);
+			if (v) printf("SW version: %s\n", header.swver);
 		} else {
 			if (v) printf("Unknown header 0x%x, length %d, data %s\n", pdata[0], pdata[1], pdata+2);
 		}
