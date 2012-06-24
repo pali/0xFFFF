@@ -70,92 +70,100 @@ void show_usage()
 
 #if 0
 	// TODO: remove console: serial.c
+	// TODO: remove inject usb and supported list
+	// TODO: remove option for calculate hash
 
-#if HAVE_USB
-	printf ("Over USB:\n"
-		" -d [vid:pid]    injects a usb device into the supported list\n"
-		" -l              list supported usb device ids\n"
-		"\n"
-		" -b [cmdline]    boot default or loaded kernel with cmdline\n"
+	printf (""
+
+#if defined(WITH_USB) && ! defined(WITH_DEVICE)
+		"Over USB:\n"
+		" -b [cmdline]    boot default or loaded kernel with cmdline (default: use default kernel cmdline)\n"
 		" -R              reboot device\n"
 		" -l              load all specified images to RAM\n"
 		" -f              flash all specified images\n"
-		" -c              cold flash all specified images\n"
+		" -c              cold flash 2nd and secondary images\n"
 		"\n"
-		);
 #endif
 
-	printf ("On device:\n"
+#ifdef WITH_DEVICE
+		"On device:\n"
 		" -R              reboot device\n"
 		" -f              flash all specified images\n"
-		" -C [/dev/mtd]   check for bad blocks on mtd\n"
-		" -e [dir]        dump all specified images to directory\n"
+		" -x [/dev/mtd]   check for bad blocks on mtd device (default: check all)\n"
+		" -E              dump all images from device to fiasco image, see -M and -t\n"
+		" -e [dir]        dump all images from device to directory, see -t (default: current dir)\n"
 		"\n"
-		);
+#endif
 
-	printf ("Device configuration:\n"
-		" -i              show all device information\n"
-		" -D [0|1|2]      sets root device to: flash (0), mmc (1) or usb (2)\n"
-		" -U [0|1]        disable/enable USB host mode\n"
-		" -r [0|1]        disable/enable R&D mode\n"
-		" -f <flags>      set all R&D flags\n"
-		" -H [rev]        set HW revision\n"
-		" -S [ver]        set SW version\n"
+#if defined(WITH_USB) || defined(WITH_DEVICE)
+		"Device configuration:\n"
+		" -i              identify, show all information about device\n"
+		" -D 0|1|2        change root device: 0 - flash, 1 - mmc, 2 - usb\n"
+		" -U 0|1          disable/enable USB host mode\n"
+		" -r 0|1          disable/enable R&D mode\n"
+		" -F flags        change R&D flags, flags are comma separated list, can be empty\n"
+		" -H rev          change HW revision\n"
+		" -K ver          change kernel version string\n"
+		" -N ver          change NOLO version string\n"
+		" -S ver          change SW release version string\n"
+		" -C ver          change content eMMC version string\n"
 		"\n"
-		);
+#endif
 
-	printf ("Fiasco options:\n"
-		" -u [dir]        unpack fiasco image to directory\n"
-		" -g [ver]        generate fiasco image for SW version\n"
-		"\n"
-		);
-
-	printf ("Image specification:\n"
-		" -p [arg]        specify normal image\n"
-		"                 arg is [[[dev:[hw:]]ver:]type:]file[%%layout]\n"
-		"                   hw is device HW revision\n"
-		"                   dev is device name string\n"
-		"                   ver is image version string\n"
-		"                   type is image type\n"
+		"Normal image specification:\n"
+		" -m [arg]        specify normal image\n"
+		"                 arg is [[[dev:[hw:]]ver:]type:]file[%%lay]\n"
+		"                   dev is device name string (default: emtpy)\n"
+		"                   hw are comma separated list of HW revisions (default: empty)\n"
+		"                   ver is image version string (default: empty)\n"
+		"                   type is image type (default: try autodetect)\n"
 		"                   file is image file name\n"
-		"                   layout is file name for layout file\n"
-		" -F [file]       specify Fiasco image\n"
-		" -t [type]       specify image type\n"
-		" -s [ver]        specify image with version\n"
-		" -d [dev]        specify image for device\n"
-		" -o [hw]         specify image for HW revision\n"
+		"                   lay is layout file name (default: none)\n"
 		"\n"
-		);
 
-	printf( "Other options:\n"
-		" -I [file]       identify a firmware image file\n"
-		" -H [file]       calculate hash for file\n"
+		"Fiasco image specification:\n"
+		" -M file         specify input fiasco image\n"
+		" -t [types]      filter images by comma separated list of image types (default: do not filter)\n"
+		" -d [dev]        filter images by device (default: do not filter)\n"
+		" -w [hw]         filter images by HW revision (default: do not filter)\n"
+		" -u [dir]        unpack fiasco image to directory (default: current dir)\n"
+		" -g [ver]        generate fiasco image for SW release version (default: without SW release)\n"
+		"\n"
+
+		"Other options:\n"
+		" -I              identify images\n"
+#if defined(WITH_USB) || defined(WITH_DEVICE)
 		" -c              console prompt mode\n"
-		" -n              do not flash or write to disk (simulation)\n"
+#endif
+#if ( defined(WITH_USB) || defined(WITH_DEVICE) ) && defined(WITH_SQUEUES)
+		" -Q              enter shared queues server mode (for gui or remote)\n"
+#endif
+		" -s              simulate, do not flash or write on disk\n"
+		" -n              disable hash, checksum and image type checking\n"
 		" -v              be verbose and noisy\n"
 		" -V              show 0xFFFF version information\n"
 		" -h              show this help message\n"
 		"\n"
-		);
 
-#if HAVE_SQUEUE
-	printf( " -Q              enter shared queues server mode (for gui or remote)\n\n");
+#if defined(WITH_USB) || defined(WITH_DEVICE)
+		"R&D flags:\n"
+		"  no-omap-wd          disable auto reboot by OMAP watchdog\n"
+		"  no-ext-wd           disable auto reboot by external watchdog\n"
+		"  no-lifeguard-reset  disable auto reboot by lifeguard\n"
+		"  serial-console      enable serial console\n"
+		"  no-usb-timeout      disable usb timeout\n"
+		"  sti-console         enable sti console\n"
+		"  no-charging         disable battery charging\n"
+		"  force-power-key     force omap boot reason to power key\n"
+		"\n"
 #endif
 
-	printf( "R&D flags:\n"
-		"  0x02 - disable OMAP watchdog\n"
-		"  0x04 - disable RETU/EXT watchdog \n"
-		"  0x08 - disable lifeguard reset\n"
-		"  0x10 - enable serial console\n"
-		"  0x20 - disable USB timeout\n"
-		"  0x?? - enable STI console\n"
-		"  0x?? - disable charging\n"
-		"  0x?? - force power key boot reason\n"
-		"\n"
-		);
+	);
 
 	printf( "Image types:\n");
-	for(i=0;pieces[i];i++) printf("%s ", pieces[i]); printf("\n");
+	for ( i = 0; image_types[i]; ++i )
+		printf("  %-15s %s\n", image_types[i], image_desc[i]);
+	printf( "\n");
 
 #endif
 
