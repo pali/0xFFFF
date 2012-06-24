@@ -37,7 +37,7 @@ Pieces can be automatically identified by using the '-I' flag:
 You can dump these pieces from the internal memory of the internet
 tablet by using the mtd-utils over /dev/mtd* or just running:
 
-  n770$ 0xFFFF -e /media/mmc1
+  770$ 0xFFFF -e /media/mmc1
 
 There is another way for dumping pieces with extra parameters and options,
 read doc/dumping for more information.

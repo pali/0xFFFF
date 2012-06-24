@@ -1,7 +1,7 @@
 <b>Usage guide</b>
 
 0xFFFF is a free software implementation of the flasher for the Nokia Internet
-Tablets (n770 and n800).
+Tablets (770 and n800).
  <pre>
   - flash separated pieces of the firmware.
   - retrieve information about the device

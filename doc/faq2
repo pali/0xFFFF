@@ -50,7 +50,7 @@ This file tries to collect a bunch of common questions/answers about flashing
   flashed together.
 
   On the n800 firmwares, these two pieces are distributed in a single
-  file, but when flashing a n770, NOLO requires to provide the xloader
+  file, but when flashing a 770, NOLO requires to provide the xloader
   (without commiting) and then the secondary piece.
 
   This piece of software is closed source and is the responsable of
@@ -61,13 +61,13 @@ This file tries to collect a bunch of common questions/answers about flashing
 
 <b>*) How can I identify my device?</b>
 
-  Theorically n770 and n800 have different USB device ID, but this is not
+  Theorically 770 and n800 have different USB device ID, but this is not
   true at all. The first series of the n800 comes with the same usb-id 
-  than n770. That's weird!
+  than 770. That's weird!
 
   So, the only way to identify the device is by asking nolo for the version
   information of different pieces of the firmware. This can be faked, because
-  you can flash n770 stuff on n800 and viceversa, but it's not recommended
+  you can flash 770 stuff on n800 and viceversa, but it's not recommended
   because it wouldn't work :)
 
 

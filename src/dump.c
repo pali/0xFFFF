@@ -597,7 +597,7 @@ int reverse_extract_pieces(char *dir)
 	if (is_n900())
 		return reverse_extract_pieces_n900(dir);
 
-	printf("Device detected: n770/n800/n900\n");
+	printf("Device detected: 770/n800/n900\n");
 	chdir(dir);
 
 	// TODO: get values from /proc/mtd ???
