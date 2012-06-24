@@ -30,21 +30,29 @@
  *
  * The following table shows this info:
  *
- *        cold-flash   flash   emmc-flash  mass-stor  pc-suite
- * n770              0421:0105             0421:0431
+ *        omap-rom     nolo    flash-mode  mass-stor  pc-suite
+ * 770               0421:0105             0421:0431
  * n800              0421:04c3             0421:0431
  * n810              0421:0105
- * n900   0421:0106  0421:0105  0421:????  0421:01c7  0421:01c8
+ * n900   0421:0106  0421:0105  0421:01c8  0421:01c7  0421:01c8
+ *
+ *      mode          images       protocol
+ * omap-rom      2nd, secondary    OMAP messages + Nokia X-Loader protocol
+ * nolo          all except mmc    NOLO
+ * flash-mode    mmc               MK II
+ * mass-storage  sd, first emmc    Standard USB Mass Storage
+ * pc-suite      mmc               MK II
  *
  */
 struct devices supported_devices[SUPPORTED_DEVICES] = {
   { "FFFF",           0x0000, 0x0000, FLASH_NORMAL },  // dummy
   { "unkn",           0x0421, 0x3f00, FLASH_NORMAL },  // probably a development board
-  { "n800",           0x0421, 0x04c3, FLASH_NORMAL },  // a n800 
-  { "n770/n810/n900", 0x0421, 0x0105, FLASH_NORMAL },
-  { "n900",           0x0421, 0x0106, FLASH_COLD   },
-//  { "n900",           0x0421, 0x????, FLASH_EMMC   },
-  { "n900",           0x0421, 0x01c8, FLASH_MKII   },
+  { "n800",           0x0421, 0x04c3, FLASH_NORMAL },  // n800
+  { "770/n810/n900",  0x0421, 0x0105, FLASH_NORMAL },  // 770, n810, n900
+  { "n900",           0x0421, 0x0106, FLASH_COLD   },  // n900 cold flashing
+  { "n900",           0x0421, 0x01c8, FLASH_MKII   },  // n900 mmc flashing
+  { "770/n800",       0x0421, 0x0431, FLASH_DISK   },  // 770, n800 usb mass storage
+  { "n900",           0x0421, 0x01c7, FLASH_DISK   },  // n900 usb mass storage
   { NULL },
   { NULL }
 };
