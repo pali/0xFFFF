@@ -33,6 +33,7 @@ usho do_hash_file(const char *filename, const char *type)
 	unsigned char buf[BSIZE];
 	FILE *fd = fopen(filename, "r");
 	usho hash = 0;
+	int align = 0;
 	int size;
 	int ret;
 
@@ -51,9 +52,15 @@ usho do_hash_file(const char *filename, const char *type)
 	size = ftell(fd);
 	fclose(fd);
 
-	/* mmc image must be aligned */
-	if (type && strcmp(type, "mmc") == 0) {
-		int align = ((size >> 8) + 1) << 8;
+	/* mmc and kernel image must be aligned */
+	if (type) {
+		if (strcmp(type, "mmc") == 0)
+			align = ((size >> 8) + 1) << 8;
+		else if (strcmp(type, "kernel") == 0)
+			align = ((size >> 7) + 1) << 7;
+	}
+
+	if (align) {
 		printf("align from %d to %d\n", size, align);
 		buf[0] = 0xff;
 		while (size < align) {

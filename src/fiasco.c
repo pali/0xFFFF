@@ -394,6 +394,7 @@ int fiasco_add(int fd, const char *name, const char *file, const char *layout, c
 	int i;
 	int gd,ret;
 	int size;
+	int align;
 	unsigned int sz;
 	unsigned char len;
 	unsigned short hash;
@@ -410,8 +411,12 @@ int fiasco_add(int fd, const char *name, const char *file, const char *layout, c
 		return -1;
 
 	sz = lseek(gd, 0, SEEK_END);
-	if (name && strcmp(name, "mmc") == 0) // align mmc
-		sz = ((sz >> 8) + 1) << 8;
+	if (name) {
+		if (strcmp(name, "mmc") == 0) // align mmc
+			sz = ((sz >> 8) + 1) << 8;
+		else if (strcmp(name, "kernel") == 0) // align kernel
+			sz = ((sz >> 7) + 1) << 7;
+	}
 
 	printf("  size: %d\n", sz);
 	sz = htonl((unsigned int) sz);
@@ -533,9 +538,15 @@ int fiasco_add(int fd, const char *name, const char *file, const char *layout, c
 		}
 	}
 
-	/* align mmc (fill with 0xff) */
-	if (name && strcmp(name, "mmc") == 0) {
-		int align = ((size >> 8) + 1) << 8;
+	/* align mmc and kernel (fill with 0xff) */
+	align = 0;
+	if (name) {
+		if (strcmp(name, "mmc") == 0)
+			align = ((size >> 8) + 1) << 8;
+		else if (strcmp(name, "kernel") == 0)
+			align = ((size >> 7) + 1) << 7;
+	}
+	if (align) {
 		while (size < align) {
 			write(fd, "\xff", 1);
 			++size;
