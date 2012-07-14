@@ -16,12 +16,12 @@ FILE HEADER
 
 FW HEADER
 
-   4 bytes          --  count of blocks (big endian)
+   4 bytes          --  number of FW header blocks (big endian)
              block {
    1 byte           --  type of block
-                          0xE8 - header
+                          0xE8 - Fiasco name
                           0x31 - FW name
-   1 byte           --  length of data
+   1 byte           --  length of block data
    N bytes          --  block data
              }
 
@@ -29,21 +29,21 @@ FW HEADER
 IMAGE
 
    1 byte = 0x54    --  signature
-   1 byte           --  number of subsections + 1
+   1 byte           --  number of subsection blocks + 1
    5 bytes          --  unknown (always 0x2e 0x19 0x01 0x01 0x00)
-   2 bytes          --  checksum for the image contents (xorpair)
-  12 bytes          --  image name type (first byte is FF if is the last)
-   4 bytes          --  image size (big endian)
+   2 bytes          --  checksum for the image contents (xorpair) (big endian)
+  12 bytes          --  image name type (first byte is FF if is the last image)
+   4 bytes          --  length of image data (big endian)
    4 bytes          --  unknown (always 0x00 0x00 0x00 0x00)
              block {
-   1 byte           --  type of subsection
+   1 byte           --  type of subsection block
                           '1' - version
-                          '2' - device & hw revisions (separated by char 0, max size of device is 16, hw revision 8)
+                          '2' - device & hw revisions (separated by char 0x00, max size of device is 16, hw revision 8)
                           '3' - layout
                           '4' - unknown
                           '/' - unknown
-   1 byte           --  length of subsection
-   N bytes          --  subsection data
+   1 byte           --  length of subsection block
+   N bytes          --  subsection block data
              }
    1 byte           --  unknown (maybe end of subsections?)
    N bytes          --  image data
