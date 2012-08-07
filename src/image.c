@@ -15,6 +15,105 @@
 #define IMAGE_STORE_CUR(image) do { if ( image->shared_fd ) image->cur = lseek(image->fd, 0, SEEK_CUR) - image->offset; } while (0)
 #define IMAGE_RESTORE_CUR(image) do { if ( image->shared_fd ) lseek(image->fd, image->offset + image->cur, SEEK_SET); } while (0)
 
+static void image_missing_values_from_name(struct image * image, const char * name) {
+
+	char * str;
+	char * ptr;
+	char * ptr2;
+	char * type = NULL;
+	char * device = NULL;
+	char * hwrevs = NULL;
+	char * version = NULL;
+
+	str = strdup(name);
+	if ( ! str )
+		return;
+
+	ptr = strchr(str, '_');
+	if ( ptr ) {
+		*ptr = 0;
+		++ptr;
+		version = strdup(ptr);
+	}
+
+	ptr = strchr(str, '-');
+	if ( ptr ) {
+		*ptr = 0;
+		++ptr;
+		type = strdup(str);
+		ptr2 = strchr(ptr, ':');
+		if ( ptr2 ) {
+			*ptr2 = 0;
+			++ptr2;
+			hwrevs = strdup(ptr2);
+		}
+		device = strdup(ptr);
+	}
+
+	if ( ! image->type )
+		image->type = image_type_from_string(type);
+	free(type);
+
+	if ( ! image->device )
+		image->device = device_from_string(device);
+	free(device);
+
+	if ( ! image->hwrevs )
+		image->hwrevs = hwrevs;
+	else
+		free(hwrevs);
+
+	if ( ! image->version )
+		image->version = version;
+	else
+		free(version);
+
+}
+
+/* format: type-device:hwrevs_version */
+char * image_name_alloc_from_values(struct image * image) {
+
+	char * name;
+	char * ptr;
+	size_t length;
+	const char * type;
+	const char * device;
+
+	type = image_type_to_string(image->type);
+	device = device_to_string(image->device);
+
+	if ( ! type )
+		type = "unknown";
+
+	length = 1 + strlen(type);
+
+	if ( device )
+		length += 1 + strlen(device);
+	if ( image->hwrevs )
+		length += 1 + strlen(image->hwrevs);
+	if ( image->version )
+		length += 1 + strlen(image->version);
+
+	name = calloc(1, length);
+	if ( ! name ) {
+		perror("Alloc error");
+		return NULL;
+	}
+
+	strcpy(name, type);
+	ptr = name + strlen(name);
+
+	if ( device )
+		ptr += sprintf(ptr, "-%s", device);
+	if ( image->hwrevs )
+		ptr += sprintf(ptr, ":%s", image->hwrevs);
+	if ( image->version )
+		ptr += sprintf(ptr, "_%s", image->version);
+
+	return name;
+
+}
+
 static void image_append(struct image * image, const char * type, const char * device, const char * hwrevs, const char * version, const char * layout) {
 
 	IMAGE_CHECK(image);
@@ -22,19 +121,25 @@ static void image_append(struct image * image, const char * type, const char * d
 	image->hash = image_hash_from_data(image);
 	image->device = device_from_string(device);
 
-	if ( type )
+	if ( type && type[0] )
 		image->type = image_type_from_string(type);
 	else
 		image->type = image_type_from_data(image);
 
-	if ( hwrevs )
+	if ( hwrevs && hwrevs[0] )
 		image->hwrevs = strdup(hwrevs);
+	else
+		image->hwrevs = NULL;
 
-	if ( version )
+	if ( version && version[0] )
 		image->version = strdup(version);
+	else
+		image->version = NULL;
 
-	if ( layout )
+	if ( layout && layout[0] )
 		image->layout = strdup(layout);
+	else
+		image->layout = NULL;
 
 }
 
@@ -68,6 +173,10 @@ struct image * image_alloc_from_file(const char * file, const char * type, const
 	image->cur = 0;
 
 	image_append(image, type, device, hwrevs, version, layout);
+
+	if ( ( ! type || ! type[0] ) && ( ! device || ! device[0] ) && ( ! hwrevs || ! hwrevs[0] ) && ( ! version || ! version[0] ) )
+		image_missing_values_from_name(image, file);
+
 	return image;
 
 }
@@ -87,9 +196,10 @@ struct image * image_alloc_from_shared_fd(int fd, size_t size, size_t offset, ui
 	image_append(image, type, device, hwrevs, version, layout);
 
 	if ( image->hash != hash ) {
-		fprintf(stderr, "Image hash mishmash");
-		image_free(image);
-		return NULL;
+		fprintf(stderr, "Error: Image hash mishmash (expected %#04x)\n", image->hash);
+//		image_free(image);
+//		return NULL;
+		image->hash = hash;
 	}
 
 	return image;
@@ -165,9 +275,9 @@ void image_list_add(struct image_list ** list, struct image * image) {
 		if ( (*list)->prev )
 			(*list)->prev->next = first;
 		(*list)->prev = first;
-	} else {
-		*list = first;
 	}
+
+	*list = first;
 
 }
 
@@ -191,6 +301,7 @@ void image_list_del(struct image_list * list) {
 uint16_t image_hash_from_data(struct image * image) {
 
 	/* TODO */
+	printf("image_hash_from_data is not implemented\n");
 
 }
 

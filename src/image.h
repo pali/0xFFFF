@@ -6,6 +6,8 @@
 #include <stdint.h>
 #include <sys/types.h>
 
+#include "device.h"
+
 enum image_type {
 	IMAGE_UNKNOWN = 0,
 	IMAGE_XLOADER,
@@ -19,16 +21,6 @@ enum image_type {
 	IMAGE_CMT_2ND,
 	IMAGE_CMT_ALGO,
 	IMAGE_CMT_MCUSW,
-};
-
-enum device {
-	DEVICE_UNKNOWN = 0,
-	DEVICE_ANY,   /* Unspecified / Any device */
-	DEVICE_SU_18, /* Nokia 770 */
-	DEVICE_RX_34, /* Nokia N800 */
-	DEVICE_RX_44, /* Nokia N810 */
-	DEVICE_RX_48, /* Nokia N810 WiMax */
-	DEVICE_RX_51, /* Nokia N900 */
 };
 
 struct image {
@@ -63,6 +55,7 @@ void image_list_del(struct image_list * list);
 
 uint16_t image_hash_from_data(struct image * image);
 enum image_type image_type_from_data(struct image * image);
+char * image_name_alloc_from_values(struct image * image);
 enum image_type image_type_from_string(const char * type);
 const char * image_type_to_string(enum image_type type);
 
