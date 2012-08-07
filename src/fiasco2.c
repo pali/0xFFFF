@@ -83,15 +83,15 @@ struct fiasco * fiasco_alloc_from_file(const char * file) {
 		READ_OR_FAIL(fiasco, &length8, 1);
 		READ_OR_FAIL(fiasco, buf, length8);
 		if ( byte == 0xe8 ) {
+			memset(fiasco->name, 0, sizeof(fiasco->name));
 			strncpy(fiasco->name, (char *)buf, length8);
-			fiasco->name[length8] = 0;
 			if ( v ) printf("Fiasco name: %s\n", fiasco->name);
 		} else if ( byte == 0x31 ) {
+			memset(fiasco->swver, 0, sizeof(fiasco->swver));
 			strncpy(fiasco->swver, (char *)buf, length8);
-			fiasco->name[length8] = 0;
 			if ( v ) printf("SW version: %s\n", fiasco->swver);
 		} else {
-			if ( v ) printf("Unknown header 0x%x\n", byte);
+			if ( v ) printf("Unknown header %#x\n", byte);
 		}
 		--count;
 	}
@@ -99,29 +99,28 @@ struct fiasco * fiasco_alloc_from_file(const char * file) {
 	/* walk the tree */
 	while ( 1 ) {
 
-		length = 0;
-		while ( 1 ) {
-			/* If end of file, return fiasco image */
-			READ_OR_RETURN(fiasco, buf, 7);
-			/* Header of next image */
-			if ( buf[0] == 0x54 && buf[2] == 0x2E && buf[3] == 0x19 && buf[4] == 0x01 && buf[5] == 0x01 && buf[6] == 0x00 )
-				break;
-			/* Return back and try again */
-			lseek(fiasco->fd, -6, SEEK_CUR);
-			++length;
+		/* If end of file, return fiasco image */
+		READ_OR_RETURN(fiasco, buf, 7);
+
+		/* Header of next image */
+		if ( ! buf[0] == 0x54 && buf[2] == 0x2E && buf[3] == 0x19 && buf[4] == 0x01 && buf[5] == 0x01 && buf[6] == 0x00 ) {
+			printf("Invalid next image header\n");
+			return fiasco;
 		}
-		if ( length && v ) printf("Skipping %d padding bytes\n", length);
 
 		count8 = buf[1];
 		if ( count8 > 0 )
 			--count8;
 
 		READ_OR_RETURN(fiasco, &hash, 2);
+		hash = ntohs(hash);
 
 		memset(type, 0, sizeof(type));
 		READ_OR_RETURN(fiasco, type, 12);
 
-		if ( type[0] == (char)0xFF )
+//		memcpy(byte, type, 1);
+		byte = type[0];
+		if ( byte == 0xFF )
 			return fiasco;
 
 		if ( v ) printf(" %s\n", type);
@@ -129,13 +128,19 @@ struct fiasco * fiasco_alloc_from_file(const char * file) {
 		READ_OR_RETURN(fiasco, &length, 4);
 		length = ntohl(length);
 
+		/* unknown */
+		READ_OR_RETURN(fiasco, buf, 4);
+
 		if ( v )  {
 			printf("   size:    %d bytes\n", length);
-			printf("   hash:    %04x\n", hash);
+			printf("   hash:    %#04x\n", hash);
 			printf("   subsections: %d\n", count8);
 		}
 
+		memset(device, 0, sizeof(device));
 		memset(hwrevs, 0, sizeof(hwrevs));
+		memset(version, 0, sizeof(version));
+		memset(layout, 0, sizeof(layout));
 
 		while ( count8 > 0 ) {
 
@@ -165,8 +170,9 @@ struct fiasco * fiasco_alloc_from_file(const char * file) {
 				printf("       device: %s\n", device);
 				pbuf = buf + strlen(device) + 1;
 				while ( pbuf < buf + length8 ) {
-					while ( *pbuf < 32 && pbuf < buf + length8 ) ++pbuf;
-					if ( pbuf >= buf+length8 ) break;
+					while ( pbuf < buf + length8 && *pbuf < 32 )
+						++pbuf;
+					if ( pbuf >= buf + length8 ) break;
 					tmp = buf + length8 - pbuf;
 					if ( tmp > 8 ) tmp = 8;
 					memset(hwrev, 0, sizeof(hwrev));
@@ -174,21 +180,26 @@ struct fiasco * fiasco_alloc_from_file(const char * file) {
 					if ( ! hwrevs[0] )
 						strcpy(hwrevs, hwrev);
 					else {
+						/* TODO: check if hwrevs has enought size */
 						strcat(hwrevs, ",");
 						strcat(hwrevs, hwrev);
 					}
 					if ( v ) printf("       hw revision: %s\n", hwrev);
+					pbuf += strlen(hwrev) + 1;
 				}
 			} else if ( byte == '3' ) {
 				memset(layout, 0, sizeof(layout));
 				strncpy(layout, (char *)buf, length8);
 				if ( v ) printf("layout\n");
 			} else {
-				if ( v ) printf("unknown (%c:0x%x)\n", byte, byte);
+				if ( v ) printf("unknown ('%c':%#x)\n", byte, byte);
 			}
 
 			--count8;
 		}
+
+		/* unknown */
+		READ_OR_RETURN(fiasco, buf, 1);
 
 		offset = lseek(fiasco->fd, 0, SEEK_CUR);
 
@@ -196,7 +207,7 @@ struct fiasco * fiasco_alloc_from_file(const char * file) {
 			printf("   version: %s\n", version);
 			printf("   device: %s\n", device);
 			printf("   hwrevs: %s\n", hwrevs);
-			printf("   data at:   0x%08x\n", (unsigned int)offset);
+			printf("   data at: %#08x\n", (unsigned int)offset);
 		}
 
 		image = image_alloc_from_shared_fd(fiasco->fd, length, offset, hash, type, device, hwrevs, version, layout);
@@ -224,25 +235,13 @@ void fiasco_free(struct fiasco * fiasco) {
 		list = next;
 	}
 
-	free(fiasco->name);
-	free(fiasco->swver);
 	free(fiasco);
 
 }
 
 void fiasco_add_image(struct fiasco * fiasco, struct image * image) {
 
-//	if ( fiasco->fd >= 0 ) {
-//		fprintf(stderr, "Fiasco image is on disk\n");
-//		return 1;
-//	}
-
-	if ( ! fiasco->first ) {
-		fiasco->first = calloc(1, sizeof(struct image_list));
-		fiasco->first->image = image;
-	} else {
-		image_list_add(&fiasco->first, image);
-	}
+	image_list_add(&fiasco->first, image);
 
 }
 
@@ -488,10 +487,8 @@ int fiasco_write_to_file(struct fiasco * fiasco, const char * file) {
 
 int fiasco_unpack(struct fiasco * fiasco, const char * dir) {
 
-	/* TODO: Unpack fiasco image to dir */
-
-	size_t length;
 	char * name;
+	char * layout_name;
 	const char * type;
 	const char * device;
 	struct image * image;
@@ -508,13 +505,41 @@ int fiasco_unpack(struct fiasco * fiasco, const char * dir) {
 
 		image = image_list->image;
 
-		length = 0;
-		type = image_type_to_string(image->type);
-		device = device_to_string(image->device);
+		name = image_name_alloc_from_values(image);
 
-		name = calloc(1, length);
+		printf("Unpacking image...\n");
+		printf("  hash: %#04x\n", image->hash);
+		printf("  size: %d bytes\n", image->size);
+
+		if ( image->type )
+			printf("  type: %s\n", image_type_to_string(image->type));
+
+		if ( image->device )
+			printf("  device: %s\n", device_to_string(image->device));
+		if ( image->hwrevs )
+			printf("  hwrevs: %s\n", image->hwrevs);
+		if ( image->version )
+			printf("  version: %s\n", image->version);
+
+		if ( image->layout ) {
+
+			layout_name = calloc(1, strlen(name) + strlen(".layout") + 1);
+			if ( ! layout_name ) {
+				perror("Alloc error");
+				return -1;
+			}
+
+			sprintf(layout_name, "%s.layout", name);
+
+			printf("  layout file: %s\n", layout_name);
+
+		}
+
+		printf("  output file: %s\n", name);
 
 		/* TODO: Unpack image */
+
+		free(name);
 
 		image_list = image_list->next;
 
