@@ -473,11 +473,23 @@ int fiasco_unpack(struct fiasco * fiasco, const char * dir) {
 	struct image * image;
 	struct image_list * image_list;
 	uint32_t size;
+	char cwd[256];
 	unsigned char buf[4096];
 
-	if ( dir && chdir(dir) < 0 ) {
-		perror("Cannot chdir");
-		return -1;
+	if ( dir ) {
+
+		memset(cwd, 0, sizeof(cwd));
+
+		if ( ! getcwd(cwd, sizeof(cwd)) ) {
+			perror("Cannot getcwd");
+			return -1;
+		}
+
+		if ( chdir(dir) < 0 ) {
+			perror("Cannot chdir");
+			return -1;
+		}
+
 	}
 
 	image_list = fiasco->first;
@@ -553,6 +565,15 @@ int fiasco_unpack(struct fiasco * fiasco, const char * dir) {
 		}
 
 		image_list = image_list->next;
+
+	}
+
+	if ( dir ) {
+
+		if ( chdir(cwd) < 0 ) {
+			perror("Cannot chdir");
+			return -1;
+		}
 
 	}
 
