@@ -317,21 +317,22 @@ size_t image_read(struct image * image, void * buf, size_t count) {
 void image_list_add(struct image_list ** list, struct image * image) {
 
 	IMAGE_CHECK(image);
-	struct image_list * first = calloc(1, sizeof(struct image_list));
-	if ( ! first )
+	struct image_list * last = calloc(1, sizeof(struct image_list));
+	if ( ! last )
 		return;
 
-	first->image = image;
-	first->next = *list;
+	last->image = image;
 
-	if ( *list ) {
-		first->prev = (*list)->prev;
-		if ( (*list)->prev )
-			(*list)->prev->next = first;
-		(*list)->prev = first;
+	if ( ! *list ) {
+		*list = last;
+		return;
 	}
 
-	*list = first;
+	while ( (*list)->next )
+		list = &((*list)->next);
+
+	last->prev = *list;
+	(*list)->next = last;
 
 }
 
