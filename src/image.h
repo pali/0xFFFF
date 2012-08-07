@@ -33,9 +33,11 @@ struct image {
 	uint32_t size;
 
 	int fd;
-	int shared_fd;
+	int is_shared_fd;
+	uint32_t align;
 	off_t offset;
 	off_t cur;
+	off_t acur;
 };
 
 struct image_list {
@@ -49,7 +51,6 @@ struct image * image_alloc_from_shared_fd(int fd, size_t size, size_t offset, ui
 void image_free(struct image * image);
 void image_seek(struct image * image, off_t whence);
 size_t image_read(struct image * image, void * buf, size_t count);
-/*size_t image_write(struct image * image, void * buf, size_t count);*/
 void image_list_add(struct image_list ** list, struct image * image);
 void image_list_del(struct image_list * list);
 

@@ -12,8 +12,8 @@
 #include "image.h"
 
 #define IMAGE_CHECK(image) do { if ( ! image || image->fd < 0 ) return; } while (0)
-#define IMAGE_STORE_CUR(image) do { if ( image->shared_fd ) image->cur = lseek(image->fd, 0, SEEK_CUR) - image->offset; } while (0)
-#define IMAGE_RESTORE_CUR(image) do { if ( image->shared_fd ) lseek(image->fd, image->offset + image->cur, SEEK_SET); } while (0)
+#define IMAGE_STORE_CUR(image) do { if ( image->is_shared_fd ) image->cur = lseek(image->fd, 0, SEEK_CUR) - image->offset; } while (0)
+#define IMAGE_RESTORE_CUR(image) do { if ( image->is_shared_fd ) lseek(image->fd, image->offset + image->cur, SEEK_SET); } while (0)
 
 static void image_missing_values_from_name(struct image * image, const char * name) {
 
@@ -143,6 +143,28 @@ static void image_append(struct image * image, const char * type, const char * d
 
 }
 
+static void image_align(struct image * image) {
+
+	size_t align = 0;
+
+	if ( image->type == IMAGE_KERNEL)
+		align = 7;
+	else if ( image->type == IMAGE_MMC )
+		align = 8;
+
+	if ( align == 0 )
+		return;
+
+	/* TODO : check if aligning is needed */
+
+	align = ((image->size >> align) + 1) << align;
+
+	image->align = align - image->size;
+
+	image->hash = image_hash_from_data(image);
+
+}
+
 static struct image * image_alloc(void) {
 
 	struct image * image = calloc(1, sizeof(struct image));
@@ -160,7 +182,7 @@ struct image * image_alloc_from_file(const char * file, const char * type, const
 	if ( ! image )
 		return NULL;
 
-	image->shared_fd = 0;
+	image->is_shared_fd = 0;
 	image->fd = open(file, O_RDONLY);
 	if ( image->fd < 0 ) {
 		perror("Cannot open file");
@@ -177,6 +199,8 @@ struct image * image_alloc_from_file(const char * file, const char * type, const
 	if ( ( ! type || ! type[0] ) && ( ! device || ! device[0] ) && ( ! hwrevs || ! hwrevs[0] ) && ( ! version || ! version[0] ) )
 		image_missing_values_from_name(image, file);
 
+	image_align(image);
+
 	return image;
 
 }
@@ -187,13 +211,14 @@ struct image * image_alloc_from_shared_fd(int fd, size_t size, size_t offset, ui
 	if ( ! image )
 		return NULL;
 
-	image->shared_fd = 1;
+	image->is_shared_fd = 1;
 	image->fd = fd;
 	image->size = size;
 	image->offset = offset;
 	image->cur = 0;
 
 	image_append(image, type, device, hwrevs, version, layout);
+	image_align(image);
 
 	if ( image->hash != hash ) {
 		fprintf(stderr, "Error: Image hash mishmash (expected %#04x)\n", image->hash);
@@ -210,7 +235,7 @@ void image_free(struct image * image) {
 
 	IMAGE_CHECK(image);
 
-	if ( ! image->shared_fd ) {
+	if ( ! image->is_shared_fd ) {
 		close(image->fd);
 		image->fd = -1;
 	}
@@ -226,39 +251,68 @@ void image_free(struct image * image) {
 void image_seek(struct image * image, off_t whence) {
 
 	IMAGE_CHECK(image);
-	lseek(image->fd, image->offset + whence, SEEK_SET);
+
+	if ( whence > image->size )
+		return;
+
+	if ( whence >= image->size - image->align ) {
+		lseek(image->fd, image->size - image->align - 1, SEEK_SET);
+		image->acur = whence - ( image->size - image->align );
+	} else {
+		lseek(image->fd, image->offset + whence, SEEK_SET);
+		image->acur = 0;
+	}
+
 	IMAGE_STORE_CUR(image);
 
 }
 
 size_t image_read(struct image * image, void * buf, size_t count) {
 
+	size_t new_count = 0;
+	size_t ret_count = 0;
+
 	IMAGE_CHECK(image);
 	IMAGE_RESTORE_CUR(image);
 
-	if ( image->cur + count > image->size ) {
-		if ( image->size < image->cur )
-			return 0;
-		count = image->size - image->cur;
+	if ( image->size < image->cur )
+		return 0;
+
+	if ( image->cur < image->size - image->align ) {
+
+		if ( image->cur + count > image->size - image->align )
+			new_count = image->size - image->align - image->cur;
+		else
+			new_count = count;
+
+		ret_count += read(image->fd, buf, new_count);
+
+		IMAGE_STORE_CUR(image);
+
+		if ( new_count != ret_count )
+			return ret_count;
+
 	}
 
-	count = read(image->fd, buf, count);
+	if ( ret_count == count )
+		return ret_count;
 
-	IMAGE_STORE_CUR(image);
-	return count;
+	if ( image->align && image->cur == image->size - image->align - 1 && image->acur < image->align ) {
+
+		if ( image->acur + count - ret_count > image->align )
+			new_count = image->align - image->acur;
+		else
+			new_count = count - ret_count;
+
+		memset(buf+ret_count, 0xFF, new_count);
+		ret_count += new_count;
+		image->acur += new_count;
+
+	}
+
+	return ret_count;
 
 }
-
-/*size_t image_write(struct image * image, void * buf, size_t count) {
-
-	IMAGE_CHECK(image);
-	IMAGE_RESTORE_CUR(image);
-	count = write(image->fd, buf, count);
-	IMAGE_STORE_CUR(image);
-	return count;
-
-}*/
-
 
 void image_list_add(struct image_list ** list, struct image * image) {
 
