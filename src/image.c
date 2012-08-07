@@ -397,14 +397,9 @@ enum image_type image_type_from_data(struct image * image) {
 	image_seek(image, 0);
 	image_read(image, buf, sizeof(buf));
 
-	// 2nd      : +0x34 = 2NDAPE
-	// secondary: +0x04 = NOLOScnd
-	// x-loader : +0x14 = X-LOADER
-	// xloader8 : +0x0c = NOLOXldr
-	// kernel   : +0x00 = 0000 a0e1 0000 a0e1
-	// initfs   : <2M...be sure with 3M 0x300000
-
 	if ( memcmp(buf+0x34, "2NDAPE", 6) == 0 )
+		return IMAGE_2ND;
+	else if ( memcmp(buf+0x14, "2ND", 3) == 0 )
 		return IMAGE_2ND;
 	else if ( memcmp(buf+0x04, "NOLOScnd", 8) == 0 )
 		return IMAGE_SECONDARY;
@@ -413,21 +408,25 @@ enum image_type image_type_from_data(struct image * image) {
 	else if ( memcmp(buf+0x0c, "NOLOXldr", 8) == 0 )
 		return IMAGE_XLOADER;
 	else if ( memcmp(buf+4, "NOLOXldr", 8) == 0 )
-		// TODO: this is xloader800, not valid on 770?
 		return IMAGE_2ND;
 	else if ( memcmp(buf, "\x00\x00\xa0\xe1\x00\x00\xa0\xe1", 8) == 0 )
 		return IMAGE_KERNEL;
 	else if ( memcmp(buf, "\x21\x01\x01", 3) == 0 )
 		return IMAGE_KERNEL;
-	else if ( memcmp(buf, "\x85\x19", 2) == 0 ) {
-		// JFFS2 MAGIC
+	else if ( memcmp(buf, "UBI#", 4) == 0 ) /* UBI EC header */
+		return IMAGE_ROOTFS;
+	else if ( memcmp(buf, "\xb0\x00\x01\x03\x9d\x00\x00\x00", 8) == 0 )
+		return IMAGE_CMT_2ND;
+	else if ( memcmp(buf, "\xb1\x00\x00\x00\x82\x00\x00\x00", 8) == 0 )
+		return IMAGE_CMT_ALGO;
+	else if ( memcmp(buf, "\xb2\x00\x00\x01\x44\x00\x00\x00", 8) == 0 )
+		return IMAGE_CMT_MCUSW;
+	else if ( memcmp(buf, "\x85\x19\x01\xe0", 2) == 0 ) { /* JFFS2 MAGIC */
 		if ( image->size < 0x300000 )
 			return IMAGE_INITFS;
 		else
 			return IMAGE_ROOTFS;
 	}
-
-	/* TODO: Add support for UBIFS rootfs and other types */
 
 	return IMAGE_UNKNOWN;
 
