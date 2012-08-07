@@ -1,9 +1,19 @@
 
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <fcntl.h>
+#include <unistd.h>
+
+#include "device.h"
 #include "image.h"
 
 #define IMAGE_CHECK(image) do { if ( ! image || image->fd < 0 ) return; } while (0)
-#define IMAGE_STORE_CUR(image) do { if ( shared_fd ) image->cur = lseek(image->fd, 0, SEEK_CUR) - image->offset; } while (0)
-#define IMAGE_RESTORE_CUR(image) do { if ( shared_fd ) lseek(image->fd, image->offset + image->cur, SEEK_SET); } while (0)
+#define IMAGE_STORE_CUR(image) do { if ( image->shared_fd ) image->cur = lseek(image->fd, 0, SEEK_CUR) - image->offset; } while (0)
+#define IMAGE_RESTORE_CUR(image) do { if ( image->shared_fd ) lseek(image->fd, image->offset + image->cur, SEEK_SET); } while (0)
 
 static void image_append(struct image * image, const char * type, const char * device, const char * hwrevs, const char * version, const char * layout) {
 
@@ -62,14 +72,14 @@ struct image * image_alloc_from_file(const char * file, const char * type, const
 
 }
 
-struct image * image_alloc_from_fiasco(struct fiasco * fiasco, size_t size, size_t offset, uint16_t hash, const char * type, const char * device, const char * hwrevs, const char * version, const char * layout) {
+struct image * image_alloc_from_shared_fd(int fd, size_t size, size_t offset, uint16_t hash, const char * type, const char * device, const char * hwrevs, const char * version, const char * layout) {
 
 	struct image * image = image_alloc();
 	if ( ! image )
 		return NULL;
 
 	image->shared_fd = 1;
-	image->fd = fiasco->fd;
+	image->fd = fd;
 	image->size = size;
 	image->offset = offset;
 	image->cur = 0;
@@ -103,11 +113,11 @@ void image_free(struct image * image) {
 
 }
 
-void image_seek(struct image * image, whence) {
+void image_seek(struct image * image, off_t whence) {
 
 	IMAGE_CHECK(image);
 	lseek(image->fd, image->offset + whence, SEEK_SET);
-	IMAGE_STORE_CUR(image)
+	IMAGE_STORE_CUR(image);
 
 }
 
@@ -144,17 +154,17 @@ void image_list_add(struct image_list ** list, struct image * image) {
 
 	IMAGE_CHECK(image);
 	struct image_list * first = calloc(1, sizeof(struct image_list));
-	if ( ! next )
+	if ( ! first )
 		return;
 
 	first->image = image;
 	first->next = *list;
 
 	if ( *list ) {
-		first->prev = *list->prev;
-		if ( *list->prev )
-			*list->prev->next = first;
-		*list->prev = first;
+		first->prev = (*list)->prev;
+		if ( (*list)->prev )
+			(*list)->prev->next = first;
+		(*list)->prev = first;
 	} else {
 		*list = first;
 	}
@@ -228,7 +238,7 @@ enum image_type image_type_from_data(struct image * image) {
 		return IMAGE_KERNEL;
 	else if ( memcmp(buf, "\x21\x01\x01", 3) == 0 )
 		return IMAGE_KERNEL;
-	else if ( memcmp(b+0x00, "\x85\x19", 2) == 0 ) {
+	else if ( memcmp(buf, "\x85\x19", 2) == 0 ) {
 		// JFFS2 MAGIC
 		if ( image->size < 0x300000 )
 			return IMAGE_INITFS;
