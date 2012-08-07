@@ -1,8 +1,13 @@
 
+
+#ifndef FIASCO_H
+#define FIASCO_H
+
 #include "image.h"
 
 struct fiasco {
-	char swver[12];
+	char name[257];
+	char swver[257];
 	int fd;
 	struct image_list * first;
 }
@@ -13,3 +18,5 @@ void fiasco_free(struct fiasco * fiasco);
 int fiasco_add_image(struct fiasco * fiasco, struct image * image);
 int fiasco_write_to_file(struct fiasco * fiasco, const char * file);
 int fiasco_unpack(struct fiasco * fiasco, const char * dir);
+
+#endif
