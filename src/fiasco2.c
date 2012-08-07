@@ -487,12 +487,13 @@ int fiasco_write_to_file(struct fiasco * fiasco, const char * file) {
 
 int fiasco_unpack(struct fiasco * fiasco, const char * dir) {
 
+	int fd;
 	char * name;
 	char * layout_name;
-	const char * type;
-	const char * device;
 	struct image * image;
 	struct image_list * image_list;
+	uint32_t size;
+	unsigned char buf[4096];
 
 	if ( dir && chdir(dir) < 0 ) {
 		perror("Cannot chdir");
@@ -537,9 +538,39 @@ int fiasco_unpack(struct fiasco * fiasco, const char * dir) {
 
 		printf("  output file: %s\n", name);
 
-		/* TODO: Unpack image */
+		fd = open(name, O_RDWR|O_CREAT|O_TRUNC, 0644);
+		if ( fd < 0 ) {
+			perror("Cannot create file");
+			return -1;
+		}
 
 		free(name);
+
+		image_seek(image, 0);
+		while ( 1 ) {
+			size = image_read(image, buf, sizeof(buf));
+			if ( size < 1 )
+				break;
+			WRITE_OR_FAIL(fd, buf, size);
+		}
+
+		close(fd);
+
+		if ( image->layout ) {
+
+			fd = open(layout_name, O_RDWR|O_CREAT|O_TRUNC, 0644);
+			if ( fd < 0 ) {
+				perror("Cannot create file");
+				return -1;
+			}
+
+			free(layout_name);
+
+			WRITE_OR_FAIL(fd, image->layout, (int)strlen(image->layout));
+
+			close(fd);
+
+		}
 
 		image_list = image_list->next;
 
