@@ -155,7 +155,8 @@ static void image_align(struct image * image) {
 	if ( align == 0 )
 		return;
 
-	/* TODO : check if aligning is needed */
+	if ( ( image->size & ( ( 1ULL << align ) - 1 ) ) == 0 )
+		return;
 
 	align = ((image->size >> align) + 1) << align;
 
