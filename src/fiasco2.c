@@ -250,6 +250,7 @@ int fiasco_write_to_file(struct fiasco * fiasco, const char * file) {
 	int fd = -1;
 	uint32_t size;
 	uint32_t length;
+	uint16_t hash;
 	uint8_t length8;
 	const char * str;
 	const char * type;
@@ -282,18 +283,18 @@ int fiasco_write_to_file(struct fiasco * fiasco, const char * file) {
 
 	printf("Writing FW header\n");
 
-	if ( fiasco->name )
+	if ( fiasco->name[0] )
 		str = fiasco->name;
 	else
 		str = "OSSO UART+USB";
 
 	length = 4 + strlen(str) + 3;
-	if ( fiasco->swver )
+	if ( fiasco->swver[0] )
 		length += strlen(fiasco->swver) + 3;
 	length = htonl(length);
 	WRITE_OR_FAIL(fd, &length, 4); /* FW header length */
 
-	if ( fiasco->swver )
+	if ( fiasco->swver[0] )
 		length = htonl(2);
 	else
 		length = htonl(1);
@@ -306,7 +307,7 @@ int fiasco_write_to_file(struct fiasco * fiasco, const char * file) {
 	WRITE_OR_FAIL(fd, str, length8);
 
 	/* SW version */
-	if ( fiasco->swver ) {
+	if ( fiasco->swver[0] ) {
 		printf("Writing SW version: %s\n", fiasco->swver);
 		length8 = strlen(fiasco->swver)+1;
 		WRITE_OR_FAIL(fd, "\x31", 1);
@@ -371,10 +372,13 @@ int fiasco_write_to_file(struct fiasco * fiasco, const char * file) {
 		WRITE_OR_FAIL(fd, "\x2e\x19\x01\x01\x00", 5);
 
 		/* checksum */
-		WRITE_OR_FAIL(fd, &image->hash, 2);
+		hash = htons(image->hash);
+		WRITE_OR_FAIL(fd, &hash, 2);
 
 		/* image type name */
-		WRITE_OR_FAIL(fd, type, 12);
+		memset(buf, 0, 12);
+		strncpy((char *)buf, type, 12);
+		WRITE_OR_FAIL(fd, buf, 12);
 
 		/* image size */
 		size = htonl(image->size);
@@ -387,8 +391,8 @@ int fiasco_write_to_file(struct fiasco * fiasco, const char * file) {
 		if ( image->version ) {
 			WRITE_OR_FAIL(fd, "1", 1); /* 1 - version */
 			length8 = strlen(image->version)+1;
-			WRITE_OR_FAIL(fd, &length, 1);
-			WRITE_OR_FAIL(fd, image->version, length);
+			WRITE_OR_FAIL(fd, &length8, 1);
+			WRITE_OR_FAIL(fd, image->version, length8);
 		}
 
 		/* append device & hwrevs subsection */
