@@ -377,18 +377,7 @@ int fiasco_write_to_file(struct fiasco * fiasco, const char * file) {
 		WRITE_OR_FAIL(fd, type, 12);
 
 		/* image size */
-		size = image->size;
-
-		/* Align mmc image size */
-		if ( image->type == IMAGE_MMC )
-			size = ((size >> 8) + 1) << 8;
-		/* Align kernel image size */
-		else if ( image->type == IMAGE_KERNEL )
-			size = ((size >> 7) + 1) << 7;
-
-		/* TODO: update hash after align */
-
-		size = htonl(size);
+		size = htonl(image->size);
 		WRITE_OR_FAIL(fd, &size, 4);
 
 		/* unknown */
@@ -460,19 +449,6 @@ int fiasco_write_to_file(struct fiasco * fiasco, const char * file) {
 			if ( size < 1 )
 				break;
 			WRITE_OR_FAIL(fd, buf, size);
-		}
-
-		size = image->size;
-
-		if ( image->type == IMAGE_MMC )
-			size = ((image->size >> 8) + 1) << 8;
-		else if ( image->type == IMAGE_KERNEL )
-			size = ((image->size >> 7) + 1) << 7;
-
-		/* Align image if needed (fill with 0xff) */
-		while ( size > image->size ) {
-			WRITE_OR_FAIL(fd, "\xff", 1);
-			--size;
 		}
 
 		image_list = image_list->next;
