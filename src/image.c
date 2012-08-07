@@ -223,9 +223,8 @@ struct image * image_alloc_from_shared_fd(int fd, size_t size, size_t offset, ui
 
 	if ( image->hash != hash ) {
 		fprintf(stderr, "Error: Image hash mishmash (expected %#04x)\n", image->hash);
-//		image_free(image);
-//		return NULL;
-		image->hash = hash;
+		image_free(image);
+		return NULL;
 	}
 
 	return image;
@@ -352,12 +351,27 @@ void image_list_del(struct image_list * list) {
 
 }
 
+static uint16_t do_hash(uint16_t * b, int len) {
+
+	uint16_t result = 0;
+
+	for ( len >>= 1; len--; b = b+1 )
+		result^=b[0];
+
+	return result;
+
+}
 
 uint16_t image_hash_from_data(struct image * image) {
 
-	/* TODO */
-	printf("image_hash_from_data is not implemented\n");
+	unsigned char buf[0x20000];
+	uint16_t hash = 0;
+	int ret;
 
+	while ( ( ret = image_read(image, &buf, sizeof(buf)) ) )
+		hash ^= do_hash((uint16_t *)&buf, ret);
+
+	return hash;
 }
 
 static const char * image_types[] = {
