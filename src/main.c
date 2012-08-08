@@ -149,9 +149,9 @@ void show_usage()
 		"R&D flags:\n"
 		"  no-omap-wd          disable auto reboot by OMAP watchdog\n"
 		"  no-ext-wd           disable auto reboot by external watchdog\n"
-		"  no-lifeguard-reset  disable auto reboot by lifeguard\n"
+		"  no-lifeguard-reset  disable auto reboot by software lifeguard\n"
 		"  serial-console      enable serial console\n"
-		"  no-usb-timeout      disable usb timeout\n"
+		"  no-usb-timeout      disable usb timeout for flashing\n"
 		"  sti-console         enable sti console\n"
 		"  no-charging         disable battery charging\n"
 		"  force-power-key     force omap boot reason to power key\n"
@@ -160,9 +160,16 @@ void show_usage()
 
 	);
 
+	printf( "Devices:\n");
+	for ( i = 0; i < DEVICE_COUNT; ++i )
+		if ( device_to_string(i) && device_to_long_string(i) )
+			printf("  %-14s %s\n", device_to_string(i), device_to_long_string(i));
+	printf( "\n");
+
 	printf( "Image types:\n");
-	for ( i = 0; image_types[i]; ++i )
-		printf("  %-15s %s\n", image_types[i], image_desc[i]);
+	for ( i = 0; i < IMAGE_COUNT; ++i )
+		if ( image_type_to_string(i) )
+			printf("  %s\n", image_type_to_string(i));
 	printf( "\n");
 
 #endif
