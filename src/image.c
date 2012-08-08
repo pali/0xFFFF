@@ -237,13 +237,14 @@ struct image * image_alloc_from_shared_fd(int fd, size_t size, size_t offset, ui
 	image->cur = 0;
 
 	image_append(image, type, device, hwrevs, version, layout);
-	image_align(image);
 
 	if ( image->hash != hash ) {
 		fprintf(stderr, "Error: Image hash mishmash (expected %#04x)\n", image->hash);
 		image_free(image);
 		return NULL;
 	}
+
+	image_align(image);
 
 	return image;
 
