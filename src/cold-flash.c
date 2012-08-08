@@ -316,15 +316,6 @@ int cold_flash(usb_dev_handle * udev, struct image * x2nd, struct image * second
 		return 1;
 	}
 
-#if defined(LIBUSB_HAS_GET_DRIVER_NP) && defined(LIBUSB_HAS_DETACH_KERNEL_DRIVER_NP)
-	usb_detach_kernel_driver_np(udev, 0);
-#endif
-
-	if ( usb_claim_interface(udev, 0) < 0 ) {
-		fprintf(stderr, "usb_claim_interface failed: %s\n", strerror(errno));
-		return 1;
-	}
-
 	if ( ! read_asic(udev) ) {
 		fprintf(stderr, "Reading ASIC ID failed\n");
 		return 1;
@@ -353,15 +344,6 @@ int cold_flash(usb_dev_handle * udev, struct image * x2nd, struct image * second
 int leave_cold_flash(usb_dev_handle * udev) {
 
 	int ret;
-
-#if defined(LIBUSB_HAS_GET_DRIVER_NP) && defined(LIBUSB_HAS_DETACH_KERNEL_DRIVER_NP)
-	usb_detach_kernel_driver_np(udev, 0);
-#endif
-
-	if ( usb_claim_interface(udev, 0) < 0 ) {
-		fprintf(stderr, "usb_claim_interface failed: %s\n", strerror(errno));
-		return 1;
-	}
 
 	if ( ! read_asic(udev) ) {
 		fprintf(stderr, "Reading ASIC ID failed\n");
