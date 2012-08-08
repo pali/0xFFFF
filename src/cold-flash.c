@@ -23,6 +23,8 @@
 #include <errno.h>
 #include <usb.h>
 
+#include "image.h"
+
 #define READ_DEV		0x81
 #define WRITE_DEV		0x01
 #define READ_TIMEOUT		500
@@ -77,45 +79,43 @@ static const uint8_t omap_download_msg[4] = { 0x02, 0x00, 0x03, 0xF0 };
 
 /* Structure of X-Loader message */
 struct xloader_msg {
-	uint8_t type[4]; /* 4 bytes - type of message */
-	uint8_t size[4]; /* 4 bytes - size of file */
-	uint8_t crc1[4]; /* 4 bytes - crc32 of file */
-	uint8_t crc2[4]; /* 4 bytes - crc32 of first 12 bytes of message */
+	uint32_t type; /* 4 bytes - type of message */
+	uint32_t size; /* 4 bytes - size of file */
+	uint32_t crc1; /* 4 bytes - crc32 of file */
+	uint32_t crc2; /* 4 bytes - crc32 of first 12 bytes of message */
 };
 
 #define XLOADER_MSG_TYPE_PING	0x6301326E
 #define XLOADER_MSG_TYPE_SEND	0x6302326E
 
-struct xloader_msg xloader_msg_create(uint32_t type, FILE * file, size_t offset, uint32_t size) {
+struct xloader_msg xloader_msg_create(uint32_t type, struct image * image) {
 
 	struct xloader_msg msg;
-	uint8_t buffer[1024];
-	size_t need, readed;
-	uint32_t crc = 0;
+	uint32_t need, readed;
 	int ret;
+	uint8_t buffer[1024];
 
-	memcpy(msg.type, &type, 4);
-	memcpy(msg.size, &size, 4);
+	msg.type = type;
+	msg.size = 0;
+	msg.crc1 = 0;
 
-	if ( file ) {
-		fseek(file, offset, SEEK_SET);
+	if ( image ) {
+		msg.size = image->size;
+		image_seek(image, 0);
 		readed = 0;
-		while ( readed < size ) {
-			need = size - readed;
+		while ( readed < image->size ) {
+			need = image->size - readed;
 			if ( need > sizeof(buffer) )
 				need = sizeof(buffer);
-			ret = fread(buffer, 1, need, file);
+			ret = image_read(image, buffer, need);
 			if ( ret < 0 )
 				break;
-			crc = crc32(buffer, ret, crc);
+			msg.crc1 = crc32(buffer, ret, msg.crc1);
 			readed += ret;
 		}
 	}
 
-	memcpy(msg.crc1, &crc, 4);
-
-	crc = crc32((unsigned char *)&msg, 12, 0);
-	memcpy(msg.crc2, &crc, 4);
+	msg.crc2 = crc32((unsigned char *)&msg, 12, 0);
 
 	return msg;
 
@@ -143,25 +143,11 @@ static int read_asic(usb_dev_handle * udev) {
 
 }
 
-static int send_2nd(usb_dev_handle * udev, FILE * file, size_t offset, size_t size) {
+static int send_2nd(usb_dev_handle * udev, struct image * image) {
 
 	uint8_t buffer[1024];
-	uint32_t size32;
-	size_t need, readed;
+	uint32_t need, readed;
 	int ret;
-
-	size32 = size;
-	fseek(file, offset, SEEK_SET);
-
-	if ( size == 0 ) {
-		fprintf(stderr, "2nd X-Loader image has zero size\n");
-		return 0;
-	}
-
-	if ( size > UINT32_MAX ) {
-		fprintf(stderr, "2nd X-Loader image is too big\n");
-		return 0;
-	}
 
 	printf("Sending OMAP download message...\n");
 	ret = usb_bulk_write(udev, WRITE_DEV, (char *)omap_download_msg, sizeof(omap_download_msg), WRITE_TIMEOUT);
@@ -172,20 +158,21 @@ static int send_2nd(usb_dev_handle * udev, FILE * file, size_t offset, size_t si
 	}
 
 	printf("Sending 2nd X-Loader image size...\n");
-	ret = usb_bulk_write(udev, WRITE_DEV, (char *)&size32, sizeof(size32), WRITE_TIMEOUT);
+	ret = usb_bulk_write(udev, WRITE_DEV, (char *)&image->size, 4, WRITE_TIMEOUT);
 	usleep(5000);
-	if ( ret != sizeof(size32) ) {
+	if ( ret != 4 ) {
 		fprintf(stderr, "Error while sending 2nd X-Loader image size\n");
 		return 0;
 	}
 
 	printf("Sending 2nd X-Loader image...\n");
+	image_seek(image, 0);
 	readed = 0;
-	while ( readed < size ) {
-		need = size - readed;
+	while ( readed < image->size ) {
+		need = image->size - readed;
 		if ( need > sizeof(buffer) )
 			need = sizeof(buffer);
-		ret = fread(buffer, 1, need, file);
+		ret = image_read(image, buffer, need);
 		if ( ret < 0 )
 			break;
 		if ( usb_bulk_write(udev, WRITE_DEV, (char *)buffer, ret, WRITE_TIMEOUT) != ret ) {
@@ -200,28 +187,14 @@ static int send_2nd(usb_dev_handle * udev, FILE * file, size_t offset, size_t si
 
 }
 
-static int send_secondary(usb_dev_handle * udev, FILE * file, size_t offset, size_t size) {
+static int send_secondary(usb_dev_handle * udev, struct image * image) {
 
 	struct xloader_msg init_msg;
 	uint8_t buffer[1024];
-	uint32_t size32;
-	size_t need, readed;
+	uint32_t need, readed;
 	int ret;
 
-	size32 = size;
-	fseek(file, offset, SEEK_SET);
-
-	if ( size == 0 ) {
-		fprintf(stderr, "2nd Secondary image has zero size\n");
-		return 0;
-	}
-
-	if ( size > UINT32_MAX ) {
-		fprintf(stderr, "2nd Secondary image is too big\n");
-		return 0;
-	}
-
-	init_msg = xloader_msg_create(XLOADER_MSG_TYPE_SEND, file, offset, size32);
+	init_msg = xloader_msg_create(XLOADER_MSG_TYPE_SEND, image);
 
 	printf("Sending X-Loader init message...\n");
 	ret = usb_bulk_write(udev, WRITE_DEV, (char *)&init_msg, sizeof(init_msg), WRITE_TIMEOUT);
@@ -232,19 +205,20 @@ static int send_secondary(usb_dev_handle * udev, FILE * file, size_t offset, siz
 	}
 
 	printf("Waiting for X-Loader response...\n");
-	ret = usb_bulk_read(udev, READ_DEV, (char *)&size32, sizeof(size32), READ_TIMEOUT); /* size32 - dummy value */
-	if ( ret != sizeof(size32) ) {
+	ret = usb_bulk_read(udev, READ_DEV, (char *)&buffer, 4, READ_TIMEOUT); /* 4 bytes - dummy value */
+	if ( ret != 4 ) {
 		fprintf(stderr, "Error no response\n");
 		return 0;
 	}
 
 	printf("Sending Secondary image...\n");
+	image_seek(image, 0);
 	readed = 0;
-	while ( readed < size ) {
-		need = size - readed;
+	while ( readed < image->size ) {
+		need = image->size - readed;
 		if ( need > sizeof(buffer) )
 			need = sizeof(buffer);
-		ret = fread(buffer, 1, need, file);
+		ret = image_read(image, buffer, need);
 		if ( ret < 0 )
 			break;
 		if ( usb_bulk_write(udev, WRITE_DEV, (char *)buffer, ret, WRITE_TIMEOUT) != ret ) {
@@ -256,8 +230,8 @@ static int send_secondary(usb_dev_handle * udev, FILE * file, size_t offset, siz
 	usleep(5000);
 
 	printf("Waiting for X-Loader response...\n");
-	ret = usb_bulk_read(udev, READ_DEV, (char *)&size32, sizeof(size32), READ_TIMEOUT); /* size32 - dummy value */
-	if ( ret != sizeof(size32) ) {
+	ret = usb_bulk_read(udev, READ_DEV, (char *)&buffer, 4, READ_TIMEOUT); /* 4 bytes - dummy value */
+	if ( ret != 4 ) {
 		fprintf(stderr, "Error no response\n");
 		return 0;
 	}
@@ -274,7 +248,7 @@ static int ping_timeout(usb_dev_handle * udev) {
 
 	while ( try_ping > 0 ) {
 
-		struct xloader_msg ping_msg = xloader_msg_create(XLOADER_MSG_TYPE_PING, NULL, 0, 0);
+		struct xloader_msg ping_msg = xloader_msg_create(XLOADER_MSG_TYPE_PING, NULL);
 		int try_read = 4;
 
 		printf("Sending X-Loader ping message\n");
@@ -315,74 +289,49 @@ static int ping_timeout(usb_dev_handle * udev) {
 
 }
 
-int cold_flash(usb_dev_handle * udev, const char * x2nd, const char * secondary) {
+int cold_flash(usb_dev_handle * udev, struct image * x2nd, struct image * secondary) {
 
-	size_t size1, size2;
-	FILE * file1 = NULL;
-	FILE * file2 = NULL;
-	int ret = 1;
-
-	file1 = fopen(x2nd, "r");
-	if ( ! file1 ) {
-		fprintf(stderr, "Cannot open 2nd X-Loader file '%s': %s\n", x2nd, strerror(errno));
-		goto cleanup;
+	if ( x2nd->type != IMAGE_2ND ) {
+		fprintf(stderr, "Image type is not 2nd X-Loader\n");
+		return 1;
 	}
 
-	file2 = fopen(secondary, "r");
-	if ( ! file2 ) {
-		fprintf(stderr, "Cannot open Secondary file '%s': %s\n", secondary, strerror(errno));
-		goto cleanup;
+	if ( secondary->type != IMAGE_SECONDARY ) {
+		fprintf(stderr, "Image type is not Secondary\n");
+		return 1;
 	}
-
-	fseek(file1, 0, SEEK_END);
-	size1 = ftell(file1);
-
-	fseek(file2, 0, SEEK_END);
-	size2 = ftell(file2);
 
 	if ( usb_set_configuration(udev, 1) < 0 ) {
 		fprintf(stderr, "usb_set_configuration failed: %s\n", strerror(errno));
-		goto cleanup;
+		return 1;
 	}
 
 	if ( usb_claim_interface(udev, 1) < 0 ) {
 		fprintf(stderr, "usb_claim_interface failed: %s\n", strerror(errno));
-		goto cleanup;
+		return 1;
 	}
 
 	if ( ! read_asic(udev) ) {
 		fprintf(stderr, "Reading ASIC ID failed\n");
-		goto cleanup;
+		return 1;
 	}
 
-	if ( ! send_2nd(udev, file1, size1, 0) ) {
+	if ( ! send_2nd(udev, x2nd) ) {
 		fprintf(stderr, "Sending 2nd X-Loader image failed\n");
-		goto cleanup;
+		return 1;
 	}
 
 	if ( ! ping_timeout(udev) ) {
-		fprintf(stderr, "Sending X-Loader ping failed\n");
-		goto cleanup;
+		fprintf(stderr, "Sending X-Loader ping message failed\n");
+		return 1;
 	}
 
-	if ( ! send_secondary(udev, file2, size2, 0) ) {
+	if ( ! send_secondary(udev, secondary) ) {
 		fprintf(stderr, "Sending Secondary image failed\n");
-		goto cleanup;
+		return 1;
 	}
 
 	printf("Done\n");
-	ret = 0;
-
-cleanup:
-	if (file1)
-		fclose(file1);
-	if (file2)
-		fclose(file2);
-	return ret;
+	return 0;
 
 }
-
-/*int fiasco_cold_flash(usb_dev_handle * udev, const char * device, const char * hw_rev, const char * fiasco) {
-
-
-}*/
