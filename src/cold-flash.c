@@ -74,8 +74,23 @@ static uint32_t crc32(unsigned char * bytes, size_t size, uint32_t crc) {
 
 }
 
-/* Omap download message */
-static const uint8_t omap_download_msg[4] = { 0x02, 0x00, 0x03, 0xF0 };
+/* Omap Boot Messages */
+/* See spruf98v.pdf (page 3444): OMAP35x Technical Reference Manual - 25.4.5 Periheral Booting */
+
+/* Omap Peripheral boot message */
+static const uint32_t omap_peripheral_msg = 0xF0030002;
+
+/* Omap OneNAND boot message */
+static const uint32_t omap_onenand_msg = 0xF0030306;
+
+/* Omap next device boot message */
+static const uint32_t omap_next_msg = 0xFFFFFFFF;
+
+/* Omap memory boot message */
+static const uint32_t omap_memory_msg = 0;
+
+
+/* Nokia X-Loader messages */
 
 /* Structure of X-Loader message */
 struct xloader_msg {
@@ -149,11 +164,11 @@ static int send_2nd(usb_dev_handle * udev, struct image * image) {
 	uint32_t need, readed;
 	int ret;
 
-	printf("Sending OMAP download message...\n");
-	ret = usb_bulk_write(udev, WRITE_DEV, (char *)omap_download_msg, sizeof(omap_download_msg), WRITE_TIMEOUT);
+	printf("Sending OMAP peripheral boot message...\n");
+	ret = usb_bulk_write(udev, WRITE_DEV, (char *)&omap_peripheral_msg, sizeof(omap_peripheral_msg), WRITE_TIMEOUT);
 	usleep(5000);
-	if ( ret != sizeof(omap_download_msg) ) {
-		fprintf(stderr, "Error while sending OMAP download message\n");
+	if ( ret != sizeof(omap_peripheral_msg) ) {
+		fprintf(stderr, "Error while sending OMAP peripheral boot message\n");
 		return 0;
 	}
 
@@ -301,12 +316,11 @@ int cold_flash(usb_dev_handle * udev, struct image * x2nd, struct image * second
 		return 1;
 	}
 
-	if ( usb_set_configuration(udev, 1) < 0 ) {
-		fprintf(stderr, "usb_set_configuration failed: %s\n", strerror(errno));
-		return 1;
-	}
+#if defined(LIBUSB_HAS_GET_DRIVER_NP) && defined(LIBUSB_HAS_DETACH_KERNEL_DRIVER_NP)
+	usb_detach_kernel_driver_np(udev, 0);
+#endif
 
-	if ( usb_claim_interface(udev, 1) < 0 ) {
+	if ( usb_claim_interface(udev, 0) < 0 ) {
 		fprintf(stderr, "usb_claim_interface failed: %s\n", strerror(errno));
 		return 1;
 	}
@@ -332,6 +346,37 @@ int cold_flash(usb_dev_handle * udev, struct image * x2nd, struct image * second
 	}
 
 	printf("Done\n");
+	return 0;
+
+}
+
+int leave_cold_flash(usb_dev_handle * udev) {
+
+	int ret;
+
+#if defined(LIBUSB_HAS_GET_DRIVER_NP) && defined(LIBUSB_HAS_DETACH_KERNEL_DRIVER_NP)
+	usb_detach_kernel_driver_np(udev, 0);
+#endif
+
+	if ( usb_claim_interface(udev, 0) < 0 ) {
+		fprintf(stderr, "usb_claim_interface failed: %s\n", strerror(errno));
+		return 1;
+	}
+
+	if ( ! read_asic(udev) ) {
+		fprintf(stderr, "Reading ASIC ID failed\n");
+		return 1;
+	}
+
+	printf("Sending OMAP memory boot message...\n");
+	ret = usb_bulk_write(udev, WRITE_DEV, (char *)&omap_memory_msg, sizeof(omap_memory_msg), WRITE_TIMEOUT);
+	usleep(5000);
+	if ( ret != sizeof(omap_memory_msg) ) {
+		fprintf(stderr, "Error while sending OMAP memory boot message\n");
+		return 1;
+	}
+
+	usleep(500000);
 	return 0;
 
 }

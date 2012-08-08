@@ -24,6 +24,10 @@
 
 #include "image.h"
 
+/* Flash 2nd and secondary image in Cold Flash mode. After flashing device will boot secondary image */
 int cold_flash(usb_dev_handle * udev, struct image * x2nd, struct image * secondary);
+
+/* Leave Cold Flashing mode and continue booting */
+int leave_cold_flash(usb_dev_handle * udev);
 
 #endif
