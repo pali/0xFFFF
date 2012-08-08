@@ -48,9 +48,26 @@ enum device device_from_string(const char * device) {
 
 const char * device_to_string(enum device device) {
 
-	if ( device > sizeof(devices) )
+	if ( device > sizeof(devices)/sizeof(devices[0]) )
 		return NULL;
 
 	return devices[device];
+
+}
+
+static const char * long_devices[] = {
+	[DEVICE_SU_18] = "Nokia 770",
+	[DEVICE_RX_34] = "Nokia N800",
+	[DEVICE_RX_44] = "Nokia N810",
+	[DEVICE_RX_48] = "Nokia N810 Wimax",
+	[DEVICE_RX_51] = "Nokia N900",
+};
+
+const char * device_to_long_string(enum device device) {
+
+	if ( device > sizeof(long_devices)/sizeof(long_devices[0]) )
+		return NULL;
+
+	return long_devices[device];
 
 }

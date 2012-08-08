@@ -38,6 +38,7 @@ enum image_type {
 	IMAGE_CMT_2ND,
 	IMAGE_CMT_ALGO,
 	IMAGE_CMT_MCUSW,
+	IMAGE_COUNT,
 };
 
 struct image {

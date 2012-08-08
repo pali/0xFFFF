@@ -36,7 +36,7 @@ struct usb_flash_device {
 	int alternate;
 	int configuration;
 	enum usb_flash_protocol protocol;
-	enum device devices[10];
+	enum device devices[DEVICE_COUNT];
 };
 
 struct usb_device_info {
