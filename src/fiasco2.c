@@ -85,6 +85,8 @@ struct fiasco * fiasco_alloc_from_file(const char * file) {
 		return NULL;
 	}
 
+	fiasco->orig_filename = strdup(file);
+
 	READ_OR_FAIL(fiasco, &byte, 1);
 	if ( byte != 0xb4 )
 		FIASCO_READ_ERROR(fiasco, "Invalid fiasco signature");
@@ -253,6 +255,11 @@ void fiasco_free(struct fiasco * fiasco) {
 		image_list_del(list);
 		list = next;
 	}
+
+	if ( fiasco->fd >= 0 )
+		close(fiasco->fd);
+
+	free(fiasco->orig_filename);
 
 	free(fiasco);
 
@@ -520,18 +527,7 @@ int fiasco_unpack(struct fiasco * fiasco, const char * dir) {
 		name = image_name_alloc_from_values(image);
 
 		printf("Unpacking image...\n");
-		printf("  hash: %#04x\n", image->hash);
-		printf("  size: %d bytes\n", image->size);
-
-		if ( image->type )
-			printf("  type: %s\n", image_type_to_string(image->type));
-
-		if ( image->device )
-			printf("  device: %s\n", device_to_string(image->device));
-		if ( image->hwrevs )
-			printf("  hwrevs: %s\n", image->hwrevs);
-		if ( image->version )
-			printf("  version: %s\n", image->version);
+		image_print_info(image);
 
 		if ( image->layout ) {
 
@@ -543,11 +539,11 @@ int fiasco_unpack(struct fiasco * fiasco, const char * dir) {
 
 			sprintf(layout_name, "%s.layout", name);
 
-			printf("  layout file: %s\n", layout_name);
+			printf("    Layout file: %s\n", layout_name);
 
 		}
 
-		printf("  output file: %s\n", name);
+		printf("    Output file: %s\n", name);
 
 		fd = open(name, O_RDWR|O_CREAT|O_TRUNC, 0644);
 		if ( fd < 0 ) {
@@ -585,6 +581,9 @@ int fiasco_unpack(struct fiasco * fiasco, const char * dir) {
 
 		image_list = image_list->next;
 
+		if ( image_list )
+			printf("\n");
+
 	}
 
 	if ( dir ) {
@@ -597,5 +596,18 @@ int fiasco_unpack(struct fiasco * fiasco, const char * dir) {
 	}
 
 	return 0;
+
+}
+
+void fiasco_print_info(struct fiasco * fiasco) {
+
+	if ( fiasco->orig_filename )
+		printf("File: %s\n", fiasco->orig_filename);
+
+	if ( fiasco->name[0] )
+		printf("    Fiasco Name: %s\n", fiasco->name);
+
+	if ( fiasco->swver[0] )
+		printf("    Fiasco Software release version: %s\n", fiasco->swver);
 
 }

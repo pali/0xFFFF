@@ -27,6 +27,7 @@ struct fiasco {
 	char name[257];
 	char swver[257];
 	int fd;
+	char * orig_filename;
 	struct image_list * first;
 };
 
@@ -36,5 +37,6 @@ void fiasco_free(struct fiasco * fiasco);
 void fiasco_add_image(struct fiasco * fiasco, struct image * image);
 int fiasco_write_to_file(struct fiasco * fiasco, const char * file);
 int fiasco_unpack(struct fiasco * fiasco, const char * dir);
+void fiasco_print_info(struct fiasco * fiasco);
 
 #endif
