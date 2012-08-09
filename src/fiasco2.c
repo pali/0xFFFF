@@ -28,23 +28,22 @@
 #include <fcntl.h>
 #include <unistd.h>
 
+#include "global.h"
 #include "device.h"
 #include "image.h"
 #include "fiasco2.h"
 
-#define FIASCO_READ_ERROR(fiasco, error) do { fprintf(stderr, "Error: %s\n", error); fiasco_free(fiasco); return NULL; } while (0)
-#define FIASCO_WRITE_ERROR(file, fd, error) do { fprintf(stderr, "Error: %s: %s\n", file, error); if ( fd >= 0 ) close(fd); return -1; } while (0)
-#define READ_OR_FAIL(fiasco, buf, size) do { if ( read(fiasco->fd, buf, size) != size ) { fprintf(stderr, "Error: Cannot read %d bytes\n", size); fiasco_free(fiasco); return NULL; } } while (0)
+#define FIASCO_READ_ERROR(fiasco, format, ...) do { ERROR(errno, format, ##__VA_ARGS__); fiasco_free(fiasco); return NULL; } while (0)
+#define FIASCO_WRITE_ERROR(file, fd, format, ...) do { ERROR(errno, "%s: " format, file, ##__VA_ARGS__); if ( fd >= 0 ) close(fd); return -1; } while (0)
+#define READ_OR_FAIL(fiasco, buf, size) do { if ( read(fiasco->fd, buf, size) != size ) { FIASCO_READ_ERROR(fiasco, "Cannot read %d bytes", size); } } while (0)
 #define READ_OR_RETURN(fiasco, buf, size) do { if ( read(fiasco->fd, buf, size) != size ) return fiasco; } while (0)
-#define WRITE_OR_FAIL(fd, buf, size) do { if ( write(fd, buf, size) != size ) { fprintf(stderr, "Error: Cannot write %d bytes\n", size); close(fd); return -1; } } while (0)
+#define WRITE_OR_FAIL(file, fd, buf, size) do { if ( ! simulate ) { if ( write(fd, buf, size) != size ) { FIASCO_WRITE_ERROR(file, fd, "Cannot write %d bytes", size); } } } while (0)
 
 struct fiasco * fiasco_alloc_empty(void) {
 
 	struct fiasco * fiasco = calloc(1, sizeof(struct fiasco));
-	if ( ! fiasco ) {
-		perror("Cannot allocate memory");
-		return NULL;
-	}
+	if ( ! fiasco )
+		ALLOC_ERROR_RETURN(NULL);
 
 	fiasco->fd = -1;
 	return fiasco;
@@ -72,15 +71,13 @@ struct fiasco * fiasco_alloc_from_file(const char * file) {
 	unsigned char buf[512];
 	unsigned char *pbuf;
 
-	int v = 1;
-
 	struct fiasco * fiasco = fiasco_alloc_empty();
 	if ( ! fiasco )
 		return NULL;
 
 	fiasco->fd = open(file, O_RDONLY);
 	if ( fiasco->fd < 0 ) {
-		perror("Cannot open file");
+		ERROR(errno, "Cannot open file");
 		fiasco_free(fiasco);
 		return NULL;
 	}
@@ -97,7 +94,7 @@ struct fiasco * fiasco_alloc_from_file(const char * file) {
 	READ_OR_FAIL(fiasco, &count, 4);
 	count = ntohl(count);
 
-	if ( v ) printf("Number of header blocks: %d\n", count);
+	VERBOSE("Number of header blocks: %d\n", count);
 
 	while ( count > 0 ) {
 		READ_OR_FAIL(fiasco, &byte, 1);
@@ -106,13 +103,13 @@ struct fiasco * fiasco_alloc_from_file(const char * file) {
 		if ( byte == 0xe8 ) {
 			memset(fiasco->name, 0, sizeof(fiasco->name));
 			strncpy(fiasco->name, (char *)buf, length8);
-			if ( v ) printf("Fiasco name: %s\n", fiasco->name);
+			VERBOSE("Fiasco name: %s\n", fiasco->name);
 		} else if ( byte == 0x31 ) {
 			memset(fiasco->swver, 0, sizeof(fiasco->swver));
 			strncpy(fiasco->swver, (char *)buf, length8);
-			if ( v ) printf("SW version: %s\n", fiasco->swver);
+			VERBOSE("SW version: %s\n", fiasco->swver);
 		} else {
-			if ( v ) printf("Unknown header %#x\n", byte);
+			VERBOSE("Unknown header %#x\n", byte);
 		}
 		--count;
 	}
@@ -125,7 +122,7 @@ struct fiasco * fiasco_alloc_from_file(const char * file) {
 
 		/* Header of next image */
 		if ( ! buf[0] == 0x54 && buf[2] == 0x2E && buf[3] == 0x19 && buf[4] == 0x01 && buf[5] == 0x01 && buf[6] == 0x00 ) {
-			printf("Invalid next image header\n");
+			ERROR(0, "Invalid next image header");
 			return fiasco;
 		}
 
@@ -139,12 +136,11 @@ struct fiasco * fiasco_alloc_from_file(const char * file) {
 		memset(type, 0, sizeof(type));
 		READ_OR_RETURN(fiasco, type, 12);
 
-//		memcpy(byte, type, 1);
 		byte = type[0];
 		if ( byte == 0xFF )
 			return fiasco;
 
-		if ( v ) printf(" %s\n", type);
+		VERBOSE(" %s\n", type);
 
 		READ_OR_RETURN(fiasco, &length, 4);
 		length = ntohl(length);
@@ -152,11 +148,9 @@ struct fiasco * fiasco_alloc_from_file(const char * file) {
 		/* unknown */
 		READ_OR_RETURN(fiasco, buf, 4);
 
-		if ( v )  {
-			printf("   size:    %d bytes\n", length);
-			printf("   hash:    %#04x\n", hash);
-			printf("   subsections: %d\n", count8);
-		}
+		VERBOSE("   size:    %d bytes\n", length);
+		VERBOSE("   hash:    %#04x\n", hash);
+		VERBOSE("   subsections: %d\n", count8);
 
 		memset(device, 0, sizeof(device));
 		memset(hwrevs, 0, sizeof(hwrevs));
@@ -169,26 +163,22 @@ struct fiasco * fiasco_alloc_from_file(const char * file) {
 			READ_OR_RETURN(fiasco, &length8, 1);
 			READ_OR_RETURN(fiasco, buf, length8);
 
-			if ( v ) {
-				printf("   subinfo\n");
-				printf("     length: %d\n", length8);
-				printf("     type: ");
-			}
+			VERBOSE("   subinfo\n");
+			VERBOSE("     length: %d\n", length8);
+			VERBOSE("     type: ");
 
 			if ( byte == '1' ) {
 				memset(version, 0, sizeof(version));
 				strncpy(version, (char *)buf, length8);
-				if ( v ) {
-					printf("version string\n");
-					printf("       version: %s\n", version);
-				}
+				VERBOSE("version string\n");
+				VERBOSE("       version: %s\n", version);
 			} else if ( byte == '2' ) {
 				int tmp = length8;
 				if ( tmp > 16 ) tmp = 16;
 				memset(device, 0, sizeof(device));
 				strncpy(device, (char *)buf, tmp);
-				if ( v ) printf("hw revision\n");
-				printf("       device: %s\n", device);
+				VERBOSE("hw revision\n");
+				VERBOSE("       device: %s\n", device);
 				pbuf = buf + strlen(device) + 1;
 				while ( pbuf < buf + length8 ) {
 					while ( pbuf < buf + length8 && *pbuf < 32 )
@@ -205,15 +195,15 @@ struct fiasco * fiasco_alloc_from_file(const char * file) {
 						strcat(hwrevs, ",");
 						strcat(hwrevs, hwrev);
 					}
-					if ( v ) printf("       hw revision: %s\n", hwrev);
+					VERBOSE("       hw revision: %s\n", hwrev);
 					pbuf += strlen(hwrev) + 1;
 				}
 			} else if ( byte == '3' ) {
 				memset(layout, 0, sizeof(layout));
 				strncpy(layout, (char *)buf, length8);
-				if ( v ) printf("layout\n");
+				VERBOSE("layout\n");
 			} else {
-				if ( v ) printf("unknown ('%c':%#x)\n", byte, byte);
+				VERBOSE("unknown ('%c':%#x)\n", byte, byte);
 			}
 
 			--count8;
@@ -224,12 +214,10 @@ struct fiasco * fiasco_alloc_from_file(const char * file) {
 
 		offset = lseek(fiasco->fd, 0, SEEK_CUR);
 
-		if ( v ) {
-			printf("   version: %s\n", version);
-			printf("   device: %s\n", device);
-			printf("   hwrevs: %s\n", hwrevs);
-			printf("   data at: %#08x\n", (unsigned int)offset);
-		}
+		VERBOSE("   version: %s\n", version);
+		VERBOSE("   device: %s\n", device);
+		VERBOSE("   hwrevs: %s\n", hwrevs);
+		VERBOSE("   data at: %#08x\n", (unsigned int)offset);
 
 		image = image_alloc_from_shared_fd(fiasco->fd, length, offset, hash, type, device, hwrevs, version, layout);
 
@@ -288,6 +276,8 @@ int fiasco_write_to_file(struct fiasco * fiasco, const char * file) {
 	if ( ! fiasco )
 		return -1;
 
+	printf("Generating Fiasco image %s...\n", file);
+
 	if ( ! fiasco->first )
 		FIASCO_WRITE_ERROR(file, fd, "Nothing to write");
 
@@ -297,17 +287,17 @@ int fiasco_write_to_file(struct fiasco * fiasco, const char * file) {
 	if ( fiasco->swver && strlen(fiasco->swver)+1 > UINT8_MAX )
 		FIASCO_WRITE_ERROR(file, fd, "SW version string is too long");
 
-	fd = open(file, O_RDWR|O_CREAT|O_TRUNC, 0644);
-	if ( fd < 0 ) {
-		perror("Cannot create file");
-		return -1;
+	if ( ! simulate ) {
+		fd = open(file, O_RDWR|O_CREAT|O_TRUNC, 0644);
+		if ( fd < 0 ) {
+			ERROR(errno, "Cannot create file");
+			return -1;
+		}
 	}
 
-	printf("Writing file header\n");
+	printf("Writing Fiasco header...\n");
 
-	WRITE_OR_FAIL(fd, "\xb4", 1); /* signature */
-
-	printf("Writing FW header\n");
+	WRITE_OR_FAIL(file, fd, "\xb4", 1); /* signature */
 
 	if ( fiasco->name[0] )
 		str = fiasco->name;
@@ -318,28 +308,30 @@ int fiasco_write_to_file(struct fiasco * fiasco, const char * file) {
 	if ( fiasco->swver[0] )
 		length += strlen(fiasco->swver) + 3;
 	length = htonl(length);
-	WRITE_OR_FAIL(fd, &length, 4); /* FW header length */
+	WRITE_OR_FAIL(file, fd, &length, 4); /* FW header length */
 
 	if ( fiasco->swver[0] )
 		length = htonl(2);
 	else
 		length = htonl(1);
-	WRITE_OR_FAIL(fd, &length, 4); /* FW header blocks count */
+	WRITE_OR_FAIL(file, fd, &length, 4); /* FW header blocks count */
 
 	/* Fiasco name */
 	length8 = strlen(str)+1;
-	WRITE_OR_FAIL(fd, "\xe8", 1);
-	WRITE_OR_FAIL(fd, &length8, 1);
-	WRITE_OR_FAIL(fd, str, length8);
+	WRITE_OR_FAIL(file, fd, "\xe8", 1);
+	WRITE_OR_FAIL(file, fd, &length8, 1);
+	WRITE_OR_FAIL(file, fd, str, length8);
 
 	/* SW version */
 	if ( fiasco->swver[0] ) {
 		printf("Writing SW version: %s\n", fiasco->swver);
 		length8 = strlen(fiasco->swver)+1;
-		WRITE_OR_FAIL(fd, "\x31", 1);
-		WRITE_OR_FAIL(fd, &length8, 1);
-		WRITE_OR_FAIL(fd, fiasco->swver, length8);
+		WRITE_OR_FAIL(file, fd, "\x31", 1);
+		WRITE_OR_FAIL(file, fd, &length8, 1);
+		WRITE_OR_FAIL(file, fd, fiasco->swver, length8);
 	};
+
+	printf("\n");
 
 	image_list = fiasco->first;
 
@@ -349,6 +341,9 @@ int fiasco_write_to_file(struct fiasco * fiasco, const char * file) {
 
 		if ( ! image )
 			FIASCO_WRITE_ERROR(file, fd, "Empty image");
+
+		printf("Writing image...\n");
+		image_print_info(image);
 
 		type = image_type_to_string(image->type);
 		device = device_to_string(image->device);
@@ -362,27 +357,10 @@ int fiasco_write_to_file(struct fiasco * fiasco, const char * file) {
 		if ( image->layout && strlen(image->layout) > UINT8_MAX )
 			FIASCO_WRITE_ERROR(file, fd, "Image layout is too long");
 
-		printf("Writing image:\n");
-		printf("  type: %s\n", type);
-		printf("  hash: %d\n", image->hash);
-		printf("  size: %d\n", image->size);
-
-		if ( device )
-			printf("  device: %s\n", device);
-
-		if ( image->hwrevs )
-			printf("  hwrevs: %s\n", image->hwrevs);
-
-		if ( image->version )
-			printf("  version: %s\n", image->version);
-
-		if ( image->layout )
-			printf("  layout: included\n");
-
-		printf("Writing image header\n");
+		printf("Writing image header...\n");
 
 		/* signature */
-		WRITE_OR_FAIL(fd, "T", 1);
+		WRITE_OR_FAIL(file, fd, "T", 1);
 
 		/* number of subsections */
 		length8 = 1;
@@ -392,33 +370,33 @@ int fiasco_write_to_file(struct fiasco * fiasco, const char * file) {
 			++length8;
 		if ( image->layout )
 			++length8;
-		WRITE_OR_FAIL(fd, &length8, 1);
+		WRITE_OR_FAIL(file, fd, &length8, 1);
 
 		/* unknown */
-		WRITE_OR_FAIL(fd, "\x2e\x19\x01\x01\x00", 5);
+		WRITE_OR_FAIL(file, fd, "\x2e\x19\x01\x01\x00", 5);
 
 		/* checksum */
 		hash = htons(image->hash);
-		WRITE_OR_FAIL(fd, &hash, 2);
+		WRITE_OR_FAIL(file, fd, &hash, 2);
 
 		/* image type name */
 		memset(buf, 0, 12);
 		strncpy((char *)buf, type, 12);
-		WRITE_OR_FAIL(fd, buf, 12);
+		WRITE_OR_FAIL(file, fd, buf, 12);
 
 		/* image size */
 		size = htonl(image->size);
-		WRITE_OR_FAIL(fd, &size, 4);
+		WRITE_OR_FAIL(file, fd, &size, 4);
 
 		/* unknown */
-		WRITE_OR_FAIL(fd, "\x00\x00\x00\x00", 4);
+		WRITE_OR_FAIL(file, fd, "\x00\x00\x00\x00", 4);
 
 		/* append version subsection */
 		if ( image->version ) {
-			WRITE_OR_FAIL(fd, "1", 1); /* 1 - version */
+			WRITE_OR_FAIL(file, fd, "1", 1); /* 1 - version */
 			length8 = strlen(image->version)+1;
-			WRITE_OR_FAIL(fd, &length8, 1);
-			WRITE_OR_FAIL(fd, image->version, length8);
+			WRITE_OR_FAIL(file, fd, &length8, 1);
+			WRITE_OR_FAIL(file, fd, image->version, length8);
 		}
 
 		/* append device & hwrevs subsection */
@@ -426,7 +404,7 @@ int fiasco_write_to_file(struct fiasco * fiasco, const char * file) {
 			const char *ptr = image->hwrevs;
 			const char *oldptr = ptr;
 			int i;
-			WRITE_OR_FAIL(fd, "2", 1); /* 2 - device & hwrevs */
+			WRITE_OR_FAIL(file, fd, "2", 1); /* 2 - device & hwrevs */
 			length8 = 16;
 			if ( image->hwrevs ) {
 				i = 1;
@@ -436,57 +414,62 @@ int fiasco_write_to_file(struct fiasco * fiasco, const char * file) {
 				}
 				length8 += i*8;
 			}
-			WRITE_OR_FAIL(fd, &length8, 1);
+			WRITE_OR_FAIL(file, fd, &length8, 1);
 			length8 = strlen(device);
 			if ( length8 > 15 ) length8 = 15;
-			WRITE_OR_FAIL(fd, device, length8);
+			WRITE_OR_FAIL(file, fd, device, length8);
 			for ( i = 0; i < 16 - length8; ++i )
-				WRITE_OR_FAIL(fd, "\x00", 1);
+				WRITE_OR_FAIL(file, fd, "\x00", 1);
 			if ( image->hwrevs ) {
 				ptr = image->hwrevs;
 				oldptr = ptr;
 				while ( (ptr = strchr(ptr, ',')) ) {
 					length8 = ptr-oldptr;
 					if ( length8 > 8 ) length8 = 8;
-					WRITE_OR_FAIL(fd, oldptr, length8);
+					WRITE_OR_FAIL(file, fd, oldptr, length8);
 					for ( i=0; i < 8 - length8; ++i )
-						WRITE_OR_FAIL(fd, "\x00", 1);
+						WRITE_OR_FAIL(file, fd, "\x00", 1);
 					++ptr;
 					oldptr = ptr;
 				}
 				length8 = strlen(oldptr);
 				if ( length8 > 8 ) length8 = 8;
-				WRITE_OR_FAIL(fd, oldptr, length8);
+				WRITE_OR_FAIL(file, fd, oldptr, length8);
 				for ( i = 0; i < 8 - length8; ++i )
-				WRITE_OR_FAIL(fd, "\x00", 1);
+				WRITE_OR_FAIL(file, fd, "\x00", 1);
 			}
 		}
 
 		/* append layout subsection */
 		if ( image->layout ) {
 			length8 = strlen(image->layout);
-			WRITE_OR_FAIL(fd, "3", 1); /* 3 - layout */
-			WRITE_OR_FAIL(fd, &length8, 1);
-			WRITE_OR_FAIL(fd, image->layout, length8);
+			WRITE_OR_FAIL(file, fd, "3", 1); /* 3 - layout */
+			WRITE_OR_FAIL(file, fd, &length8, 1);
+			WRITE_OR_FAIL(file, fd, image->layout, length8);
 		}
 
 		/* dummy byte - end of all subsections */
-		WRITE_OR_FAIL(fd, "\x00", 1);
+		WRITE_OR_FAIL(file, fd, "\x00", 1);
+
+		printf("Writing image data...\n");
 
 		image_seek(image, 0);
 		while ( 1 ) {
 			size = image_read(image, buf, sizeof(buf));
 			if ( size < 1 )
 				break;
-			WRITE_OR_FAIL(fd, buf, size);
+			WRITE_OR_FAIL(file, fd, buf, size);
 		}
 
 		image_list = image_list->next;
 
+		if ( image_list )
+			printf("\n");
+
 	}
 
-	printf("Done\n");
 	close(fd);
+	printf("\nDone\n\n");
 	return 0;
 
 }
@@ -507,16 +490,18 @@ int fiasco_unpack(struct fiasco * fiasco, const char * dir) {
 		memset(cwd, 0, sizeof(cwd));
 
 		if ( ! getcwd(cwd, sizeof(cwd)) ) {
-			perror("Cannot getcwd");
+			ERROR(errno, "Cannot store current directory");
 			return -1;
 		}
 
 		if ( chdir(dir) < 0 ) {
-			perror("Cannot chdir");
+			ERROR(errno, "Cannot change current directory to %s", dir);
 			return -1;
 		}
 
 	}
+
+	fiasco_print_info(fiasco);
 
 	image_list = fiasco->first;
 
@@ -526,16 +511,15 @@ int fiasco_unpack(struct fiasco * fiasco, const char * dir) {
 
 		name = image_name_alloc_from_values(image);
 
+		printf("\n");
 		printf("Unpacking image...\n");
 		image_print_info(image);
 
 		if ( image->layout ) {
 
 			layout_name = calloc(1, strlen(name) + strlen(".layout") + 1);
-			if ( ! layout_name ) {
-				perror("Alloc error");
-				return -1;
-			}
+			if ( ! layout_name )
+				ALLOC_ERROR_RETURN(-1);
 
 			sprintf(layout_name, "%s.layout", name);
 
@@ -547,7 +531,7 @@ int fiasco_unpack(struct fiasco * fiasco, const char * dir) {
 
 		fd = open(name, O_RDWR|O_CREAT|O_TRUNC, 0644);
 		if ( fd < 0 ) {
-			perror("Cannot create file");
+			ERROR(errno, "Cannot create output file %s", name);
 			return -1;
 		}
 
@@ -558,7 +542,7 @@ int fiasco_unpack(struct fiasco * fiasco, const char * dir) {
 			size = image_read(image, buf, sizeof(buf));
 			if ( size < 1 )
 				break;
-			WRITE_OR_FAIL(fd, buf, size);
+			WRITE_OR_FAIL(name, fd, buf, size);
 		}
 
 		close(fd);
@@ -567,13 +551,13 @@ int fiasco_unpack(struct fiasco * fiasco, const char * dir) {
 
 			fd = open(layout_name, O_RDWR|O_CREAT|O_TRUNC, 0644);
 			if ( fd < 0 ) {
-				perror("Cannot create file");
+				ERROR(errno, "Cannot create layout file %s", layout_name);
 				return -1;
 			}
 
 			free(layout_name);
 
-			WRITE_OR_FAIL(fd, image->layout, (int)strlen(image->layout));
+			WRITE_OR_FAIL(layout_name, fd, image->layout, (int)strlen(image->layout));
 
 			close(fd);
 
@@ -581,20 +565,16 @@ int fiasco_unpack(struct fiasco * fiasco, const char * dir) {
 
 		image_list = image_list->next;
 
-		if ( image_list )
-			printf("\n");
-
 	}
 
 	if ( dir ) {
-
 		if ( chdir(cwd) < 0 ) {
-			perror("Cannot chdir");
+			ERROR(errno, "Cannot change current directory back to %s", cwd);
 			return -1;
 		}
-
 	}
 
+	printf("\nDone\n\n");
 	return 0;
 
 }

@@ -28,6 +28,7 @@
 #include <fcntl.h>
 #include <unistd.h>
 
+#include "global.h"
 #include "image.h"
 #include "fiasco2.h"
 #include "device.h"
@@ -201,22 +202,22 @@ static void parse_image_arg(char * arg, struct image_list ** image_first) {
 		off_t len;
 		int fd = open(layout_file, O_RDONLY);
 		if ( fd < 0 ) {
-			fprintf(stderr, "Cannot open layout file %s: %s\n", layout_file, strerror(errno));
+			ERROR(errno, "Cannot open layout file %s", layout_file);
 			exit(1);
 		}
 		len = lseek(fd, 0, SEEK_END);
 		if ( len == (off_t)-1 ) {
-			fprintf(stderr, "Cannot get file size\n");
+			ERROR(errno, "Cannot get size of file %s", layout_file);
 			exit(1);
 		}
 		lseek(fd, 0, SEEK_SET);
 		layout = malloc(len);
 		if ( ! layout ) {
-			fprintf(stderr, "Alloc error\n");
+			ALLOC_ERROR();
 			exit(1);
 		}
 		if ( read(fd, layout, len) != len ) {
-			fprintf(stderr, "Cannot read layout file %s: %s\n", layout_file, strerror(errno));
+			ERROR(errno, "Cannot read %lu bytes from layout file %s", len, layout_file);
 			exit(1);
 		}
 	}
@@ -227,7 +228,7 @@ static void parse_image_arg(char * arg, struct image_list ** image_first) {
 		free(layout);
 
 	if ( ! image ) {
-		fprintf(stderr, "Cannot load image file %s\n", file);
+		ERROR(0, "Cannot load image file %s", file);
 		exit(1);
 	}
 
@@ -331,10 +332,7 @@ int main(int argc, char **argv) {
 
 	while ( ( c = getopt(argc, argv, optstring) ) != -1 ) {
 
-		switch(c) {
-			case '?':
-				fprintf(stderr, "error ?\n");
-				break;
+		switch (c) {
 			case 'b':
 				dev_boot = 1;
 				dev_boot_arg = optarg;
@@ -460,8 +458,7 @@ int main(int argc, char **argv) {
 				break;
 
 			default:
-				fprintf(stderr, "error c:%c\n", c);
-				break;
+				return 1;
 		}
 
 	}
@@ -490,7 +487,7 @@ int main(int argc, char **argv) {
 
 	/* load images from files */
 	if ( image_first && image_fiasco ) {
-		fprintf(stderr, "Cannot specify together normal images and fiasco images\n");
+		ERROR(0, "Cannot specify normal and fiasco images together");
 		ret = 1;
 		goto clean;
 	}
@@ -499,7 +496,7 @@ int main(int argc, char **argv) {
 	if ( image_fiasco ) {
 		fiasco_in = fiasco_alloc_from_file(image_fiasco_arg);
 		if ( ! fiasco_in )
-			fprintf(stderr, "Cannot load fiasco image file %s\n", image_fiasco_arg);
+			ERROR(0, "Cannot load fiasco image file %s", image_fiasco_arg);
 		else
 			image_first = fiasco_in->first;
 	}
@@ -508,7 +505,7 @@ int main(int argc, char **argv) {
 	if ( filter_type ) {
 		enum image_type type = image_type_from_string(filter_type_arg);
 		if ( ! type ) {
-			fprintf(stderr, "Unknown image type for filtering: %s\n", filter_type_arg);
+			ERROR(0, "Specified unknown image type for filtering: %s", filter_type_arg);
 		} else {
 			image_ptr = image_first;
 			while ( image_ptr ) {
@@ -527,7 +524,7 @@ int main(int argc, char **argv) {
 	if ( filter_device ) {
 		enum device device = device_from_string(filter_device_arg);
 		if ( ! device ) {
-			fprintf(stderr, "Unknown device for filtering: %s\n", filter_device_arg);
+			ERROR(0, "Specified unknown device for filtering: %s", filter_device_arg);
 		} else {
 			image_ptr = image_first;
 			while ( image_ptr ) {
@@ -647,7 +644,7 @@ int main(int argc, char **argv) {
 	while ( image_ptr ) {
 		struct image_list * next = image_ptr->next;
 		if ( image_ptr->image->type == IMAGE_UNKNOWN || image_ptr->image->device == DEVICE_UNKNOWN ) {
-			printf("!!Removing unknown image!!\n");
+			WARNING("Removing unknown image (specified by %s %s)", image_ptr->image->orig_filename ? "file" : "fiasco", image_ptr->image->orig_filename ? image_ptr->image->orig_filename : "image");
 			image_list_unlink(image_ptr);
 			free(image_ptr);
 			if ( image_ptr == image_first )
@@ -662,10 +659,15 @@ int main(int argc, char **argv) {
 
 	/* generate fiasco */
 	if ( fiasco_gen ) {
+		char * swver = strchr(fiasco_gen_arg, '%');
+		if ( swver )
+			*(swver++) = 0;
 		fiasco_out = fiasco_alloc_empty();
 		if ( ! fiasco_out ) {
-			fprintf(stderr, "Cannot write images to fiasco file %s\n", fiasco_gen_arg);
+			ERROR(0, "Cannot write images to fiasco file %s", fiasco_gen_arg);
 		} else {
+			if ( swver )
+				strcpy(fiasco_out->swver, swver);
 			fiasco_out->first = image_first;
 			fiasco_write_to_file(fiasco_out, fiasco_gen_arg);
 			fiasco_out->first = NULL;

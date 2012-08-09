@@ -26,10 +26,10 @@
 #include <fcntl.h>
 #include <unistd.h>
 
+#include "global.h"
 #include "device.h"
 #include "image.h"
 
-#define IMAGE_CHECK(image) do { if ( ! image || image->fd < 0 ) return; } while (0)
 #define IMAGE_STORE_CUR(image) do { if ( image->is_shared_fd ) image->cur = lseek(image->fd, 0, SEEK_CUR) - image->offset; } while (0)
 #define IMAGE_RESTORE_CUR(image) do { if ( image->is_shared_fd ) lseek(image->fd, image->offset + image->cur, SEEK_SET); } while (0)
 
@@ -113,10 +113,8 @@ char * image_name_alloc_from_values(struct image * image) {
 		length += 1 + strlen(image->version);
 
 	name = calloc(1, length);
-	if ( ! name ) {
-		perror("Alloc error");
-		return NULL;
-	}
+	if ( ! name )
+		ALLOC_ERROR_RETURN(NULL);
 
 	strcpy(name, type);
 	ptr = name + strlen(name);
@@ -133,8 +131,6 @@ char * image_name_alloc_from_values(struct image * image) {
 }
 
 static void image_append(struct image * image, const char * type, const char * device, const char * hwrevs, const char * version, const char * layout) {
-
-	IMAGE_CHECK(image);
 
 	image->hash = image_hash_from_data(image);
 	image->device = device_from_string(device);
@@ -187,10 +183,8 @@ static void image_align(struct image * image) {
 static struct image * image_alloc(void) {
 
 	struct image * image = calloc(1, sizeof(struct image));
-	if ( ! image ) {
-		perror("Cannot allocate memory");
-		return NULL;
-	}
+	if ( ! image )
+		ALLOC_ERROR_RETURN(NULL);
 	return image;
 
 }
@@ -204,7 +198,7 @@ struct image * image_alloc_from_file(const char * file, const char * type, const
 	image->is_shared_fd = 0;
 	image->fd = open(file, O_RDONLY);
 	if ( image->fd < 0 ) {
-		perror("Cannot open file");
+		ERROR(errno, "Cannot open image file %s", file);
 		free(image);
 		return NULL;
 	}
@@ -239,8 +233,8 @@ struct image * image_alloc_from_shared_fd(int fd, size_t size, size_t offset, ui
 
 	image_append(image, type, device, hwrevs, version, layout);
 
-	if ( image->hash != hash ) {
-		fprintf(stderr, "Error: Image hash mishmash (expected %#04x)\n", image->hash);
+	if ( ! noverify && image->hash != hash ) {
+		ERROR(0, "Image hash mishmash (counted %#04x, got %#04x)", image->hash, hash);
 		image_free(image);
 		return NULL;
 	}
@@ -252,8 +246,6 @@ struct image * image_alloc_from_shared_fd(int fd, size_t size, size_t offset, ui
 }
 
 void image_free(struct image * image) {
-
-	IMAGE_CHECK(image);
 
 	if ( ! image->is_shared_fd ) {
 		close(image->fd);
@@ -270,8 +262,6 @@ void image_free(struct image * image) {
 }
 
 void image_seek(struct image * image, off_t whence) {
-
-	IMAGE_CHECK(image);
 
 	if ( whence > image->size )
 		return;
@@ -293,7 +283,6 @@ size_t image_read(struct image * image, void * buf, size_t count) {
 	size_t new_count = 0;
 	size_t ret_count = 0;
 
-	IMAGE_CHECK(image);
 	IMAGE_RESTORE_CUR(image);
 
 	if ( image->size < image->cur )
@@ -337,10 +326,9 @@ size_t image_read(struct image * image, void * buf, size_t count) {
 
 void image_list_add(struct image_list ** list, struct image * image) {
 
-	IMAGE_CHECK(image);
 	struct image_list * last = calloc(1, sizeof(struct image_list));
 	if ( ! last )
-		return;
+		ALLOC_ERROR_RETURN();
 
 	last->image = image;
 
@@ -423,7 +411,6 @@ static const char * image_types[] = {
 
 enum image_type image_type_from_data(struct image * image) {
 
-	IMAGE_CHECK(image);
 	unsigned char buf[512];
 
 	image_seek(image, 0);
