@@ -68,7 +68,9 @@ __rf_extract_exit:
 /*
  * This function was covardly copied from nanddump.c @ mtd-utils-20060907
  */
+#ifndef _GNU_SOURCE
 #define _GNU_SOURCE
+#endif
 #include <ctype.h>
 #include <errno.h>
 #include <fcntl.h>

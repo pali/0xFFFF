@@ -6,8 +6,13 @@
 #include "os.h"
 extern char strbuf[1024];
 
+#ifndef _FILE_OFFSET_BITS
 #define _FILE_OFFSET_BITS 64
+#endif
+
+#ifndef _GNU_SOURCE
 #define _GNU_SOURCE
+#endif
 
 // Forward declaration for use in function arguments.
 //struct devices;
