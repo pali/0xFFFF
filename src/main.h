@@ -27,8 +27,8 @@ int fiasco_read_image(char *file);
 extern struct usb_dev_handle *dev;
 unsigned long get_file_size(const char *file);
 void progressbar(unsigned long long part, unsigned long long total);
-const char *fpid_file(const char *filename);
-int add_piece(char *piece);
+//const char *fpid_file(const char *filename);
+//int add_piece(char *piece);
 void eprintf(const char *format, ...);
 
 #include <limits.h>
@@ -62,13 +62,13 @@ extern int verbose;
 #define CMD_WRITE 64
 #define CMD_QUERY 192
 
-struct piece_t {
+/*struct piece_t {
 	char *name;
 	char *type;
 	char *device;
 	char *hwrevs;
 	char *version;
-};
+};*/
 
 enum flash_mode {
 	FLASH_COLD,
@@ -87,8 +87,8 @@ enum flash_mode {
 //#define SUPPORTED_DEVICES 10
 //extern struct devices supported_devices[SUPPORTED_DEVICES];
 
-extern int pcs_n;
-extern struct piece_t pcs[10];
+//extern int pcs_n;
+//extern struct piece_t pcs[10];
 
 enum {
 	PIECE_XLOADER = 0,

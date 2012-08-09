@@ -217,7 +217,7 @@ void show_usage()
 		" -V              show 0xFFFF version information\n"
 		" -x              extract configuration entries from /dev/mtd1\n"
 		"Pieces are: ");
-	for(i=0;pieces[i];i++) printf("%s ", pieces[i]); printf("\n");
+//	for(i=0;pieces[i];i++) printf("%s ", pieces[i]); printf("\n");
 	// serial port support is not yet done (cold flash is for flashing the 8kB nand)
 	// TODO: commandline shell prompt for nolo comm
 
@@ -468,9 +468,9 @@ int main(int argc, char **argv)
 //		case 'l':
 //			list_valid_devices();
 //			return 0;
-		case 'p':
-			add_piece(optarg);
-			break;
+//		case 'p':
+//			add_piece(optarg);
+//			break;
 		case 'i':
 			info = 1;
 			break;
@@ -492,13 +492,13 @@ int main(int argc, char **argv)
 			break;
 //		case 'P':
 //			return fiasco_pack(optind, argv);
-		case 'I':
-			type = fpid_file(optarg);
-			printf("%s: %s\n", type, optarg);
+//		case 'I':
+//			type = fpid_file(optarg);
+//			printf("%s: %s\n", type, optarg);
 //			if (type && strcmp(type, "fiasco") == 0)
 //				openfiasco(optarg, NULL, NULL, NULL, NULL, 1);
-			identify = 1;
-			break;
+//			identify = 1;
+//			break;
 		case 'C':
 			return check_badblocks(optarg);
 		case 'v':
@@ -526,7 +526,7 @@ int main(int argc, char **argv)
 	if (	/*(fiasco_image == NULL)*/ 1
 	&&	(boot_cmdline == NULL)
 	&&	(reverseto    == NULL)
-	&&	(pcs_n        == 0)
+//	&&	(pcs_n        == 0)
 	&&	(rd_flags     == -1)
 	&&	(rd_mode      == -1)
 	&&	(info         == 0)
@@ -567,7 +567,7 @@ int main(int argc, char **argv)
 	// if (info)
 	cmd_info("");
 
-	if (pcs_n) {
+/*	if (pcs_n) {
 		char version[64];
 //		check_nolo_order();
 		get_sw_version();
@@ -586,7 +586,7 @@ int main(int argc, char **argv)
 			printf("Flashing %s (%s)\n", pcs[c].type, pcs[c].name);
 //			flash_image(pcs[c].name, pcs[c].type, pcs[c].device, pcs[c].hwrevs, pcs[c].version);
 		}
-	}
+	}*/
 
 	if (rd_mode != -1)
 		set_rd_mode(rd_mode);

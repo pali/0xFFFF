@@ -1,6 +1,6 @@
 include ../config.mk
 OBJ=main.o hexdump.o dump.o flash.o serial.o qmode.o
-OBJ+=fpid.o query.o pieces.o utils.o console.o
+OBJ+=query.o utils.o console.o
 OBJ+=squeue/squeue.o
 OBJ+=image.o fiasco.o device.o usb-device.o cold-flash.o
 BIN=0xFFFF

@@ -583,11 +583,11 @@ int reverse_extract_pieces_n900(char *dir)
 		rf_strip("nolo.bin");
 	} else  printf("*** Ignoring strip\n");
 
-	printf("\nIdentifying extracted files...\n");
+/*	printf("\nIdentifying extracted files...\n");
 	printf("%s: xloader\n", fpid_file("xloader.bin"));
 	printf("%s: config.bin\n", fpid_file("config.bin"));
 	printf("%s: nolo.bin\n", fpid_file("nolo.bin"));
-	printf("%s: rootfs.jffs2\n", fpid_file("rootfs.jffs2"));
+	printf("%s: rootfs.jffs2\n", fpid_file("rootfs.jffs2"));*/
 
 	return 1;
 }
@@ -630,13 +630,13 @@ int reverse_extract_pieces(char *dir)
 		rf_strip("initfs.jffs2");
 	} else  printf("*** Ignoring strip\n");
 
-	printf("\nIdentifying extracted files...\n");
+/*	printf("\nIdentifying extracted files...\n");
 	printf("%s: xloader\n", fpid_file("xloader.bin"));
 	printf("%s: secondary.bin\n", fpid_file("secondary.bin"));
 	printf("%s: config.bin\n", fpid_file("config.bin"));
 	printf("%s: zImage\n", fpid_file("zImage"));
 	printf("%s: initfs.jffs2\n", fpid_file("initfs.jffs2"));
-	printf("%s: rootfs.jffs2\n", fpid_file("rootfs.jffs2"));
+	printf("%s: rootfs.jffs2\n", fpid_file("rootfs.jffs2"));*/
 
 	return 1;
 }
