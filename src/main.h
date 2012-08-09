@@ -21,7 +21,6 @@ struct image;
 int queue_mode();
 int reverse_extract_pieces(char *dir);
 //void flash_image(const char *filename, const char *piece, const char *device, const char *hwrevs, const char *version);
-void flash_image(struct image * image);
 int fiasco_read_image(char *file);
 //void check_nolo_order();
 extern struct usb_dev_handle *dev;
@@ -39,7 +38,7 @@ void eprintf(const char *format, ...);
 #if HAVE_USB
 #include <usb.h>
 
-int fiasco_flash(const char *file);
+//int fiasco_flash(const char *file);
 extern struct usb_device *device;
 extern struct usb_dev_handle *dev;
 int is_valid_device(struct usb_device_descriptor *udd);
@@ -59,9 +58,6 @@ int dump_config();
 extern int verbose;
 #define D if (verbose)
 
-#define CMD_WRITE 64
-#define CMD_QUERY 192
-
 /*struct piece_t {
 	char *name;
 	char *type;
@@ -70,12 +66,12 @@ extern int verbose;
 	char *version;
 };*/
 
-enum flash_mode {
+/*enum flash_mode {
 	FLASH_COLD,
 	FLASH_NORMAL,
 	FLASH_MKII,
 	FLASH_DISK,
-};
+};*/
 
 /*struct devices {
   char *name;

@@ -1,6 +1,7 @@
 /*
  *  0xFFFF - Open Free Fiasco Firmware Flasher
  *  Copyright (C) 2007  pancake <pancake@youterm.com>
+ *  Copyright (C) 2012  Pali Rohár <pali.rohar@gmail.com>
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -16,14 +17,21 @@
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#if HAVE_USB
-#include "main.h"
-#include "hexdump.h"
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
 
+#include <usb.h>
+
+#include "nolo.h"
 #include "image.h"
+
+#include "hexdump.h"
+
+#define CMD_WRITE 64
+#define CMD_QUERY 192
+
+extern struct usb_dev_handle *dev;
 
 /*void check_nolo_order_failed()
 {
@@ -32,7 +40,7 @@
 	exit(1);
 }*/
 
-void query_error_message()
+static void query_error_message()
 {
 	/* query error message */
 	int len = 0;
@@ -75,7 +83,7 @@ void query_error_message()
 		check_nolo_order_failed();
 }*/
 
-void flash_image(struct image * image)
+void nolo_flash_image(struct image * image)
 {
 //	FILE *fd;
 	int vlen = 0;
@@ -219,4 +227,3 @@ void flash_image(struct image * image)
 	}
 	printf("Flash done succesfully.\n");
 }
-#endif
