@@ -31,7 +31,7 @@
 #include "global.h"
 #include "device.h"
 #include "image.h"
-#include "fiasco2.h"
+#include "fiasco.h"
 
 #define FIASCO_READ_ERROR(fiasco, format, ...) do { ERROR(errno, format, ##__VA_ARGS__); fiasco_free(fiasco); return NULL; } while (0)
 #define FIASCO_WRITE_ERROR(file, fd, format, ...) do { ERROR(errno, "%s: " format, file, ##__VA_ARGS__); if ( fd >= 0 ) close(fd); return -1; } while (0)

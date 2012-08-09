@@ -30,7 +30,7 @@
 
 #include "global.h"
 #include "image.h"
-#include "fiasco2.h"
+#include "fiasco.h"
 #include "device.h"
 #include "usb-device.h"
 #include "cold-flash.h"
