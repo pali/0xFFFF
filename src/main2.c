@@ -1,5 +1,6 @@
 /*
     0xFFFF - Open Free Fiasco Firmware Flasher
+    Copyright (C) 2007, 2008  pancake <pancake@youterm.com>
     Copyright (C) 2012  Pali Rohár <pali.rohar@gmail.com>
 
     This program is free software: you can redistribute it and/or modify
@@ -29,8 +30,7 @@
 
 #include "device.h"
 #include "image.h"
-
-#include "main2.h"
+#include "fiasco2.h"
 
 #define VERSION "0.6"
 
@@ -151,10 +151,8 @@ int simulate;
 int noverify;
 int verbose;
 
-struct image_list * image_first = NULL;
-
 /* arg = [[[dev:[hw:]]ver:]type:]file[%%lay] */
-static void parse_image_arg(char * arg) {
+static void parse_image_arg(char * arg, struct image_list ** image_first) {
 
 	struct image * image;
 	char * file;
@@ -232,7 +230,7 @@ static void parse_image_arg(char * arg) {
 		exit(1);
 	}
 
-	image_list_add(&image_first, image);
+	image_list_add(image_first, image);
 
 }
 
@@ -258,9 +256,11 @@ int main(int argc, char **argv) {
 #if ( defined(WITH_USB) || defined(WITH_DEVICE) ) && defined(WITH_SQUEUES)
 	"Q"
 #endif
-	"snvVh"
+	"snvh"
 	"";
 	int c;
+
+	int ret = 0;
 
 	int dev_boot = 0;
 	char * dev_boot_arg = NULL;
@@ -299,21 +299,32 @@ int main(int argc, char **argv) {
 	char * filter_type_arg = NULL;
 	int filter_device = 0;
 	char * filter_device_arg = NULL;
-	int filter_rev = 0;
-	char * filter_rev_arg = NULL;
-	int fiasco_unpack = 0;
-	char * fiasco_unpack_arg = NULL;
+	int filter_hwrev = 0;
+	char * filter_hwrev_arg = NULL;
+	int fiasco_un = 0;
+	char * fiasco_un_arg = NULL;
 	int fiasco_gen = 0;
 	char * fiasco_gen_arg = NULL;
 	int image_ident = 0;
 	int console = 0;
 	int queue = 0;
 
+	int help = 0;
+
+	struct image_list * image_first = NULL;
+	struct image_list * image_ptr = NULL;
+
+	int have_2nd = 0;
+	int have_secondary = 0;
+	struct image * image_2nd = NULL;
+	struct image * image_secondary = NULL;
+
+	struct fiasco * fiasco_in = NULL;
+	struct fiasco * fiasco_out = NULL;
+
 	simulate = 0;
 	noverify = 0;
 	verbose = 0;
-
-	int help = 0;
 
 	show_title();
 
@@ -398,7 +409,7 @@ int main(int argc, char **argv) {
 				image_fiasco_arg = optarg;
 				break;
 			case 'm':
-				parse_image_arg(optarg);
+				parse_image_arg(optarg, &image_first);
 				break;
 
 			case 't':
@@ -410,13 +421,13 @@ int main(int argc, char **argv) {
 				filter_device_arg = optarg;
 				break;
 			case 'w':
-				filter_rev = 1;
-				filter_rev_arg = optarg;
+				filter_hwrev = 1;
+				filter_hwrev_arg = optarg;
 				break;
 
 			case 'u':
-				fiasco_unpack = 1;
-				fiasco_unpack_arg = optarg;
+				fiasco_un = 1;
+				fiasco_un_arg = optarg;
 				break;
 			case 'g':
 				fiasco_gen = 1;
@@ -454,43 +465,219 @@ int main(int argc, char **argv) {
 
 	}
 
-
+	/* help */
 	if ( help ) {
 		show_usage();
-		return 0;
+		ret = 0;
+		goto clean;
 	}
 
 	/* console */
 	if ( console ) {
 //		console_prompt();
-		return 0;
+		ret = 0;
+		goto clean;
 	}
 
 	/* share queues */
 	if ( queue ) {
 //		queue_mode();
-		return 0;
+		ret = 0;
+		goto clean;
 	}
 
 
 	/* load images from files */
-
 	if ( image_first && image_fiasco ) {
 		fprintf(stderr, "Cannot specify together normal images and fiasco images\n");
-		return 1;
+		ret = 1;
+		goto clean;
 	}
 
-	/* filter images */
+	/* load fiasco image */
+	if ( image_fiasco ) {
+		fiasco_in = fiasco_alloc_from_file(image_fiasco_arg);
+		if ( ! fiasco_in )
+			fprintf(stderr, "Cannot load fiasco image file %s\n", image_fiasco_arg);
+		else
+			image_first = fiasco_in->first;
+	}
+
+	/* filter images by type */
+	if ( filter_type ) {
+		enum image_type type = image_type_from_string(filter_type_arg);
+		if ( ! type ) {
+			fprintf(stderr, "Unknown image type for filtering: %s\n", filter_type_arg);
+		} else {
+			image_ptr = image_first;
+			while ( image_ptr ) {
+				struct image_list * next = image_ptr->next;
+				if ( image_ptr->image->type != type ) {
+					image_list_del(image_ptr);
+					if ( image_ptr == image_first )
+						image_first = next;
+				}
+				image_ptr = next;
+			}
+		}
+	}
+
+	/* filter images by device */
+	if ( filter_device ) {
+		enum device device = device_from_string(filter_device_arg);
+		if ( ! device ) {
+			fprintf(stderr, "Unknown device for filtering: %s\n", filter_device_arg);
+		} else {
+			image_ptr = image_first;
+			while ( image_ptr ) {
+				struct image_list * next = image_ptr->next;
+				if ( image_ptr->image->device != device && image_ptr->image->device != DEVICE_ANY ) {
+					image_list_del(image_ptr);
+					if ( image_ptr == image_first )
+						image_first = next;
+				}
+				image_ptr = next;
+			}
+		}
+	}
+
+	/* filter images by hwrev */
+	if ( filter_hwrev ) {
+		image_ptr = image_first;
+		while ( image_ptr ) {
+			struct image_list * next = image_ptr->next;
+			if ( ! image_hwrev_is_valid(image_ptr->image, filter_hwrev_arg) ) {
+				image_list_del(image_ptr);
+				if ( image_ptr == image_first )
+					image_first = next;
+			}
+			image_ptr = next;
+		}
+	}
+
+	/* reorder images for flashing (first x-loader, second secondary) */
+	/* set 2nd and secondary images for cold-flashing */
+	if ( dev_flash || dev_cold_flash ) {
+
+		struct image_list * image_unorder_first;
+
+		image_unorder_first = image_first;
+		image_first = NULL;
+
+		image_ptr = image_unorder_first;
+		while ( image_ptr ) {
+			struct image_list * next = image_ptr->next;
+			if ( image_ptr->image->type == IMAGE_XLOADER ) {
+				image_list_add(&image_first, image_ptr->image);
+				image_list_unlink(image_ptr);
+				free(image_ptr);
+				if ( image_ptr == image_unorder_first )
+					image_first = next;
+			}
+			image_ptr = next;
+		}
+
+		image_ptr = image_unorder_first;
+		while ( image_ptr ) {
+			struct image_list * next = image_ptr->next;
+			if ( image_ptr->image->type == IMAGE_SECONDARY ) {
+				if ( have_secondary == 0 ) {
+					image_secondary = image_ptr->image;
+					have_secondary = 1;
+				} else if ( have_secondary == 1 ) {
+					image_secondary = NULL;
+					have_secondary = 2;
+				}
+				image_list_add(&image_first, image_ptr->image);
+				image_list_unlink(image_ptr);
+				free(image_ptr);
+				if ( image_ptr == image_unorder_first )
+					image_first = next;
+			}
+			image_ptr = next;
+		}
+
+		image_ptr = image_unorder_first;
+		while ( image_ptr ) {
+			struct image_list * next = image_ptr->next;
+			if ( image_ptr->image->type == IMAGE_2ND ) {
+				if ( have_2nd == 0 ) {
+					image_2nd = image_ptr->image;
+					have_2nd = 1;
+				} else if ( have_2nd == 1 ) {
+					image_2nd = NULL;
+					have_2nd = 2;
+				}
+			}
+			image_list_add(&image_first, image_ptr->image);
+			image_list_unlink(image_ptr);
+			free(image_ptr);
+			if ( image_ptr == image_unorder_first )
+				image_first = next;
+			image_ptr = next;
+		}
+
+	}
+
+	/* make sure that fiasco_in has valid images*/
+	if ( fiasco_in )
+		fiasco_in->first = image_first;
 
 	/* identificate images */
 	if ( image_ident ) {
-
+		if ( fiasco_in ) {
+			fiasco_print_info(fiasco_in);
+			printf("\n");
+		}
+		for ( image_ptr = image_first; image_ptr; image_ptr = image_ptr->next ) {
+			image_print_info(image_ptr->image);
+			printf("\n");
+		}
+		ret = 0;
+		goto clean;
 	}
 
 	/* unpack fiasco */
+	if ( fiasco_un )
+		fiasco_unpack(fiasco_in, fiasco_un_arg);
+
+	/* remove unknown images */
+	image_ptr = image_first;
+	while ( image_ptr ) {
+		struct image_list * next = image_ptr->next;
+		if ( image_ptr->image->type == IMAGE_UNKNOWN || image_ptr->image->device == DEVICE_UNKNOWN ) {
+			printf("!!Removing unknown image!!\n");
+			image_list_unlink(image_ptr);
+			free(image_ptr);
+			if ( image_ptr == image_first )
+				image_first = next;
+		}
+		image_ptr = next;
+	}
+
+	/* make sure that fiasco_in has valid images */
+	if ( fiasco_in )
+		fiasco_in->first = image_first;
 
 	/* generate fiasco */
+	if ( fiasco_gen ) {
+		fiasco_out = fiasco_alloc_empty();
+		if ( ! fiasco_out ) {
+			fprintf(stderr, "Cannot write images to fiasco file %s\n", fiasco_gen_arg);
+		} else {
+			fiasco_out->first = image_first;
+			fiasco_write_to_file(fiasco_out, fiasco_gen_arg);
+			fiasco_out->first = NULL;
+			fiasco_free(fiasco_out);
+		}
+	}
 
+
+#ifdef WITH_USB
+
+	/* over usb */
+
+	/* device identify */
 
 	/* cold flash */
 
@@ -504,10 +691,38 @@ int main(int argc, char **argv) {
 
 	/* reboot */
 
+#endif
+
+
+#ifdef WITH_DEVICE
+
+	/* on device */
 
 	/* check */
 
 	/* dump */
 
-	return 0;
+	/* flash */
+
+	/* reboot */
+
+#endif
+
+
+	/* clean */
+clean:
+
+	if ( ! image_fiasco ) {
+		image_ptr = image_first;
+		while ( image_ptr ) {
+			struct image_list * next = image_ptr->next;
+			image_list_del(image_ptr);
+			image_ptr = next;
+		}
+	}
+
+	if ( fiasco_in )
+		fiasco_free(fiasco_in);
+
+	return ret;
 }
