@@ -25,8 +25,16 @@
 
 #include <usb.h>
 
+#include "global.h"
 #include "device.h"
 #include "usb-device.h"
+
+static int prev = 0;
+#define PRINTF_BACK() do { if ( prev ) { printf("\r%-*s\r", prev, ""); prev = 0; } } while (0)
+#define PRINTF_ADD(format, ...) do { prev += printf(format, ##__VA_ARGS__); } while (0)
+#define PRINTF_LINE(format, ...) do { PRINTF_BACK(); PRINTF_ADD(format, ##__VA_ARGS__); fflush(stdout); } while (0)
+#define PRINTF_END() do { if ( prev ) { printf("\n"); prev = 0; } } while (0)
+#define PRINTF_ERROR(errno, format, ...) do { PRINTF_END(); ERROR(errno, format, ##__VA_ARGS__); } while (0)
 
 static struct usb_flash_device usb_devices[] = {
 	{ 0x0421, 0x0105,  2,  1, -1, FLASH_NOLO, { DEVICE_SU_18, DEVICE_RX_44, DEVICE_RX_48, DEVICE_RX_51, 0 } },
@@ -58,12 +66,12 @@ static void usb_device_info_print(const struct usb_flash_device * dev) {
 
 	int i;
 
-	printf("USB device %s", device_to_string(dev->devices[0]));
+	PRINTF_ADD("USB device %s", device_to_string(dev->devices[0]));
 
 	for ( i = 1; dev->devices[i]; ++i )
-		printf("/%s", device_to_string(dev->devices[i]));
+		PRINTF_ADD("/%s", device_to_string(dev->devices[i]));
 
-	printf(" (%#04x:%#04x) in %s mode", dev->vendor, dev->product, usb_flash_protocol_to_string(dev->protocol));
+	PRINTF_ADD(" (%#04x:%#04x) in %s mode", dev->vendor, dev->product, usb_flash_protocol_to_string(dev->protocol));
 
 }
 
@@ -76,49 +84,43 @@ static struct usb_device_info * usb_device_is_valid(struct usb_device * dev) {
 
 		if ( dev->descriptor.idVendor == usb_devices[i].vendor && dev->descriptor.idProduct == usb_devices[i].product ) {
 
-			printf("\nFound ");
+			PRINTF_END();
+			PRINTF_ADD("Found ");
 			usb_device_info_print(&usb_devices[i]);
-			printf("\n");
+			PRINTF_END();
 
-			printf("\rOpening USB..."); fflush(stdout);
+			PRINTF_LINE("Opening USB...");
 			usb_dev_handle * udev = usb_open(dev);
 			if ( ! udev ) {
-				fprintf(stderr, "usb_open failed: %s\n", strerror(errno));
-				return NULL;
-			}
-
-			if ( usb_devices[i].interface < 0 ) {
-				fprintf(stderr, "no interface specified\n");
-				usb_close(udev);
+				PRINTF_ERROR(errno, "usb_open failed");
 				return NULL;
 			}
 
 #if defined(LIBUSB_HAS_GET_DRIVER_NP) && defined(LIBUSB_HAS_DETACH_KERNEL_DRIVER_NP)
-			/* Detach kernel from usb interface */
-			printf("\rDetaching kernel from USB interface..."); fflush(stdout);
+			PRINTF_LINE("Detaching kernel from USB interface...");
 			usb_detach_kernel_driver_np(udev, usb_devices[i].interface);
 #endif
 
-			printf("\rClaiming USB interface..."); fflush(stdout);
+			PRINTF_LINE("Claiming USB interface...");
 			if ( usb_claim_interface(udev, usb_devices[i].interface) < 0 ) {
-				fprintf(stderr, "usb_claim_interface failed: %s\n", strerror(errno));
+				PRINTF_ERROR(errno, "usb_claim_interface failed");
 				usb_close(udev);
 				return NULL;
 			}
 
 			if ( usb_devices[i].alternate >= 0 ) {
-				printf("\rSetting alternate USB interface..."); fflush(stdout);
+				PRINTF_LINE("Setting alternate USB interface...");
 				if ( usb_set_altinterface(udev, usb_devices[i].alternate) < 0 ) {
-					fprintf(stderr, "usb_claim_interface failed: %s\n", strerror(errno));
+					PRINTF_ERROR(errno, "usb_claim_interface failed");
 					usb_close(udev);
 					return NULL;
 				}
 			}
 
 			if ( usb_devices[i].configuration >= 0 ) {
-				printf("\rSetting USB configuration..."); fflush(stdout);
+				PRINTF_LINE("Setting USB configuration...");
 				if ( usb_set_configuration(udev, usb_devices[i].configuration) < 0 ) {
-					fprintf(stderr, "usb_set_configuration failed: %s\n", strerror(errno));
+					PRINTF_ERROR(errno, "usb_set_configuration failed");
 					usb_close(udev);
 					return NULL;
 				}
@@ -126,6 +128,7 @@ static struct usb_device_info * usb_device_is_valid(struct usb_device * dev) {
 
 			ret = malloc(sizeof(struct usb_device_info));
 			if ( ! ret ) {
+				ALLOC_ERROR();
 				usb_close(udev);
 				return NULL;
 			}
@@ -174,8 +177,7 @@ struct usb_device_info * usb_wait_for_device(void) {
 
 	while ( 1 ) {
 
-		printf("\rWaiting for USB device... %c", progress[++i%sizeof(progress)]);
-		fflush(stdout);
+		PRINTF_LINE("Waiting for USB device... %c", progress[++i%sizeof(progress)]);
 
 		usb_find_devices();
 
@@ -204,7 +206,7 @@ struct usb_device_info * usb_wait_for_device(void) {
 
 	}
 
-	printf("\r                      \r");
+	PRINTF_BACK();
 
 	if ( ! ret )
 		return NULL;
