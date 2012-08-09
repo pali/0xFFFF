@@ -29,7 +29,7 @@
 struct usb_device *device  = NULL;
 struct usb_dev_handle *dev = NULL;
 #endif
-char  *fiasco_image        = NULL;
+//char  *fiasco_image        = NULL;
 char  *boot_cmdline        = NULL;
 char  *reverseto           = NULL;
 char  *subverstr           = NULL;
@@ -40,7 +40,7 @@ int    root_device         = -1;
 int    verbose             = 0;
 int    identify            = 0;
 int    moboreboot          = 0;
-int    unpack              = 0;
+//int    unpack              = 0;
 int    qmode               = 0;
 int    info                = 0;
 int    nomode              = 0;
@@ -205,12 +205,12 @@ void show_usage()
 		" -n              do not flash or write to disk (simulation)\n"
 		" -C [/dev/mtd]   check bad blocks on mtd\n"
 		" -e [path]       dump/extract pieces to path\n"
-		" -F [fiasco]     flash a fiasco firmware image\n"
+//		" -F [fiasco]     flash a fiasco firmware image\n"
 		" -H [file]       calculate hash for file\n"
 		" -I [piece]      identify a firmware piece\n"
-		" -P [new-fiasco] creates a new fiasco package, pieces as arguments\n"
-		"                   optional argument 'version:<version>'\n"
-		" -u [fiasco]     unpack target fiasco image\n"
+//		" -P [new-fiasco] creates a new fiasco package, pieces as arguments\n"
+//		"                   optional argument 'version:<version>'\n"
+//		" -u [fiasco]     unpack target fiasco image\n"
 		" -v              be verbose and noisy\n"
 		" -V              show 0xFFFF version information\n"
 		" -x              extract configuration entries from /dev/mtd1\n"
@@ -222,7 +222,7 @@ void show_usage()
 	exit(0);
 }
 
-int unpack_callback(struct header_t *header)
+/*int unpack_callback(struct header_t *header)
 {
 	FILE *fd;
 
@@ -323,7 +323,7 @@ int fiasco_flash(const char *file)
 	openfiasco(file, "rootfs", NULL, NULL, NULL, 0);
 
 	return 0;
-}
+}*/
 
 #if HAVE_USB
 int connect_via_usb()
@@ -436,9 +436,9 @@ int main(int argc, char **argv)
 		case 'U':
 			usb_mode = atoi(optarg);
 			break;
-		case 'F':
-			fiasco_image = optarg;
-			break;
+//		case 'F':
+//			fiasco_image = optarg;
+//			break;
 		case 'd':
 			sscanf(optarg, "%04hx:%04hx", 
 					&supported_devices[SUPPORTED_DEVICES-2].vendor_id,
@@ -481,20 +481,20 @@ int main(int argc, char **argv)
 			break;
 		case 's':
 			return console(optarg);
-		case 'u':
-			fiasco_image = optarg;
-			unpack = 1;
-			break;
+//		case 'u':
+//			fiasco_image = optarg;
+//			unpack = 1;
+//			break;
 		case 'Q':
 			qmode = 1;
 			break;
-		case 'P':
-			return fiasco_pack(optind, argv);
+//		case 'P':
+//			return fiasco_pack(optind, argv);
 		case 'I':
 			type = fpid_file(optarg);
 			printf("%s: %s\n", type, optarg);
-			if (type && strcmp(type, "fiasco") == 0)
-				openfiasco(optarg, NULL, NULL, NULL, NULL, 1);
+//			if (type && strcmp(type, "fiasco") == 0)
+//				openfiasco(optarg, NULL, NULL, NULL, NULL, 1);
 			identify = 1;
 			break;
 		case 'C':
@@ -514,14 +514,14 @@ int main(int argc, char **argv)
 	if (qmode)
 		return queue_mode();
 
-	if (!unpack && fiasco_image)
-		return fiasco_flash(fiasco_image);
+//	if (!unpack && fiasco_image)
+//		return fiasco_flash(fiasco_image);
 
 	if (identify)
 		return 0;
 
 	// flags ok?
-	if (	(fiasco_image == NULL)
+	if (	/*(fiasco_image == NULL)*/ 1
 	&&	(boot_cmdline == NULL)
 	&&	(reverseto    == NULL)
 	&&	(pcs_n        == 0)
@@ -540,7 +540,7 @@ int main(int argc, char **argv)
 		return 1;
 	}
 
-	if (unpack) {
+/*	if (unpack) {
 		if (reverseto) {
 			if (chdir(reverseto) < 0) {
 				printf("Error: Cannot change directory to %s\n", reverseto);
@@ -549,7 +549,7 @@ int main(int argc, char **argv)
 		}
 		unpack_fiasco_image(fiasco_image);
 		return 0;
-	}
+	}*/
 
 	if (reverseto) {
 		reverse_extract_pieces(reverseto);

@@ -96,12 +96,12 @@ void flash_image(const char *filename, const char *piece, const char *device, co
 		printf("Piece type: %s\n", piece);
 	}
 
-	if (piece != NULL) {
+/*	if (piece != NULL) {
 		if (!strcmp(piece, "fiasco")) {
 			fiasco_flash(filename);
 			return;
 		}
-	}
+	}*/
 
 	if (version)
 		vlen = strlen(version)+1;

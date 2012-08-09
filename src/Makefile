@@ -1,5 +1,5 @@
 include ../config.mk
-OBJ=main.o fiasco.o hexdump.o dump.o flash.o serial.o qmode.o
+OBJ=main.o hexdump.o dump.o flash.o serial.o qmode.o
 OBJ+=hash.o fpid.o query.o pieces.o utils.o devices.o console.o
 OBJ+=squeue/squeue.o
 BIN=0xFFFF
