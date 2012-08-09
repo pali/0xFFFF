@@ -10,7 +10,7 @@ extern char strbuf[1024];
 #define _GNU_SOURCE
 
 // Forward declaration for use in function arguments.
-struct devices;
+//struct devices;
 
 int queue_mode();
 int reverse_extract_pieces(char *dir);
@@ -36,8 +36,8 @@ int fiasco_flash(const char *file);
 extern struct usb_device *device;
 extern struct usb_dev_handle *dev;
 int is_valid_device(struct usb_device_descriptor *udd);
-void list_valid_devices();
-int usb_device_found(struct usb_device_descriptor *udd, struct devices *it_device);
+//void list_valid_devices();
+//int usb_device_found(struct usb_device_descriptor *udd, struct devices *it_device);
 int console(const char *device);
 int connect_via_usb();
 #endif
@@ -70,15 +70,15 @@ enum flash_mode {
 	FLASH_DISK,
 };
 
-struct devices {
+/*struct devices {
   char *name;
   unsigned short vendor_id;
   unsigned short product_id;
   enum flash_mode mode;
-};
+};*/
 
-#define SUPPORTED_DEVICES 10
-extern struct devices supported_devices[SUPPORTED_DEVICES];
+//#define SUPPORTED_DEVICES 10
+//extern struct devices supported_devices[SUPPORTED_DEVICES];
 
 extern int pcs_n;
 extern struct piece_t pcs[10];

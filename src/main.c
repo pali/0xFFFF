@@ -330,7 +330,7 @@ int connect_via_usb()
 {
 	static char pbc[]={'/','-','\\', '|'};
 	struct usb_device_descriptor udd;
-	struct devices it_device;
+//	struct devices it_device;
 	int    c = 0;
 
 	// usb_set_debug(5);
@@ -346,11 +346,11 @@ int connect_via_usb()
 	while(!dev) {
 		usleep(0xc350); // 0.5s
 
-		if(!usb_device_found(&udd, &it_device)) {
+/*		if(!usb_device_found(&udd, &it_device)) {
 			printf("\rWaiting for device... %c", pbc[++c%4]);
 			fflush(stdout);
 			continue;
-		}
+		}*/
 
 		/* open device */
 		if(!(dev = usb_open(device))) {
@@ -397,8 +397,8 @@ usb_detach_kernel_driver_np(dev, 2);
 		break;
 	}
 
-	printf("found %s (%04x:%04x)\n", it_device.name,
-		it_device.vendor_id, it_device.product_id);
+//	printf("found %s (%04x:%04x)\n", it_device.name,
+//		it_device.vendor_id, it_device.product_id);
 
 	/* go go go! */
 	while(get_status());
@@ -439,12 +439,12 @@ int main(int argc, char **argv)
 //		case 'F':
 //			fiasco_image = optarg;
 //			break;
-		case 'd':
-			sscanf(optarg, "%04hx:%04hx", 
-					&supported_devices[SUPPORTED_DEVICES-2].vendor_id,
-					&supported_devices[SUPPORTED_DEVICES-2].product_id);
-			supported_devices[SUPPORTED_DEVICES-2].name = strdup("user");
-			break;
+//		case 'd':
+//			sscanf(optarg, "%04hx:%04hx", 
+//					&supported_devices[SUPPORTED_DEVICES-2].vendor_id,
+//					&supported_devices[SUPPORTED_DEVICES-2].product_id);
+//			supported_devices[SUPPORTED_DEVICES-2].name = strdup("user");
+//			break;
 		case 'D':
 			root_device = atoi(optarg);
 			break;
@@ -463,9 +463,9 @@ int main(int argc, char **argv)
 		case 'r':
 			rd_mode = atoi(optarg);
 			break;
-		case 'l':
-			list_valid_devices();
-			return 0;
+//		case 'l':
+//			list_valid_devices();
+//			return 0;
 		case 'p':
 			add_piece(optarg);
 			break;
