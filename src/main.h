@@ -118,7 +118,6 @@ struct header_t {
 
 extern char *pieces[];
 extern char *modes[];
-extern char *root_devices[];
 
 // fiasco
 /*
