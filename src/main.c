@@ -200,7 +200,7 @@ void show_usage()
 	printf(" -Q              enter shared queues server mode (for gui or remote)\n");
 #endif
 	printf ("Local stuff:\n"
-		" -s [serial]     serial port console (minicom like terminal)\n"
+//		" -s [serial]     serial port console (minicom like terminal)\n"
 		" -h              show this help message\n"
 		" -S [subversion] unpacks/flash pieces matching this sub-version information\n"
 		" -n              do not flash or write to disk (simulation)\n"
@@ -480,8 +480,8 @@ int main(int argc, char **argv)
 		case 'e':
 			reverseto = optarg;
 			break;
-		case 's':
-			return console(optarg);
+//		case 's':
+//			return console(optarg);
 //		case 'u':
 //			fiasco_image = optarg;
 //			unpack = 1;
