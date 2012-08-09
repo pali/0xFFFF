@@ -23,6 +23,7 @@
 #include <errno.h>
 #include <usb.h>
 
+#include "cold-flash.h"
 #include "image.h"
 
 #define READ_DEV		0x81

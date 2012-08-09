@@ -28,9 +28,10 @@
 #include <fcntl.h>
 #include <unistd.h>
 
-#include "device.h"
 #include "image.h"
 #include "fiasco2.h"
+#include "device.h"
+#include "usb-device.h"
 
 #define VERSION "0.6"
 

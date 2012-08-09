@@ -26,7 +26,7 @@
 #include <usb.h>
 
 #include "device.h"
-#include "usb_device.h"
+#include "usb-device.h"
 
 static struct usb_flash_device usb_devices[] = {
 	{ 0x0421, 0x0105,  2,  1, -1, FLASH_NOLO, { DEVICE_SU_18, DEVICE_RX_44, DEVICE_RX_48, DEVICE_RX_51, 0 } },
