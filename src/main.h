@@ -2,7 +2,6 @@
 #ifndef _INCLUDE_MAIN_H_
 #define _INCLUDE_MAIN_H_
 
-#include "hash.h"
 #include "nolo.h"
 #include "os.h"
 extern char strbuf[1024];

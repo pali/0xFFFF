@@ -18,7 +18,6 @@
 
 #if HAVE_USB
 #include "main.h"
-#include "hash.h"
 #include "hexdump.h"
 #include <stdio.h>
 #include <string.h>
@@ -84,7 +83,7 @@ void flash_image(const char *filename, const char *piece, const char *device, co
 	unsigned long long size, off;
 	unsigned char bsize[4], tmp;
 	unsigned char nolofiller[128];
-	ushort hash = do_hash_file(filename, piece);
+	ushort hash = 0; //do_hash_file(filename, piece);
 
 	if (piece == NULL) {
 		//exit(1);
@@ -151,6 +150,8 @@ void flash_image(const char *filename, const char *piece, const char *device, co
 	/*/ bulk write image here */
 	printf("[=] Bulkwriting the %s piece...\n", piece);
 	fflush(stdout);
+
+	#define BSIZE 0x20000
 
 	for(off = 0; off<size; off += BSIZE) {
 		char buf[BSIZE];

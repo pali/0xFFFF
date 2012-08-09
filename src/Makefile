@@ -1,6 +1,6 @@
 include ../config.mk
 OBJ=main.o hexdump.o dump.o flash.o serial.o qmode.o
-OBJ+=hash.o fpid.o query.o pieces.o utils.o devices.o console.o
+OBJ+=fpid.o query.o pieces.o utils.o devices.o console.o
 OBJ+=squeue/squeue.o
 BIN=0xFFFF
 #LIBS=`${HAVE_USB} && echo -- '-lusb'`
