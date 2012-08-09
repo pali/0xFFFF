@@ -510,6 +510,8 @@ int fiasco_unpack(struct fiasco * fiasco, const char * dir) {
 		image = image_list->image;
 
 		name = image_name_alloc_from_values(image);
+		if ( ! name )
+			return -1;
 
 		printf("\n");
 		printf("Unpacking image...\n");
