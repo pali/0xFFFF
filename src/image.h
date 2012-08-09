@@ -56,6 +56,7 @@ struct image {
 	off_t offset;
 	off_t cur;
 	off_t acur;
+	char * orig_filename;
 };
 
 struct image_list {
@@ -69,13 +70,16 @@ struct image * image_alloc_from_shared_fd(int fd, size_t size, size_t offset, ui
 void image_free(struct image * image);
 void image_seek(struct image * image, off_t whence);
 size_t image_read(struct image * image, void * buf, size_t count);
+void image_print_info(struct image * image);
 void image_list_add(struct image_list ** list, struct image * image);
 void image_list_del(struct image_list * list);
+void image_list_unlink(struct image_list * list);
 
 uint16_t image_hash_from_data(struct image * image);
 enum image_type image_type_from_data(struct image * image);
 char * image_name_alloc_from_values(struct image * image);
 enum image_type image_type_from_string(const char * type);
 const char * image_type_to_string(enum image_type type);
+int image_hwrev_is_valid(struct image * image, const char * hwrev);
 
 #endif

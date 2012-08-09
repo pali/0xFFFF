@@ -212,6 +212,7 @@ struct image * image_alloc_from_file(const char * file, const char * type, const
 	image->size = lseek(image->fd, 0, SEEK_END);
 	image->offset = 0;
 	image->cur = 0;
+	image->orig_filename = strdup(file);
 
 	image_append(image, type, device, hwrevs, version, layout);
 
@@ -262,6 +263,7 @@ void image_free(struct image * image) {
 	free(image->hwrevs);
 	free(image->version);
 	free(image->layout);
+	free(image->orig_filename);
 
 	free(image);
 
@@ -360,14 +362,25 @@ void image_list_del(struct image_list * list) {
 	if ( ! list )
 		return;
 
+	image_list_unlink(list);
+	image_free(list->image);
+	free(list);
+
+}
+
+void image_list_unlink(struct image_list * list) {
+
+	if ( ! list )
+		return;
+
 	if ( list->prev )
 		list->prev->next = list->next;
 
 	if ( list->next )
 		list->next->prev = list->prev;
 
-	image_free(list->image);
-	free(list);
+	list->prev = NULL;
+	list->next = NULL;
 
 }
 
@@ -472,5 +485,54 @@ const char * image_type_to_string(enum image_type type) {
 		return NULL;
 
 	return image_types[type];
+
+}
+
+int image_hwrev_is_valid(struct image * image, const char * hwrev) {
+
+	const char * ptr = image->hwrevs;
+	const char * oldptr = ptr;
+
+	if ( ! hwrev || ! ptr )
+		return 1;
+
+	while ( (ptr = strchr(ptr, ',')) ) {
+		if ( strncmp(hwrev, oldptr, ptr-oldptr) == 0 )
+			return 1;
+		++ptr;
+		oldptr = ptr;
+	}
+
+	if ( strcmp(hwrev, oldptr) == 0 )
+		return 1;
+	else
+		return 0;
+
+}
+
+void image_print_info(struct image * image) {
+
+	const char * str;
+
+	if ( image->orig_filename )
+		printf("File: %s\n", image->orig_filename);
+
+	str = image_type_to_string(image->type);
+	printf("    Image type: %s\n", str ? str : "unknown");
+	printf("    Image size: %d bytes\n", image->size);
+
+	if ( image->version )
+		printf("    Image version: %s\n", image->version);
+
+	if ( image->device == DEVICE_UNKNOWN )
+		str = "unknown device";
+	else
+		str = device_to_string(image->device);
+
+	if ( str )
+		printf("    Valid for device: %s\n", str);
+
+	if ( image->hwrevs )
+		printf("    Valid for HW revisions: %s\n", image->hwrevs);
 
 }
