@@ -33,7 +33,9 @@
 #include "fiasco2.h"
 #include "device.h"
 #include "usb-device.h"
+#include "cold-flash.h"
 
+#undef VERSION
 #define VERSION "0.6"
 
 static void show_title(void) {
@@ -323,6 +325,8 @@ int main(int argc, char **argv) {
 
 	struct fiasco * fiasco_in = NULL;
 	struct fiasco * fiasco_out = NULL;
+
+	struct usb_device_info * usb_dev = NULL;
 
 	simulate = 0;
 	noverify = 0;
@@ -626,6 +630,10 @@ int main(int argc, char **argv) {
 		if ( fiasco_in ) {
 			fiasco_print_info(fiasco_in);
 			printf("\n");
+		} else if ( ! image_first ) {
+			ERROR(0, "No image specified");
+			ret = 1;
+			goto clean;
 		}
 		for ( image_ptr = image_first; image_ptr; image_ptr = image_ptr->next ) {
 			image_print_info(image_ptr->image);
@@ -676,23 +684,75 @@ int main(int argc, char **argv) {
 	}
 
 
-#ifdef WITH_USB
+#if defined(WITH_USB) && ! defined(WITH_DEVICE)
 
 	/* over usb */
 
-	/* device identify */
+	if ( dev_cold_flash ) {
+		if ( have_2nd == 0 ) {
+			ERROR(0, "2nd image for Cold Flashing was not specified");
+			ret = 1;
+			goto clean;
+		} else if ( have_2nd == 2 ) {
+			ERROR(0, "More 2nd images for Cold Flashing was specified");
+			ret = 1;
+			goto clean;
+		}
 
-	/* cold flash */
+		if ( have_secondary == 0 ) {
+			ERROR(0, "Secondary image for Cold Flashing was not specified");
+			ret = 1;
+			goto clean;
+		} else if ( have_secondary == 2 ) {
+			ERROR(0, "More Secondary images for Cold Flashing was specified");
+			ret = 1;
+			goto clean;
+		}
+	}
 
-	/* flash */
+	while ( image_first ) {
 
-	/* configuration */
+		usb_dev = usb_open_and_wait_for_device();
 
-	/* load */
+		/* cold flash */
+		if ( dev_cold_flash ) {
 
-	/* boot */
+			if ( usb_dev->flash_device->protocol != FLASH_COLD ) {
+				usb_close_device(usb_dev);
+				printf("Unplug USB cable, turn device off, press ENTER and plug USB cable again\n");
+				fflush(stdin);
+				getchar();
+				continue;
+			}
 
-	/* reboot */
+			cold_flash(usb_dev->udev, image_2nd, image_secondary);
+			usb_close_device(usb_dev);
+			usb_dev = NULL;
+
+			if ( dev_flash ) {
+				dev_cold_flash = 0;
+				continue;
+			}
+
+			break;
+
+		}
+
+		/* device identify */
+//		while(get_status());
+
+		/* flash */
+
+		/* configuration */
+
+		/* load */
+
+		/* boot */
+
+		/* reboot */
+
+	}
+
 
 #endif
 
@@ -701,11 +761,15 @@ int main(int argc, char **argv) {
 
 	/* on device */
 
+	/* device identify */
+
 	/* check */
 
 	/* dump */
 
 	/* flash */
+
+	/* configuration */
 
 	/* reboot */
 
@@ -726,6 +790,9 @@ clean:
 
 	if ( fiasco_in )
 		fiasco_free(fiasco_in);
+
+	if ( usb_dev )
+		usb_close_device(usb_dev);
 
 	return ret;
 }
