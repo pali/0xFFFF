@@ -584,7 +584,7 @@ int main(int argc, char **argv)
 
 		for(c=0;c<pcs_n;c++) {
 			printf("Flashing %s (%s)\n", pcs[c].type, pcs[c].name);
-			flash_image(pcs[c].name, pcs[c].type, pcs[c].device, pcs[c].hwrevs, pcs[c].version);
+//			flash_image(pcs[c].name, pcs[c].type, pcs[c].device, pcs[c].hwrevs, pcs[c].version);
 		}
 	}
 

@@ -16,10 +16,12 @@ extern char strbuf[1024];
 
 // Forward declaration for use in function arguments.
 //struct devices;
+struct image;
 
 int queue_mode();
 int reverse_extract_pieces(char *dir);
-void flash_image(const char *filename, const char *piece, const char *device, const char *hwrevs, const char *version);
+//void flash_image(const char *filename, const char *piece, const char *device, const char *hwrevs, const char *version);
+void flash_image(struct image * image);
 int fiasco_read_image(char *file);
 //void check_nolo_order();
 extern struct usb_dev_handle *dev;

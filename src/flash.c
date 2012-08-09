@@ -23,6 +23,8 @@
 #include <string.h>
 #include <stdlib.h>
 
+#include "image.h"
+
 /*void check_nolo_order_failed()
 {
 	fprintf(stderr, "\nERROR: Provide xloader before the secondary. NOLO disagrees anything else.\n");
@@ -73,9 +75,9 @@ void query_error_message()
 		check_nolo_order_failed();
 }*/
 
-void flash_image(const char *filename, const char *piece, const char *device, const char *hwrevs, const char *version)
+void flash_image(struct image * image)
 {
-	FILE *fd;
+//	FILE *fd;
 	int vlen = 0;
 	int request;
 	/*/ n800 flash queries have a variable size */
@@ -83,17 +85,19 @@ void flash_image(const char *filename, const char *piece, const char *device, co
 	unsigned long long size, off;
 	unsigned char bsize[4], tmp;
 	unsigned char nolofiller[128];
-	ushort hash = 0; //do_hash_file(filename, piece);
+	const char * piece = image_type_to_string(image->type);
+	const char * version = image->version;
+	ushort hash = image->hash;
 
-	if (piece == NULL) {
+//	if (piece == NULL) {
 		//exit(1);
-		piece = fpid_file(filename);
+//		piece = fpid_file(filename);
 		if (piece == NULL) {
 			printf("Unknown piece type\n");
 			return;
 		}
-		printf("Piece type: %s\n", piece);
-	}
+//		printf("Piece type: %s\n", piece);
+//	}
 
 /*	if (piece != NULL) {
 		if (!strcmp(piece, "fiasco")) {
@@ -105,11 +109,11 @@ void flash_image(const char *filename, const char *piece, const char *device, co
 	if (version)
 		vlen = strlen(version)+1;
 
-	fd = fopen(filename, "rb");
-	if (fd == NULL) {
-		printf("Cannot open file\n");
-		exit(1);
-	}
+//	fd = fopen(filename, "rb");
+//	if (fd == NULL) {
+//		printf("Cannot open file\n");
+//		exit(1);
+//	}
 	/* cook flash query */
 	memset(fquery, '\x00', 27);              // reset buffer
 	memcpy(fquery, "\x2e\x19\x01\x01", 4);   // header
@@ -119,7 +123,8 @@ void flash_image(const char *filename, const char *piece, const char *device, co
 	memcpy(fquery+7, piece, strlen(piece));  // XXX ??!??
 
 	printf("| hash: 0x%hhx%hhx ", fquery[5], fquery[6]);
-	size = get_file_size(filename);
+//	size = get_file_size(filename);
+	size = image->size;
 	bsize[0] = (size & 0xff000000) >> 24;
 	bsize[1] = (size & 0x00ff0000) >> 16;
 	bsize[2] = (size & 0x0000ff00) >> 8;
@@ -157,25 +162,26 @@ void flash_image(const char *filename, const char *piece, const char *device, co
 		char buf[BSIZE];
 		int bread, bsize = size-off;
 		if (bsize>BSIZE) bsize = BSIZE;
-		bread = fread(buf, bsize, 1, fd);
+//		bread = fread(buf, bsize, 1, fd);
+		bread = image_read(image, buf, bsize);
 		if (bread != 1)
 			printf("WARNING: Oops wrong read %d vs %d \n", bread, bsize);
 		bread = usb_bulk_write(dev, 2, buf, bsize, 5000);
 		if (bread == 64) {
 			query_error_message();
-			fclose(fd);
+//			fclose(fd);
 			return;
 		}
 		progressbar(off, size);
 		if (bread<0) {
 			printf("\n");
 			perror(" -ee- ");
-			fclose(fd);
+//			fclose(fd);
 			return;
 		}
 		fflush(stdout);
 	}
-	fclose(fd);
+//	fclose(fd);
 	/*/ EOF */
 	usb_bulk_write(dev, 2, (char *)nolofiller, 0, 1000);
 	progressbar(1, 1);
