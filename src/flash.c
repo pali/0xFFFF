@@ -23,12 +23,12 @@
 #include <string.h>
 #include <stdlib.h>
 
-void check_nolo_order_failed()
+/*void check_nolo_order_failed()
 {
 	fprintf(stderr, "\nERROR: Provide xloader before the secondary. NOLO disagrees anything else.\n");
 	fprintf(stderr, "Use: -p xloader.bin -p secondary.bin\n");
 	exit(1);
-}
+}*/
 
 void query_error_message()
 {
@@ -50,7 +50,7 @@ void query_error_message()
 	}
 }
 
-void check_nolo_order()
+/*void check_nolo_order()
 {
 	int i, xlo = 0;
 
@@ -71,7 +71,7 @@ void check_nolo_order()
 
 	if (xlo && xlo != 0x11)
 		check_nolo_order_failed();
-}
+}*/
 
 void flash_image(const char *filename, const char *piece, const char *device, const char *hwrevs, const char *version)
 {

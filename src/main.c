@@ -567,7 +567,7 @@ int main(int argc, char **argv)
 
 	if (pcs_n) {
 		char version[64];
-		check_nolo_order();
+//		check_nolo_order();
 		get_sw_version();
 		get_hw_revision(version, 44);
 		if (subverstr == NULL) {

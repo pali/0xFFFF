@@ -16,7 +16,7 @@ int queue_mode();
 int reverse_extract_pieces(char *dir);
 void flash_image(const char *filename, const char *piece, const char *device, const char *hwrevs, const char *version);
 int fiasco_read_image(char *file);
-void check_nolo_order();
+//void check_nolo_order();
 extern struct usb_dev_handle *dev;
 unsigned long get_file_size(const char *file);
 void progressbar(unsigned long long part, unsigned long long total);
