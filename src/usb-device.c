@@ -165,7 +165,7 @@ static struct usb_device_info * usb_search_device(struct usb_device * dev, int l
 
 }
 
-struct usb_device_info * usb_wait_for_device(void) {
+struct usb_device_info * usb_open_and_wait_for_device(void) {
 
 	struct usb_bus * bus;
 	struct usb_device_info * ret = NULL;
