@@ -46,11 +46,11 @@ int    qmode               = 0;
 int    info                = 0;
 int    nomode              = 0;
 
-char *modes[]={
+/*char *modes[]={
 	"host",
 	"peripheral",
 	NULL
-};
+};*/
 
 char *root_devices[] = {
 	"flash",

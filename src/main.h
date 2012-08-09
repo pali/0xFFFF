@@ -16,15 +16,14 @@ extern char strbuf[1024];
 
 // Forward declaration for use in function arguments.
 //struct devices;
-struct image;
 
 int queue_mode();
 int reverse_extract_pieces(char *dir);
 //void flash_image(const char *filename, const char *piece, const char *device, const char *hwrevs, const char *version);
-int fiasco_read_image(char *file);
+//int fiasco_read_image(char *file);
 //void check_nolo_order();
-extern struct usb_dev_handle *dev;
-unsigned long get_file_size(const char *file);
+//extern struct usb_dev_handle *dev;
+//unsigned long get_file_size(const char *file);
 void progressbar(unsigned long long part, unsigned long long total);
 //const char *fpid_file(const char *filename);
 //int add_piece(char *piece);
@@ -41,7 +40,7 @@ void eprintf(const char *format, ...);
 //int fiasco_flash(const char *file);
 extern struct usb_device *device;
 extern struct usb_dev_handle *dev;
-int is_valid_device(struct usb_device_descriptor *udd);
+//int is_valid_device(struct usb_device_descriptor *udd);
 //void list_valid_devices();
 //int usb_device_found(struct usb_device_descriptor *udd, struct devices *it_device);
 //int console(const char *device);
@@ -86,7 +85,7 @@ extern int verbose;
 //extern int pcs_n;
 //extern struct piece_t pcs[10];
 
-enum {
+/*enum {
 	PIECE_XLOADER = 0,
 	PIECE_2ND,
 	PIECE_SECONDARY,
@@ -100,9 +99,9 @@ enum {
 	PIECE_CMT_MCUSW,
 	PIECE_FIASCO,
 	PIECE_LAST
-};
+};*/
 
-struct header_t {
+/*struct header_t {
 	int fd;
 	char swver[128];
 	char type[128];
@@ -114,10 +113,10 @@ struct header_t {
 	unsigned char *data;
 	char *name;
 	char *layout;
-};
+};*/
 
 extern char *pieces[];
-extern char *modes[];
+//extern char *modes[];
 
 // fiasco
 /*
@@ -131,9 +130,9 @@ int fiasco_pack(int optind, char *argv[]);
 int nanddump(char *mtddev, unsigned long start_addr, unsigned long length, char *dumpfile, int isbl, int ioob);
 
 //
-int reboot_board();
+/*int reboot_board();
 int get_rd_flags();
 int get_usb_mode();
-int get_nolo_version();
+int get_nolo_version();*/
 
 #endif
