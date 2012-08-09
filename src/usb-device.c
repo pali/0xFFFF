@@ -62,7 +62,7 @@ const char * usb_flash_protocol_to_string(enum usb_flash_protocol protocol) {
 
 }
 
-static void usb_device_info_print(const struct usb_flash_device * dev) {
+static void usb_flash_device_info_print(const struct usb_flash_device * dev) {
 
 	int i;
 
@@ -86,7 +86,7 @@ static struct usb_device_info * usb_device_is_valid(struct usb_device * dev) {
 
 			PRINTF_END();
 			PRINTF_ADD("Found ");
-			usb_device_info_print(&usb_devices[i]);
+			usb_flash_device_info_print(&usb_devices[i]);
 			PRINTF_END();
 
 			PRINTF_LINE("Opening USB...");
@@ -126,15 +126,16 @@ static struct usb_device_info * usb_device_is_valid(struct usb_device * dev) {
 				}
 			}
 
-			ret = malloc(sizeof(struct usb_device_info));
+			ret = calloc(1, sizeof(struct usb_device_info));
 			if ( ! ret ) {
 				ALLOC_ERROR();
 				usb_close(udev);
 				return NULL;
 			}
 
-			ret->dev = udev;
-			ret->info = &usb_devices[i];
+			ret->detected_device = DEVICE_UNKNOWN;
+			ret->flash_device = &usb_devices[i];
+			ret->udev = udev;
 			break;
 		}
 	}
@@ -217,7 +218,7 @@ struct usb_device_info * usb_open_and_wait_for_device(void) {
 
 void usb_close_device(struct usb_device_info * dev) {
 
-	free(dev->dev);
+	free(dev->udev);
 	free(dev);
 
 }

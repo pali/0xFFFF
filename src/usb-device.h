@@ -40,8 +40,9 @@ struct usb_flash_device {
 };
 
 struct usb_device_info {
-	usb_dev_handle * dev;
-	struct usb_flash_device * info;
+	enum device detected_device;
+	struct usb_flash_device * flash_device;
+	usb_dev_handle * udev;
 };
 
 const char * usb_flash_protocol_to_string(enum usb_flash_protocol protocol);
