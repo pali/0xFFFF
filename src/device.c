@@ -35,7 +35,7 @@ enum device device_from_string(const char * device) {
 
 	size_t i;
 
-	if ( ! device )
+	if ( ! device || ! device[0] )
 		return DEVICE_ANY;
 
 	for ( i = 0; i < sizeof(devices)/sizeof(devices[0]); ++i )
