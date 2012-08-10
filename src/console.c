@@ -52,16 +52,16 @@ static void cmd_help(char *line)
 static void cmd_info(char *line)
 {
 	char *p, str[128];
-	get_sw_version();
-	get_hw_revision(str, 128); // get hardware revision:
+//	get_sw_version();
+//	get_hw_revision(str, 128); // get hardware revision:
 	p = strstr(str, "hw_rev:");
 	if (p) // TODO: delimit string by comma
 		printf("SubVersionString autodetected: '%s'\n", p+7);
 	else printf("SubVersionString autodetected: (error)\n");
-	get_root_device(); // only for flashing
-	get_usb_mode();
-	get_rd_mode();
-	get_rd_flags();
+//	get_root_device(); // only for flashing
+//	get_usb_mode();
+//	get_rd_mode();
+//	get_rd_flags();
 }
 
 static void cmd_nanddump(char *line)
@@ -112,7 +112,7 @@ static void cmd_connect(char *line)
 
 static void cmd_reboot(char *line)
 {
-	reboot_board();
+//	reboot_board();
 }
 
 static void cmd_shell(char *line)
