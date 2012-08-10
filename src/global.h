@@ -16,6 +16,7 @@ extern int verbose;
 #define ERROR_STR(str, ...) do { errno = 0; ERROR_INFO_STR(str, __VA_ARGS__); } while (0)
 #define ERROR_INFO(...) do { ERROR_INFO_STR("", __VA_ARGS__); } while (0)
 #define ERROR(...) do { ERROR_STR("", __VA_ARGS__); } while (0)
+#define ERROR_RETURN(str, ...) do { ERROR("%s", str); return __VA_ARGS__; } while (0)
 
 #define ALLOC_ERROR() do { ERROR("Cannot allocate memory"); } while (0)
 #define ALLOC_ERROR_RETURN(...) do { ALLOC_ERROR(); return __VA_ARGS__; } while (0)
