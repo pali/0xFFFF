@@ -22,7 +22,6 @@
 #include <string.h>
 
 #include "dump.h"
-#include "hexdump.h"
 #include "printf-utils.h"
 
 /*

@@ -27,8 +27,6 @@
 #include "image.h"
 #include "printf-utils.h"
 
-#include "hexdump.h"
-
 #define CMD_WRITE 64
 #define CMD_QUERY 192
 
@@ -53,7 +51,7 @@ static void query_error_message()
 	if (nolomsg[0] == '\0') {
 		printf(" (.. silence ..)\n");
 	} else {
-		dump_bytes((unsigned char *)nolomsg, 128);
+//		dump_bytes((unsigned char *)nolomsg, 128);
 		do {
 			printf(" - %s\n", nolomsg+len);
 			len+=strlen(nolomsg+len)+1;
