@@ -81,8 +81,8 @@ static void show_usage(void) {
 		" -R 0|1          disable/enable R&D mode\n"
 		" -F flags        change R&D flags, flags are comma separated list, can be empty\n"
 		" -H rev          change HW revision\n"
-		" -K ver          change kernel version string\n"
 		" -N ver          change NOLO version string\n"
+		" -K ver          change kernel version string\n"
 		" -S ver          change SW release version string\n"
 		" -C ver          change content eMMC version string\n"
 		"\n"
@@ -840,13 +840,35 @@ int main(int argc, char **argv) {
 				break;
 			}
 
+			/* load */
+//			if ( image_first )
+
 			/* flash */
 //			if ( image_first )
 
 			/* configuration */
-
-			/* load */
-//			if ( image_first )
+			if ( set_rd_flags ) {
+				set_rd = 1;
+				set_rd_arg = "1";
+			}
+			if ( set_root )
+				nolo_set_root_device(usb_dev, atoi(set_root_arg));
+			if ( set_usb )
+				nolo_set_usb_host_mode(usb_dev, atoi(set_usb_arg));
+			if ( set_rd )
+				nolo_set_rd_mode(usb_dev, atoi(set_rd_arg));
+			if ( set_rd_flags )
+				nolo_set_rd_flags(usb_dev, set_rd_flags_arg);
+			if ( set_hw )
+				nolo_set_hwrev(usb_dev, set_hw_arg);
+			if ( set_nolo )
+				nolo_set_nolo_ver(usb_dev, set_nolo_arg);
+			if ( set_kernel )
+				nolo_set_kernel_ver(usb_dev, set_kernel_arg);
+			if ( set_sw )
+				nolo_set_sw_ver(usb_dev, set_sw_arg);
+			if ( set_emmc )
+				nolo_set_content_ver(usb_dev, set_emmc_arg);
 
 			/* boot */
 			if ( dev_boot ) {
