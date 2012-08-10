@@ -134,11 +134,11 @@ int queue_mode(void)
 		} else {
 			do {
 #if HAVE_USB
-				if (connect_via_usb()) {
+/*				if (connect_via_usb()) {
 					fprintf(stderr, "Cannot connect to device. It is possibly not in boot stage.\n");
 					squeue_push2(p, "error", "Cannot connect to the device", 1);
 					return 0;
-				}
+				}*/
 #endif
 				printf("Waiting for a client in shared queues..\n");
 				setsid();

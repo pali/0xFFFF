@@ -26,7 +26,7 @@
 #if HAVE_USB
 #include <usb.h>
 struct usb_device *device  = NULL;
-struct usb_dev_handle *dev = NULL;
+extern struct usb_dev_handle *dev = NULL;
 #endif
 //char  *fiasco_image        = NULL;
 char  *boot_cmdline        = NULL;

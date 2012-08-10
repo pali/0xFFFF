@@ -34,6 +34,8 @@
 #include "device.h"
 #include "usb-device.h"
 #include "cold-flash.h"
+#include "console.h"
+#include "qmode.h"
 
 #undef VERSION
 #define VERSION "0.6"
@@ -476,14 +478,14 @@ int main(int argc, char **argv) {
 
 	/* console */
 	if ( console ) {
-//		console_prompt();
+		console_prompt();
 		ret = 0;
 		goto clean;
 	}
 
 	/* share queues */
 	if ( queue ) {
-//		queue_mode();
+		queue_mode();
 		ret = 0;
 		goto clean;
 	}

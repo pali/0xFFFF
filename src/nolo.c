@@ -32,9 +32,7 @@
 #define CMD_WRITE 64
 #define CMD_QUERY 192
 
-extern char *root_devices[];
-
-extern struct usb_dev_handle *dev;
+struct usb_dev_handle *dev;
 
 /*void check_nolo_order_failed()
 {
@@ -394,7 +392,7 @@ int get_root_device()
 		return -1;
 	}
 
-	printf("Root device is: %s\n", root_devices[opcode]);
+//	printf("Root device is: %s\n", root_devices[opcode]);
 
 	return 0;
 }
@@ -417,7 +415,7 @@ int set_root_device(unsigned short root_device)
 		return -1;
 	}
 
-	printf("Root device set to: %s\n", root_devices[root_device]);
+//	printf("Root device set to: %s\n", root_devices[root_device]);
 
 	return 0;
 }

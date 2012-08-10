@@ -107,7 +107,7 @@ static void cmd_badblocks(char *line)
 
 static void cmd_connect(char *line)
 {
-	connect_via_usb();
+//	connect_via_usb();
 }
 
 static void cmd_reboot(char *line)
