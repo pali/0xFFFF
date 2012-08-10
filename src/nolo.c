@@ -25,6 +25,7 @@
 
 #include "nolo.h"
 #include "image.h"
+#include "printf-utils.h"
 
 #include "hexdump.h"
 
@@ -182,7 +183,7 @@ void nolo_flash_image(struct image * image)
 //			fclose(fd);
 			return;
 		}
-		progressbar(off, size);
+		printf_progressbar(off, size);
 		if (bread<0) {
 			printf("\n");
 			perror(" -ee- ");
@@ -194,7 +195,7 @@ void nolo_flash_image(struct image * image)
 //	fclose(fd);
 	/*/ EOF */
 	usb_bulk_write(dev, 2, (char *)nolofiller, 0, 1000);
-	progressbar(1, 1);
+	printf_progressbar(1, 1);
 	printf("\n");
 
 	// index = 4????

@@ -1,6 +1,7 @@
 /*
  *  0xFFFF - Open Free Fiasco Firmware Flasher
  *  Copyright (C) 2007  pancake <pancake@youterm.com>
+ *  Copyright (C) 2012  Pali Rohár <pali.rohar@gmail.com>
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -16,31 +17,18 @@
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "main.h"
 #include <stdio.h>
-#include <string.h>
-#include <stdarg.h>
 #include <stdlib.h>
 
-unsigned long get_file_size(const char *file)
-{
-	FILE *fd = fopen(file, "r");
-	unsigned long len = 0;
-	if (fd == NULL) {
-		fprintf(stderr, "Cannot open file '%s'\n", file);
-		exit(1);
-	}
-	fseek(fd, 0, SEEK_END);
-	len = ftell(fd);
-	fclose(fd);
-	return len;
-}
+#include "printf-utils.h"
 
-void progressbar(unsigned long long part, unsigned long long total)
-{
-        char *columns = getenv("COLUMNS");
+int printf_prev = 0;
+
+void printf_progressbar(unsigned long long part, unsigned long long total) {
+
+	char *columns = getenv("COLUMNS");
 	int pc;
-        int tmp, cols = 80;
+	int tmp, cols = 80;
 
 	/* percentage calculation */
 	pc = (int)(part*100/total);
@@ -53,24 +41,19 @@ void progressbar(unsigned long long part, unsigned long long total)
 		squeue_push2(p, "bar", msg, 0);
 	} else {
 #endif
-		printf("\x1b[K  %3d%% [", pc);
+		PRINTF_BACK();
+		PRINTF_ADD("\x1b[K  %3d%% [", pc);
 		if (columns)
 			cols = atoi(columns);
+		if (cols > 115)
+			cols = 115;
 		cols-=15;
-		for(tmp=cols*pc/100;tmp;tmp--) printf("#");
-		for(tmp=cols-(cols*pc/100);tmp;tmp--) printf("-");
-		printf("]\r");
+		for(tmp=cols*pc/100;tmp;tmp--) PRINTF_ADD("#");
+		for(tmp=cols-(cols*pc/100);tmp;tmp--) PRINTF_ADD("-");
+		PRINTF_ADD("]");
 		fflush(stdout);
 #if HAVE_SQUEUE
 	}
 #endif
-}
 
-void eprintf(const char *format, ...)
-{
-	va_list ap;
-	va_start(ap, format);
-	vfprintf(stderr, format, ap);
-	va_end(ap);
-	//fflush(stderr); // XXX CRASH?!? stdin here?!?!?
 }

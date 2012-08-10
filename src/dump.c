@@ -23,6 +23,7 @@
 
 #include "dump.h"
 #include "hexdump.h"
+#include "printf-utils.h"
 
 /*
  * Extracts a piece from an mtd device
@@ -389,7 +390,7 @@ int nanddump(char *mtddev, unsigned long start_addr, unsigned long length, char 
 		/* Write out page data */
 		//if (pretty_print) dump_bytes(readbuf, bs);
 		write(ofd, readbuf, bs);
-		progressbar(ofs, end_addr);
+		printf_progressbar(ofs, end_addr);
 
 		// OOB STUFF //
 		if (omitoob)

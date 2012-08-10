@@ -17,11 +17,15 @@
  */
 
 #if HAVE_USB
-#include "main.h"
+
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
 #include <getopt.h>
+#include <unistd.h>
+
+#include "nolo.h"
+#include "dump.h"
 
 void cmd_exit(char *line)
 {
@@ -72,9 +76,9 @@ void cmd_nanddump(char *line)
 		(char *)&out, (int*)&ignbb, (int *)&ignoob);
 
 	if (ignoob == -1) {
-		eprintf("Invalid arguments.\n");
-		eprintf("nanddump [dev] [start] [len] [out] [ignore-badblocks] [ignore-oob]\n");
-		eprintf("                  f.ex: nanddump /dev/mtd0 0x0 0x4000 xloader.bin 1 1\n");
+		fprintf(stderr, "Invalid arguments.\n");
+		fprintf(stderr, "nanddump [dev] [start] [len] [out] [ignore-badblocks] [ignore-oob]\n");
+		fprintf(stderr, "                  f.ex: nanddump /dev/mtd0 0x0 0x4000 xloader.bin 1 1\n");
 	} else
 		nanddump(dev, from, length, out, ignbb, ignoob);
 }

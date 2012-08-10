@@ -28,13 +28,7 @@
 #include "global.h"
 #include "device.h"
 #include "usb-device.h"
-
-static int prev = 0;
-#define PRINTF_BACK() do { if ( prev ) { printf("\r%-*s\r", prev, ""); prev = 0; } } while (0)
-#define PRINTF_ADD(format, ...) do { prev += printf(format, ##__VA_ARGS__); } while (0)
-#define PRINTF_LINE(format, ...) do { PRINTF_BACK(); PRINTF_ADD(format, ##__VA_ARGS__); fflush(stdout); } while (0)
-#define PRINTF_END() do { if ( prev ) { printf("\n"); prev = 0; } } while (0)
-#define PRINTF_ERROR(format, ...) do { PRINTF_END(); ERROR_INFO(format, ##__VA_ARGS__); } while (0)
+#include "printf-utils.h"
 
 static struct usb_flash_device usb_devices[] = {
 	{ 0x0421, 0x0105,  2,  1, -1, FLASH_NOLO, { DEVICE_SU_18, DEVICE_RX_44, DEVICE_RX_48, DEVICE_RX_51, 0 } },
