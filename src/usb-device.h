@@ -17,6 +17,9 @@
 
 */
 
+#ifndef USB_DEVICE_H
+#define USB_DEVICE_H
+
 #include <usb.h>
 
 #include "device.h"
@@ -48,3 +51,5 @@ struct usb_device_info {
 const char * usb_flash_protocol_to_string(enum usb_flash_protocol protocol);
 struct usb_device_info * usb_open_and_wait_for_device(void);
 void usb_close_device(struct usb_device_info * dev);
+
+#endif
