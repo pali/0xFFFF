@@ -204,12 +204,12 @@ static void parse_image_arg(char * arg, struct image_list ** image_first) {
 		off_t len;
 		int fd = open(layout_file, O_RDONLY);
 		if ( fd < 0 ) {
-			ERROR(errno, "Cannot open layout file %s", layout_file);
+			ERROR_INFO("Cannot open layout file %s", layout_file);
 			exit(1);
 		}
 		len = lseek(fd, 0, SEEK_END);
 		if ( len == (off_t)-1 ) {
-			ERROR(errno, "Cannot get size of file %s", layout_file);
+			ERROR_INFO("Cannot get size of file %s", layout_file);
 			exit(1);
 		}
 		lseek(fd, 0, SEEK_SET);
@@ -219,7 +219,7 @@ static void parse_image_arg(char * arg, struct image_list ** image_first) {
 			exit(1);
 		}
 		if ( read(fd, layout, len) != len ) {
-			ERROR(errno, "Cannot read %lu bytes from layout file %s", len, layout_file);
+			ERROR_INFO("Cannot read %lu bytes from layout file %s", len, layout_file);
 			exit(1);
 		}
 	}
@@ -230,7 +230,7 @@ static void parse_image_arg(char * arg, struct image_list ** image_first) {
 		free(layout);
 
 	if ( ! image ) {
-		ERROR(0, "Cannot load image file %s", file);
+		ERROR("Cannot load image file %s", file);
 		exit(1);
 	}
 
@@ -491,7 +491,7 @@ int main(int argc, char **argv) {
 
 	/* load images from files */
 	if ( image_first && image_fiasco ) {
-		ERROR(0, "Cannot specify normal and fiasco images together");
+		ERROR("Cannot specify normal and fiasco images together");
 		ret = 1;
 		goto clean;
 	}
@@ -500,7 +500,7 @@ int main(int argc, char **argv) {
 	if ( image_fiasco ) {
 		fiasco_in = fiasco_alloc_from_file(image_fiasco_arg);
 		if ( ! fiasco_in )
-			ERROR(0, "Cannot load fiasco image file %s", image_fiasco_arg);
+			ERROR("Cannot load fiasco image file %s", image_fiasco_arg);
 		else
 			image_first = fiasco_in->first;
 	}
@@ -509,7 +509,7 @@ int main(int argc, char **argv) {
 	if ( filter_type ) {
 		enum image_type type = image_type_from_string(filter_type_arg);
 		if ( ! type ) {
-			ERROR(0, "Specified unknown image type for filtering: %s", filter_type_arg);
+			ERROR("Specified unknown image type for filtering: %s", filter_type_arg);
 		} else {
 			image_ptr = image_first;
 			while ( image_ptr ) {
@@ -528,7 +528,7 @@ int main(int argc, char **argv) {
 	if ( filter_device ) {
 		enum device device = device_from_string(filter_device_arg);
 		if ( ! device ) {
-			ERROR(0, "Specified unknown device for filtering: %s", filter_device_arg);
+			ERROR("Specified unknown device for filtering: %s", filter_device_arg);
 		} else {
 			image_ptr = image_first;
 			while ( image_ptr ) {
@@ -631,7 +631,7 @@ int main(int argc, char **argv) {
 			fiasco_print_info(fiasco_in);
 			printf("\n");
 		} else if ( ! image_first ) {
-			ERROR(0, "No image specified");
+			ERROR("No image specified");
 			ret = 1;
 			goto clean;
 		}
@@ -672,7 +672,7 @@ int main(int argc, char **argv) {
 			*(swver++) = 0;
 		fiasco_out = fiasco_alloc_empty();
 		if ( ! fiasco_out ) {
-			ERROR(0, "Cannot write images to fiasco file %s", fiasco_gen_arg);
+			ERROR("Cannot write images to fiasco file %s", fiasco_gen_arg);
 		} else {
 			if ( swver )
 				strcpy(fiasco_out->swver, swver);
@@ -690,21 +690,21 @@ int main(int argc, char **argv) {
 
 	if ( dev_cold_flash ) {
 		if ( have_2nd == 0 ) {
-			ERROR(0, "2nd image for Cold Flashing was not specified");
+			ERROR("2nd image for Cold Flashing was not specified");
 			ret = 1;
 			goto clean;
 		} else if ( have_2nd == 2 ) {
-			ERROR(0, "More 2nd images for Cold Flashing was specified");
+			ERROR("More 2nd images for Cold Flashing was specified");
 			ret = 1;
 			goto clean;
 		}
 
 		if ( have_secondary == 0 ) {
-			ERROR(0, "Secondary image for Cold Flashing was not specified");
+			ERROR("Secondary image for Cold Flashing was not specified");
 			ret = 1;
 			goto clean;
 		} else if ( have_secondary == 2 ) {
-			ERROR(0, "More Secondary images for Cold Flashing was specified");
+			ERROR("More Secondary images for Cold Flashing was specified");
 			ret = 1;
 			goto clean;
 		}

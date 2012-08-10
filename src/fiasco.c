@@ -33,8 +33,8 @@
 #include "image.h"
 #include "fiasco.h"
 
-#define FIASCO_READ_ERROR(fiasco, format, ...) do { ERROR(errno, format, ##__VA_ARGS__); fiasco_free(fiasco); return NULL; } while (0)
-#define FIASCO_WRITE_ERROR(file, fd, format, ...) do { ERROR(errno, "%s: " format, file, ##__VA_ARGS__); if ( fd >= 0 ) close(fd); return -1; } while (0)
+#define FIASCO_READ_ERROR(fiasco, ...) do { ERROR_INFO(__VA_ARGS__); fiasco_free(fiasco); return NULL; } while (0)
+#define FIASCO_WRITE_ERROR(file, fd, ...) do { ERROR_INFO_STR(file, __VA_ARGS__); if ( fd >= 0 ) close(fd); return -1; } while (0)
 #define READ_OR_FAIL(fiasco, buf, size) do { if ( read(fiasco->fd, buf, size) != size ) { FIASCO_READ_ERROR(fiasco, "Cannot read %d bytes", size); } } while (0)
 #define READ_OR_RETURN(fiasco, buf, size) do { if ( read(fiasco->fd, buf, size) != size ) return fiasco; } while (0)
 #define WRITE_OR_FAIL(file, fd, buf, size) do { if ( ! simulate ) { if ( write(fd, buf, size) != size ) { FIASCO_WRITE_ERROR(file, fd, "Cannot write %d bytes", size); } } } while (0)
@@ -77,7 +77,7 @@ struct fiasco * fiasco_alloc_from_file(const char * file) {
 
 	fiasco->fd = open(file, O_RDONLY);
 	if ( fiasco->fd < 0 ) {
-		ERROR(errno, "Cannot open file");
+		ERROR_INFO("Cannot open file");
 		fiasco_free(fiasco);
 		return NULL;
 	}
@@ -122,7 +122,7 @@ struct fiasco * fiasco_alloc_from_file(const char * file) {
 
 		/* Header of next image */
 		if ( ! buf[0] == 0x54 && buf[2] == 0x2E && buf[3] == 0x19 && buf[4] == 0x01 && buf[5] == 0x01 && buf[6] == 0x00 ) {
-			ERROR(0, "Invalid next image header");
+			ERROR("Invalid next image header");
 			return fiasco;
 		}
 
@@ -290,7 +290,7 @@ int fiasco_write_to_file(struct fiasco * fiasco, const char * file) {
 	if ( ! simulate ) {
 		fd = open(file, O_RDWR|O_CREAT|O_TRUNC, 0644);
 		if ( fd < 0 ) {
-			ERROR(errno, "Cannot create file");
+			ERROR_INFO("Cannot create file");
 			return -1;
 		}
 	}
@@ -490,12 +490,12 @@ int fiasco_unpack(struct fiasco * fiasco, const char * dir) {
 		memset(cwd, 0, sizeof(cwd));
 
 		if ( ! getcwd(cwd, sizeof(cwd)) ) {
-			ERROR(errno, "Cannot store current directory");
+			ERROR_INFO("Cannot store current directory");
 			return -1;
 		}
 
 		if ( chdir(dir) < 0 ) {
-			ERROR(errno, "Cannot change current directory to %s", dir);
+			ERROR_INFO("Cannot change current directory to %s", dir);
 			return -1;
 		}
 
@@ -533,7 +533,7 @@ int fiasco_unpack(struct fiasco * fiasco, const char * dir) {
 
 		fd = open(name, O_RDWR|O_CREAT|O_TRUNC, 0644);
 		if ( fd < 0 ) {
-			ERROR(errno, "Cannot create output file %s", name);
+			ERROR_INFO("Cannot create output file %s", name);
 			return -1;
 		}
 
@@ -553,7 +553,7 @@ int fiasco_unpack(struct fiasco * fiasco, const char * dir) {
 
 			fd = open(layout_name, O_RDWR|O_CREAT|O_TRUNC, 0644);
 			if ( fd < 0 ) {
-				ERROR(errno, "Cannot create layout file %s", layout_name);
+				ERROR_INFO("Cannot create layout file %s", layout_name);
 				return -1;
 			}
 
@@ -571,7 +571,7 @@ int fiasco_unpack(struct fiasco * fiasco, const char * dir) {
 
 	if ( dir ) {
 		if ( chdir(cwd) < 0 ) {
-			ERROR(errno, "Cannot change current directory back to %s", cwd);
+			ERROR_INFO("Cannot change current directory back to %s", cwd);
 			return -1;
 		}
 	}

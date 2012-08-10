@@ -34,7 +34,7 @@ static int prev = 0;
 #define PRINTF_ADD(format, ...) do { prev += printf(format, ##__VA_ARGS__); } while (0)
 #define PRINTF_LINE(format, ...) do { PRINTF_BACK(); PRINTF_ADD(format, ##__VA_ARGS__); fflush(stdout); } while (0)
 #define PRINTF_END() do { if ( prev ) { printf("\n"); prev = 0; } } while (0)
-#define PRINTF_ERROR(errno, format, ...) do { PRINTF_END(); ERROR(errno, format, ##__VA_ARGS__); } while (0)
+#define PRINTF_ERROR(format, ...) do { PRINTF_END(); ERROR_INFO(format, ##__VA_ARGS__); } while (0)
 
 static struct usb_flash_device usb_devices[] = {
 	{ 0x0421, 0x0105,  2,  1, -1, FLASH_NOLO, { DEVICE_SU_18, DEVICE_RX_44, DEVICE_RX_48, DEVICE_RX_51, 0 } },
@@ -43,7 +43,7 @@ static struct usb_flash_device usb_devices[] = {
 	{ 0x0421, 0x01c8, -1, -1, -1, FLASH_MKII, { DEVICE_RX_51, 0 } },
 	{ 0x0421, 0x0431,  0, -1, -1, FLASH_DISK, { DEVICE_SU_18, DEVICE_RX_34, 0 } },
 	{ 0x0421, 0x3f00,  2,  1, -1, FLASH_NOLO, { DEVICE_RX_34, 0 } },
-	{ 0, 0, -1, -1, -1, 0, {} }
+	{ 0, }
 };
 
 static const char * usb_flash_protocols[] = {
@@ -92,7 +92,7 @@ static struct usb_device_info * usb_device_is_valid(struct usb_device * dev) {
 			PRINTF_LINE("Opening USB...");
 			usb_dev_handle * udev = usb_open(dev);
 			if ( ! udev ) {
-				PRINTF_ERROR(errno, "usb_open failed");
+				PRINTF_ERROR("usb_open failed");
 				return NULL;
 			}
 
@@ -103,7 +103,7 @@ static struct usb_device_info * usb_device_is_valid(struct usb_device * dev) {
 
 			PRINTF_LINE("Claiming USB interface...");
 			if ( usb_claim_interface(udev, usb_devices[i].interface) < 0 ) {
-				PRINTF_ERROR(errno, "usb_claim_interface failed");
+				PRINTF_ERROR("usb_claim_interface failed");
 				usb_close(udev);
 				return NULL;
 			}
@@ -111,7 +111,7 @@ static struct usb_device_info * usb_device_is_valid(struct usb_device * dev) {
 			if ( usb_devices[i].alternate >= 0 ) {
 				PRINTF_LINE("Setting alternate USB interface...");
 				if ( usb_set_altinterface(udev, usb_devices[i].alternate) < 0 ) {
-					PRINTF_ERROR(errno, "usb_claim_interface failed");
+					PRINTF_ERROR("usb_claim_interface failed");
 					usb_close(udev);
 					return NULL;
 				}
@@ -120,7 +120,7 @@ static struct usb_device_info * usb_device_is_valid(struct usb_device * dev) {
 			if ( usb_devices[i].configuration >= 0 ) {
 				PRINTF_LINE("Setting USB configuration...");
 				if ( usb_set_configuration(udev, usb_devices[i].configuration) < 0 ) {
-					PRINTF_ERROR(errno, "usb_set_configuration failed");
+					PRINTF_ERROR("usb_set_configuration failed");
 					usb_close(udev);
 					return NULL;
 				}

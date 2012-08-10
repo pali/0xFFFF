@@ -198,7 +198,7 @@ struct image * image_alloc_from_file(const char * file, const char * type, const
 	image->is_shared_fd = 0;
 	image->fd = open(file, O_RDONLY);
 	if ( image->fd < 0 ) {
-		ERROR(errno, "Cannot open image file %s", file);
+		ERROR_INFO("Cannot open image file %s", file);
 		free(image);
 		return NULL;
 	}
@@ -234,7 +234,7 @@ struct image * image_alloc_from_shared_fd(int fd, size_t size, size_t offset, ui
 	image_append(image, type, device, hwrevs, version, layout);
 
 	if ( ! noverify && image->hash != hash ) {
-		ERROR(0, "Image hash mishmash (counted %#04x, got %#04x)", image->hash, hash);
+		ERROR("Image hash mishmash (counted %#04x, got %#04x)", image->hash, hash);
 		image_free(image);
 		return NULL;
 	}
@@ -314,7 +314,7 @@ size_t image_read(struct image * image, void * buf, size_t count) {
 		else
 			new_count = count - ret_count;
 
-		memset(buf+ret_count, 0xFF, new_count);
+		memset((unsigned char *)buf+ret_count, 0xFF, new_count);
 		ret_count += new_count;
 		image->acur += new_count;
 
