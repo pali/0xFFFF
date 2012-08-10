@@ -749,7 +749,6 @@ int main(int argc, char **argv) {
 				break;
 			}
 
-			/* device identify */
 			if ( nolo_init(usb_dev) < 0 ) {
 				printf("Cannot initialize NOLO\n");
 				usb_close_device(usb_dev);
@@ -781,8 +780,65 @@ int main(int argc, char **argv) {
 			printf("NOLO version: %s\n", buf[0] ? buf : "(not detected)");
 
 			buf[0] = 0;
+			nolo_get_kernel_ver(usb_dev, buf, sizeof(buf));
+			printf("Kernel version: %s\n", buf[0] ? buf : "(not detected)");
+
+			buf[0] = 0;
 			nolo_get_sw_ver(usb_dev, buf, sizeof(buf));
 			printf("Software release version: %s\n", buf[0] ? buf : "(not detected)");
+
+			buf[0] = 0;
+			nolo_get_content_ver(usb_dev, buf, sizeof(buf));
+			printf("Content eMMC version: %s\n", buf[0] ? buf : "(not detected)");
+
+			ret = nolo_get_root_device(usb_dev);
+			printf("Root device: ");
+			if ( ret == 0 )
+				printf("flash");
+			else if ( ret == 1 )
+				printf("mmc");
+			else if ( ret == 2 )
+				printf("usb");
+			else
+				printf("(not detected)");
+			printf("\n");
+
+			ret = nolo_get_usb_host_mode(usb_dev);
+			printf("USB host mode: ");
+			if ( ret == 0 )
+				printf("disabled");
+			else if ( ret == 1 )
+				printf("enabled");
+			else
+				printf("(not detected)");
+			printf("\n");
+
+			ret = nolo_get_rd_mode(usb_dev);
+			printf("R&D mode: ");
+			if ( ret == 0 )
+				printf("disabled");
+			else if ( ret == 1 )
+				printf("enabled");
+			else
+				printf("(not detected)");
+			printf("\n");
+
+			if ( ret == 1 ) {
+				ret = nolo_get_rd_flags(usb_dev, buf, sizeof(buf));
+				printf("R&D flags: ");
+				if ( ret < 0 )
+					printf("(not detected)");
+				else
+					printf("%s", buf);
+				printf("\n");
+			}
+
+			/* device identify */
+			if ( dev_ident ) {
+				usb_close_device(usb_dev);
+				usb_dev = NULL;
+				break;
+			}
 
 			/* flash */
 //			if ( image_first )
@@ -834,6 +890,7 @@ int main(int argc, char **argv) {
 
 #endif
 
+	ret = 0;
 
 	/* clean */
 clean:
