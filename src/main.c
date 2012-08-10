@@ -564,7 +564,7 @@ int main(int argc, char **argv)
 	}
 
 	// if (info)
-	cmd_info("");
+//	cmd_info("");
 
 /*	if (pcs_n) {
 		char version[64];

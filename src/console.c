@@ -1,6 +1,7 @@
 /*
  *  0xFFFF - Open Free Fiasco Firmware Flasher
  *  Copyright (C) 2007, 2008  pancake <pancake@youterm.com>
+ *  Copyright (C) 2012        Pali Rohár <pali.rohar@gmail.com>
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -24,15 +25,16 @@
 #include <getopt.h>
 #include <unistd.h>
 
+#include "console.h"
 #include "nolo.h"
 #include "dump.h"
 
-void cmd_exit(char *line)
+static void cmd_exit(char *line)
 {
 	exit(0);
 }
 
-void cmd_help(char *line)
+static void cmd_help(char *line)
 {
 	printf("connect           connects via usb to nolo\n");
 	printf("reboot            reboots remote host\n");
@@ -47,7 +49,7 @@ void cmd_help(char *line)
 	fflush(stdout);
 }
 
-void cmd_info(char *line)
+static void cmd_info(char *line)
 {
 	char *p, str[128];
 	get_sw_version();
@@ -62,7 +64,7 @@ void cmd_info(char *line)
 	get_rd_flags();
 }
 
-void cmd_nanddump(char *line)
+static void cmd_nanddump(char *line)
 {
 	char dev[128];
 	int from;
@@ -83,7 +85,7 @@ void cmd_nanddump(char *line)
 		nanddump(dev, from, length, out, ignbb, ignoob);
 }
 
-void cmd_dump(char *line)
+static void cmd_dump(char *line)
 {
 	if (!line[0]) {
 		printf("Usage: dump [path]\n");
@@ -93,7 +95,7 @@ void cmd_dump(char *line)
 	reverse_extract_pieces(line);
 }
 
-void cmd_badblocks(char *line)
+static void cmd_badblocks(char *line)
 {
 	if (!line[0]) {
 		printf("Usage: dump [path]\n");
@@ -103,17 +105,17 @@ void cmd_badblocks(char *line)
 	check_badblocks(line);
 }
 
-void cmd_connect(char *line)
+static void cmd_connect(char *line)
 {
 	connect_via_usb();
 }
 
-void cmd_reboot(char *line)
+static void cmd_reboot(char *line)
 {
 	reboot_board();
 }
 
-void cmd_shell(char *line)
+static void cmd_shell(char *line)
 {
 	system("/bin/sh");
 }
@@ -123,7 +125,7 @@ void cmd_shell(char *line)
 #define CALL_CMD(x) console_commands[x].callback((char *)line)
 #define FOREACH_CMD(x) for(x=0;x<CMDS;x++)
 
-struct cmd_t {
+static struct cmd_t {
 	char *name;
 	void (*callback)(char *);
 } console_commands[CMDS] = {
@@ -156,7 +158,7 @@ static int console_command(const char *line)
 	return 1;
 }
 
-int console_prompt()
+int console_prompt(void)
 {
 	char line[1024];
 
