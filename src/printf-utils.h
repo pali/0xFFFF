@@ -29,5 +29,6 @@ extern int printf_prev;
 #define PRINTF_ERROR(...) do { PRINTF_END(); ERROR_INFO(__VA_ARGS__); } while (0)
 
 void printf_progressbar(unsigned long long part, unsigned long long total);
+void printf_and_wait(const char * format, ...);
 
 #endif

@@ -19,6 +19,8 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdarg.h>
+#include <unistd.h>
 
 #include "printf-utils.h"
 
@@ -55,5 +57,37 @@ void printf_progressbar(unsigned long long part, unsigned long long total) {
 #if HAVE_SQUEUE
 	}
 #endif
+
+}
+
+void printf_and_wait(const char * format, ...) {
+
+	va_list ap;
+	char c;
+	fd_set rfds;
+	struct timeval tv;
+
+	tv.tv_sec = 0;
+	tv.tv_usec = 0;
+
+	FD_ZERO(&rfds);
+	FD_SET(0, &rfds);
+
+	while ( select(1, &rfds, NULL, NULL, &tv) == 1 )
+		read(0, &c, 1);
+
+	va_start(ap, format);
+	vprintf(format, ap);
+	va_end(ap);
+	fflush(stdout);
+
+	FD_ZERO(&rfds);
+	FD_SET(0, &rfds);
+
+	while ( select(1, &rfds, NULL, NULL, NULL) == 1 ) {
+		read(0, &c, 1);
+		if ( c == '\n' )
+			break;
+	}
 
 }

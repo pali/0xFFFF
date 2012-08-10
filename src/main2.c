@@ -721,9 +721,7 @@ int main(int argc, char **argv) {
 
 			if ( usb_dev->flash_device->protocol != FLASH_COLD ) {
 				usb_close_device(usb_dev);
-				printf("Unplug USB cable, turn device off, press ENTER and plug USB cable again\n");
-				fflush(stdin);
-				getchar();
+				printf_and_wait("Unplug USB cable, turn device off, press ENTER and plug USB cable again");
 				continue;
 			}
 
