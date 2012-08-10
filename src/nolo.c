@@ -102,9 +102,15 @@ enum device nolo_get_device(struct usb_device_info * dev) {
 
 int nolo_load_image(struct usb_device_info * dev, struct image * image) {
 
+	printf("nolo_load_image is not implemented yet\n");
+	return -1;
+
 }
 
 int nolo_flash_image(struct usb_device_info * dev, struct image * image) {
+
+	printf("nolo_flash_image is not implemented yet\n");
+	return -1;
 
 }
 
@@ -128,6 +134,9 @@ int nolo_boot(struct usb_device_info * dev, char * cmdline) {
 }
 
 int nolo_boot_to_update_mode(struct usb_device_info * dev) {
+
+	printf("nolo_boot_to_update_mode is not implemented yet\n");
+	return -1;
 
 }
 
@@ -196,9 +205,15 @@ int nolo_set_rd_mode(struct usb_device_info * dev, int enable) {
 
 int nolo_get_rd_flags(struct usb_device_info * dev, char * flags, size_t size) {
 
+	printf("nolo_get_rd_flags is not implemented yet\n");
+	return -1;
+
 }
 
 int nolo_set_rd_flags(struct usb_device_info * dev, const char * flags) {
+
+	printf("nolo_set_rd_flags is not implemented yet\n");
+	return -1;
 
 }
 
@@ -210,13 +225,22 @@ int nolo_get_hwrev(struct usb_device_info * dev, char * hwrev, size_t size) {
 
 int nolo_set_hwrev(struct usb_device_info * dev, const char * hwrev) {
 
+	printf("nolo_set_hwrev is not implemented yet\n");
+	return -1;
+
 }
 
 int nolo_get_kernel_ver(struct usb_device_info * dev, char * ver, size_t size) {
 
+	printf("nolo_get_kernel_ver is not implemented yet\n");
+	return -1;
+
 }
 
 int nolo_set_kernel_ver(struct usb_device_info * dev, const char * ver) {
+
+	printf("nolo_set_kernel_ver is not implemented yet\n");
+	return -1;
 
 }
 
@@ -235,6 +259,9 @@ int nolo_get_nolo_ver(struct usb_device_info * dev, char * ver, size_t size) {
 }
 
 int nolo_set_nolo_ver(struct usb_device_info * dev, const char * ver) {
+
+	printf("nolo_set_nolo_ver is not implemented yet\n");
+	return -1;
 
 }
 
@@ -262,13 +289,22 @@ int nolo_get_sw_ver(struct usb_device_info * dev, char * ver, size_t size) {
 
 int nolo_set_sw_ver(struct usb_device_info * dev, const char * ver) {
 
+	printf("nolo_set_sw_ver is not implemented yet\n");
+	return -1;
+
 }
 
 int nolo_get_content_ver(struct usb_device_info * dev, char * ver, size_t size) {
 
+	printf("nolo_get_content_ver is not implemented yet\n");
+	return -1;
+
 }
 
 int nolo_set_content_ver(struct usb_device_info * dev, const char * ver) {
+
+	printf("nolo_set_content_ver is not implemented yet\n");
+	return -1;
 
 }
 
