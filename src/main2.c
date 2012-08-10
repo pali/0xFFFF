@@ -719,15 +719,12 @@ int main(int argc, char **argv) {
 		/* cold flash */
 		if ( dev_cold_flash ) {
 
-			if ( usb_dev->flash_device->protocol != FLASH_COLD ) {
-				usb_close_device(usb_dev);
-				printf_and_wait("Unplug USB cable, turn device off, press ENTER and plug USB cable again");
-				continue;
-			}
-
-			cold_flash(usb_dev, image_2nd, image_secondary);
+			ret = cold_flash(usb_dev, image_2nd, image_secondary);
 			usb_close_device(usb_dev);
 			usb_dev = NULL;
+
+			if ( ret != 0 )
+				continue;
 
 			if ( dev_flash ) {
 				dev_cold_flash = 0;

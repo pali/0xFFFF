@@ -25,6 +25,8 @@
 
 #include "cold-flash.h"
 #include "image.h"
+#include "usb-device.h"
+#include "printf-utils.h"
 
 #define READ_DEV		0x81
 #define WRITE_DEV		0x01
@@ -307,6 +309,11 @@ static int ping_timeout(usb_dev_handle * udev) {
 
 int cold_flash(struct usb_device_info * dev, struct image * x2nd, struct image * secondary) {
 
+	if ( dev->flash_device->protocol != FLASH_COLD ) {
+		printf_and_wait("Device is not in Cold Flash mode\nUnplug USB cable, turn device off, press ENTER and plug USB cable again");
+		return 1;
+	}
+
 	if ( x2nd->type != IMAGE_2ND ) {
 		fprintf(stderr, "Image type is not 2nd X-Loader\n");
 		return 1;
@@ -345,6 +352,11 @@ int cold_flash(struct usb_device_info * dev, struct image * x2nd, struct image *
 int leave_cold_flash(struct usb_device_info * dev) {
 
 	int ret;
+
+	if ( dev->flash_device->protocol != FLASH_COLD ) {
+		fprintf(stderr, "Device is not in Cold Flash mode\n");
+		return 1;
+	}
 
 	if ( ! read_asic(dev->udev) ) {
 		fprintf(stderr, "Reading ASIC ID failed\n");
