@@ -742,6 +742,13 @@ int main(int argc, char **argv) {
 
 			}
 
+			if ( usb_dev->flash_device->protocol != FLASH_NOLO ) {
+				printf("Only NOLO protocol is supported now\n");
+				usb_close_device(usb_dev);
+				usb_dev = NULL;
+				break;
+			}
+
 			/* device identify */
 			if ( nolo_init(usb_dev) < 0 ) {
 				printf("Cannot initialize NOLO\n");
@@ -768,6 +775,10 @@ int main(int argc, char **argv) {
 			}
 
 			printf("HW revision: %s\n", hwrev);
+
+			buf[0] = 0;
+			nolo_get_nolo_ver(usb_dev, buf, sizeof(buf));
+			printf("NOLO version: %s\n", buf[0] ? buf : "(not detected)");
 
 			buf[0] = 0;
 			nolo_get_sw_ver(usb_dev, buf, sizeof(buf));
