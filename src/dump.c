@@ -1,6 +1,7 @@
 /*
  *  0xFFFF - Open Free Fiasco Firmware Flasher
  *  Copyright (C) 2007-2009  pancake <pancake@nopcode.org>
+ *  Copyright (C) 2012       Pali Rohár <pali.rohar@gmail.com>
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -16,11 +17,12 @@
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "main.h"
-#include "hexdump.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+
+#include "dump.h"
+#include "hexdump.h"
 
 /*
  * Extracts a piece from an mtd device
@@ -29,7 +31,7 @@
  * badblocks and oob data. It is replaced by nanddump(), but will
  * probably be fixed in the future or it will die.
  */
-int rf_extract(char *dev, off_t from, off_t to, char *file)
+/*int rf_extract(char *dev, off_t from, off_t to, char *file)
 {
 	off_t i, blk = 0xfffff;
 	char buf[0xfffff];
@@ -63,7 +65,7 @@ __rf_extract_exit:
 	if (fd) fclose(fd);
 
 	return 1;
-}
+}*/
 
 /*
  * This function was covardly copied from nanddump.c @ mtd-utils-20060907
@@ -94,7 +96,7 @@ __rf_extract_exit:
 #define M_OMITBAD  0x00000011
 #define M_OMITECC  0x00000012
 
-int mtd_open(char *file, mtd_info_t *meminfo, int *oobinfochanged, 
+static int mtd_open(char *file, mtd_info_t *meminfo, int *oobinfochanged, 
 	struct nand_oobinfo *old_oobinfo, int *eccstats, int flags)
 {
 	int fd;
@@ -124,7 +126,7 @@ int mtd_open(char *file, mtd_info_t *meminfo, int *oobinfochanged,
 	return fd;
 }
 
-int mtd_close(int fd, struct nand_oobinfo *old_oobinfo, int oobinfochanged)
+static int mtd_close(int fd, struct nand_oobinfo *old_oobinfo, int oobinfochanged)
 {
 	if (fd == -1)
 		return 1;
@@ -235,8 +237,8 @@ int check_badblocks(char *mtddev)
 		}
 
 		/* Write out OOB data */
-		if (badblock)
-		D dump_bytes(oobbuf, meminfo.oobsize);
+//		if (badblock)
+//		D dump_bytes(oobbuf, meminfo.oobsize);
 	}
 
 	mtd_close(fd, &old_oobinfo, oobinfochanged);
@@ -406,7 +408,7 @@ int nanddump(char *mtddev, unsigned long start_addr, unsigned long length, char 
 		}
 
 		/* Write out OOB data */
-		D dump_bytes(oobbuf, meminfo.oobsize);
+//		D dump_bytes(oobbuf, meminfo.oobsize);
 		write(ofd, oobbuf, meminfo.oobsize);
 	}
 
@@ -421,7 +423,7 @@ int nanddump(char *mtddev, unsigned long start_addr, unsigned long length, char 
 	return 1;
 }
 
-int rf_strip(char *file)
+static int rf_strip(char *file)
 {
 	FILE *fd = fopen(file, "rw");
 	unsigned char buf[4096];
@@ -457,7 +459,7 @@ __done:
 	return 1;
 }
 
-static int is_n900()
+static int is_n900(void)
 {
 	int n900 = 0;
 	unsigned char buf[4];
@@ -473,7 +475,7 @@ static int is_n900()
 	return n900;
 }
 
-static int is_n800()
+static int is_n800(void)
 {
 	int n800 = 0;
 	unsigned char buf[4];
@@ -489,7 +491,7 @@ static int is_n800()
 	return n800;
 }
 
-int dump_config()
+int dump_config(void)
 {
 	mtd_info_t meminfo;
 	int fd = open("/dev/mtd1", O_RDONLY);
@@ -556,7 +558,7 @@ int dump_config()
 	return 0;
 }
 
-int reverse_extract_pieces_n900(char *dir)
+static int reverse_extract_pieces_n900(char *dir)
 {
 	char reply;
 	chdir(dir);
