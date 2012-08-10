@@ -82,7 +82,7 @@ static void query_error_message()
 		check_nolo_order_failed();
 }*/
 
-void nolo_flash_image(struct image * image)
+void flash_image(struct image * image)
 {
 //	FILE *fd;
 	int vlen = 0;
