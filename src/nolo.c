@@ -25,7 +25,263 @@
 
 #include "nolo.h"
 #include "image.h"
+#include "global.h"
 #include "printf-utils.h"
+
+/* Request type */
+#define NOLO_WRITE		64
+#define NOLO_QUERY		192
+
+/* Request */
+#define NOLO_STATUS		1
+#define NOLO_GET_NOLO_VERSION	3
+#define NOLO_IDENTIFY		4
+#define NOLO_SET		16
+#define NOLO_GET		17
+#define NOLO_REQUEST_VERSION	18
+#define NOLO_RESPONCE_VERSION	20
+#define NOLO_BOOT		130
+#define NOLO_REBOOT		131
+
+/* Index */
+#define NOLO_RD_MODE		0
+#define NOLO_ROOT_DEVICE	1
+#define NOLO_USB_HOST_MODE	2
+
+int nolo_init(struct usb_device_info * dev) {
+
+	uint32_t val = 1;
+
+	while ( val != 0 )
+		if ( usb_control_msg(dev->udev, NOLO_QUERY, NOLO_STATUS, 0, 0, (char *)&val, 4, 2000) == -1 )
+			ERROR_RETURN("NOLO_STATUS failed", -1);
+
+	return 0;
+}
+
+int nolo_identify_string(struct usb_device_info * dev, const char * str, char * out, size_t size) {
+
+	char buf[512];
+	char * ptr;
+	int ret;
+
+	memset(buf, 0, sizeof(buf));
+
+	ret = usb_control_msg(dev->udev, NOLO_QUERY, NOLO_IDENTIFY, 0, 0, (char *)buf, sizeof(buf), 2000);
+	if ( ret < 0 )
+		ERROR_RETURN("NOLO_IDENTIFY failed", -1);
+
+	ptr = strstr(buf, str);
+	if ( ! ptr )
+		ERROR_RETURN("Substring was not found", -1);
+
+	ptr += strlen(str) + 1;
+
+	while ( ptr-buf < ret && *ptr < 32 )
+		++ptr;
+
+	if ( ! *ptr )
+		return -1;
+
+	strncpy(out, ptr, size-1);
+	out[size-1] = 0;
+	return 0;
+
+}
+
+enum device nolo_get_device(struct usb_device_info * dev) {
+
+	char buf[20];
+	if ( nolo_identify_string(dev, "prod_code", buf, sizeof(buf)) < 0 )
+		return DEVICE_UNKNOWN;
+	else
+		return device_from_string(buf);
+
+}
+
+int nolo_load_image(struct usb_device_info * dev, struct image * image) {
+
+}
+
+int nolo_flash_image(struct usb_device_info * dev, struct image * image) {
+
+}
+
+int nolo_boot(struct usb_device_info * dev, const char * cmdline) {
+
+	char * buf;
+	int ret;
+
+	if ( cmdline )
+		buf = strdup(cmdline);
+	else
+		buf = calloc(1, 1);
+
+	if ( ! buf )
+		ALLOC_ERROR_RETURN(-1);
+
+	if ( buf[0] )
+		printf("Booting kernel with cmdline: %s\n", buf);
+	else
+		printf("Booting kernel with default cmdline\n");
+
+	ret = usb_control_msg(dev->udev, NOLO_WRITE, NOLO_BOOT, 0, 0, buf, strlen(buf)+1, 2000);
+
+	free(buf);
+
+	if ( ret < 0 )
+		ERROR_RETURN("NOLO_BOOT failed", -1);
+
+	return 0;
+
+}
+
+int nolo_boot_to_update_mode(struct usb_device_info * dev) {
+
+}
+
+int nolo_reboot_device(struct usb_device_info * dev) {
+
+	if ( usb_control_msg(dev->udev, NOLO_WRITE, NOLO_REBOOT, 0, 0, NULL, 0, 2000) < 0 )
+		ERROR_RETURN("NOLO_REBOOT failed", -1);
+	return 0;
+
+}
+
+int nolo_get_root_device(struct usb_device_info * dev) {
+
+	uint8_t device;
+	if ( usb_control_msg(dev->udev, NOLO_QUERY, NOLO_GET, 0, NOLO_ROOT_DEVICE, (char *)&device, 1, 2000) < 0 )
+		ERROR_RETURN("Cannot get root device", -1);
+	return device;
+
+}
+
+int nolo_set_root_device(struct usb_device_info * dev, int device) {
+
+	if ( usb_control_msg(dev->udev, NOLO_WRITE, NOLO_SET, device, NOLO_ROOT_DEVICE, NULL, 0, 2000) < 0 )
+		ERROR_RETURN("Cannot set root device", -1);
+	return 0;
+
+}
+
+int nolo_get_usb_host_mode(struct usb_device_info * dev) {
+
+	uint32_t enabled;
+	if ( usb_control_msg(dev->udev, NOLO_QUERY, NOLO_GET, 0, NOLO_USB_HOST_MODE, (void *)&enabled, 4, 2000) < 0 )
+		ERROR_RETURN("Cannot get USB host mode status", -1);
+	return enabled ? 1 : 0;
+
+}
+
+int nolo_set_usb_host_mode(struct usb_device_info * dev, int enable) {
+
+	printf("%s USB host mode\n", enable ? "Enabling" : "Disabling");
+	if ( usb_control_msg(dev->udev, NOLO_WRITE, NOLO_SET, enable, NOLO_USB_HOST_MODE, NULL, 0, 2000) < 0 )
+		ERROR_RETURN("Cannot change USB host mode status", -1);
+	return 0;
+
+}
+
+int nolo_get_rd_mode(struct usb_device_info * dev) {
+
+	uint8_t enabled;
+	if ( usb_control_msg(dev->udev, NOLO_QUERY, NOLO_GET, 0, NOLO_RD_MODE, (char *)&enabled, 1, 2000) < 0 )
+		ERROR_RETURN("Cannot get R&D mode status", -1);
+	return enabled ? 1 : 0;
+
+}
+
+int nolo_set_rd_mode(struct usb_device_info * dev, int enable) {
+
+	printf("%s R&D mode\n", enable ? "Enabling" : "Disabling");
+	if ( usb_control_msg(dev->udev, NOLO_WRITE, NOLO_SET, enable, NOLO_RD_MODE, NULL, 0, 2000) < 0 )
+		ERROR_RETURN("Cannot chnage R&D mode status", -1);
+	return 0;
+
+}
+
+int nolo_get_rd_flags(struct usb_device_info * dev, char * flags, size_t size) {
+
+}
+
+int nolo_set_rd_flags(struct usb_device_info * dev, const char * flags) {
+
+}
+
+int nolo_get_hwrev(struct usb_device_info * dev, char * hwrev, size_t size) {
+
+	return nolo_identify_string(dev, "hw_rev", hwrev, size);
+
+}
+
+int nolo_set_hwrev(struct usb_device_info * dev, const char * hwrev) {
+
+}
+
+int nolo_get_kernel_ver(struct usb_device_info * dev, char * ver, size_t size) {
+
+}
+
+int nolo_set_kernel_ver(struct usb_device_info * dev, const char * ver) {
+
+}
+
+int nolo_get_nolo_ver(struct usb_device_info * dev, char * ver, size_t size) {
+
+	uint32_t version;
+
+	if ( usb_control_msg(dev->udev, NOLO_QUERY, NOLO_GET_NOLO_VERSION, 0, 0, (char *)&version, 4, 2000) < 0 )
+		ERROR_RETURN("Cannot get NOLO version", -1);
+
+	if ( (version & 255) > 1 )
+		ERROR_RETURN("Invalid NOLO version", -1);
+
+	return snprintf(ver, size, "%d.%d.%d", version >> 20 & 15, version >> 16 & 15, version >> 8 & 255);
+
+}
+
+int nolo_set_nolo_ver(struct usb_device_info * dev, const char * ver) {
+
+}
+
+int nolo_get_sw_ver(struct usb_device_info * dev, char * ver, size_t size) {
+
+	char buf[512];
+	strcpy(buf, "version:sw-release");
+
+	if ( usb_control_msg(dev->udev, NOLO_WRITE, NOLO_REQUEST_VERSION, 0, 0, (char *)&buf, strlen(buf), 2000) < 0 )
+		ERROR_RETURN("Cannot request SW Release version", -1);
+
+	memset(buf, 0, sizeof(buf));
+
+	if ( usb_control_msg(dev->udev, NOLO_QUERY, NOLO_RESPONCE_VERSION, 0, 0, (char *)&buf, sizeof(buf), 2000) < 0 )
+		ERROR_RETURN("Cannot get SW Release version", -1);
+
+	if ( ! buf[0] )
+		return -1;
+
+	strncpy(ver, buf, size-1);
+	ver[size-1] = 0;
+	return strlen(ver);
+
+}
+
+int nolo_set_sw_ver(struct usb_device_info * dev, const char * ver) {
+
+}
+
+int nolo_get_content_ver(struct usb_device_info * dev, char * ver, size_t size) {
+
+}
+
+int nolo_set_content_ver(struct usb_device_info * dev, const char * ver) {
+
+}
+
+
+/**** OLD CODE ****/
+
 
 #define CMD_WRITE 64
 #define CMD_QUERY 192
