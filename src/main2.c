@@ -712,41 +712,45 @@ int main(int argc, char **argv) {
 		}
 	}
 
-	while ( image_first ) {
+	if ( dev_boot || dev_reboot || dev_load || dev_flash || dev_cold_flash || dev_ident || set_root || set_usb || set_rd || set_rd_flags || set_hw || set_kernel || set_nolo || set_sw || set_emmc ) {
 
-		usb_dev = usb_open_and_wait_for_device();
+		while ( image_first ) {
 
-		/* cold flash */
-		if ( dev_cold_flash ) {
+			usb_dev = usb_open_and_wait_for_device();
 
-			ret = cold_flash(usb_dev, image_2nd, image_secondary);
-			usb_close_device(usb_dev);
-			usb_dev = NULL;
+			/* cold flash */
+			if ( dev_cold_flash ) {
 
-			if ( ret != 0 )
-				continue;
+				ret = cold_flash(usb_dev, image_2nd, image_secondary);
+				usb_close_device(usb_dev);
+				usb_dev = NULL;
 
-			if ( dev_flash ) {
-				dev_cold_flash = 0;
-				continue;
+				if ( ret != 0 )
+					continue;
+
+				if ( dev_flash ) {
+					dev_cold_flash = 0;
+					continue;
+				}
+
+				break;
+
 			}
 
-			break;
+			/* device identify */
+//			while(get_status());
+
+			/* flash */
+
+			/* configuration */
+
+			/* load */
+
+			/* boot */
+
+			/* reboot */
 
 		}
-
-		/* device identify */
-//		while(get_status());
-
-		/* flash */
-
-		/* configuration */
-
-		/* load */
-
-		/* boot */
-
-		/* reboot */
 
 	}
 
