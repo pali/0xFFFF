@@ -60,40 +60,4 @@ int nolo_set_sw_ver(struct usb_device_info * dev, const char * ver);
 int nolo_get_content_ver(struct usb_device_info * dev, char * ver, size_t size);
 int nolo_set_content_ver(struct usb_device_info * dev, const char * ver);
 
-
-void flash_image(struct image * image);
-
-extern char strbuf[1024];
-
-int boot_board(char *cmdline);
-
-int reboot_board();
-
-int get_status();
-
-int get_usb_mode();
-int set_usb_mode(unsigned int);
-
-int get_rd_mode();
-int set_rd_mode(unsigned short mode);
-
-int get_rd_flags();
-int set_rd_flags(unsigned short flags);
-
-int get_hw_revision(char *str, int len);
-
-int get_root_device();
-int set_root_device(unsigned short);
-
-int get_nolo_version();
-
-int get_sw_version();
-
-#define NOLO_GET_STATUS   1
-#define NOLO_GET_BOARD_ID 2
-#define NOLO_GET_VERSION  3
-#define NOLO_GET_HWVERSION 4
-#define NOLO_SET_RDFLAGS   16
-#define NOLO_GET_RDFLAGS  17
-
 #endif

@@ -276,22 +276,15 @@ int nolo_set_content_ver(struct usb_device_info * dev, const char * ver) {
 /**** OLD CODE ****/
 
 
-#define CMD_WRITE 64
-#define CMD_QUERY 192
+//#define CMD_WRITE 64
+//#define CMD_QUERY 192
 
-struct usb_dev_handle *dev;
+//struct usb_dev_handle *dev;
 
-/*void check_nolo_order_failed()
-{
-	fprintf(stderr, "\nERROR: Provide xloader before the secondary. NOLO disagrees anything else.\n");
-	fprintf(stderr, "Use: -p xloader.bin -p secondary.bin\n");
-	exit(1);
-}*/
-
-static void query_error_message()
-{
+//static void query_error_message()
+//{
 	/* query error message */
-	int len = 0;
+/*	int len = 0;
 	char nolomsg[2048];
 	memset(nolomsg, '\0', 2048);
 	usb_control_msg(dev, 192, 5, 0, 0, nolomsg, 2048, 2000);
@@ -306,39 +299,16 @@ static void query_error_message()
 			len+=strlen(nolomsg+len)+1;
 		} while(nolomsg[len]!='\0');
 	}
-}
-
-/*void check_nolo_order()
-{
-	int i, xlo = 0;
-
-	for(i=0;i<pcs_n;i++) {
-		if (!strcmp(pcs[i].type, "xloader")) {
-			if (!xlo && ++i<pcs_n) {
-			printf("CHK%s\n", pcs[i].type);
-				xlo++;
-				if (!strcmp(pcs[i].type, "secondary")) {
-					xlo = 0x11;
-					break;
-				} else check_nolo_order_failed();
-			} check_nolo_order_failed();
-		} else
-		if (!strcmp(pcs[i].type, "secondary"))
-			check_nolo_order_failed();
-	}
-
-	if (xlo && xlo != 0x11)
-		check_nolo_order_failed();
 }*/
 
-void flash_image(struct image * image)
-{
+//void flash_image(struct image * image)
+//{
 //	FILE *fd;
-	int vlen = 0;
-	int request;
+//	int vlen = 0;
+//	int request;
 	/*/ n800 flash queries have a variable size */
-	unsigned char fquery[256]; /* flash query */
-	unsigned long long size, off;
+//	unsigned char fquery[256]; /* flash query */
+/*	unsigned long long size, off;
 	unsigned char bsize[4], tmp;
 	unsigned char nolofiller[128];
 	const char * piece = image_type_to_string(image->type);
@@ -353,7 +323,7 @@ void flash_image(struct image * image)
 			return;
 		}
 //		printf("Piece type: %s\n", piece);
-//	}
+//	}*/
 
 /*	if (piece != NULL) {
 		if (!strcmp(piece, "fiasco")) {
@@ -362,16 +332,16 @@ void flash_image(struct image * image)
 		}
 	}*/
 
-	if (version)
+/*	if (version)
 		vlen = strlen(version)+1;
 
 //	fd = fopen(filename, "rb");
 //	if (fd == NULL) {
 //		printf("Cannot open file\n");
 //		exit(1);
-//	}
+//	}*/
 	/* cook flash query */
-	memset(fquery, '\x00', 27);              // reset buffer
+/*	memset(fquery, '\x00', 27);              // reset buffer
 	memcpy(fquery, "\x2e\x19\x01\x01", 4);   // header
 	//memcpy(fquery+5, "\xbf\x6b", 2); // some magic (modified crc16???)
 	memcpy(fquery+5, &hash, 2);
@@ -399,17 +369,17 @@ void flash_image(struct image * image)
 		query_error_message();
 		perror("flash_image.header");
 		exit(1);
-	}
+	}*/
 
 	/*/ cook and bulk nollo filler */
-	memset(&nolofiller, '\xff', 128);
+/*	memset(&nolofiller, '\xff', 128);
 	memcpy(nolofiller+0x00, "NOLO filler", 11);
 	memcpy(nolofiller+0x40, "NOLO filler", 11);
 	usb_bulk_write(dev, 2, (char *)nolofiller, 128, 5000);
-	usb_bulk_write(dev, 2, (char *)nolofiller, 0,   5000);
+	usb_bulk_write(dev, 2, (char *)nolofiller, 0,   5000);*/
 
 	/*/ bulk write image here */
-	printf("[=] Bulkwriting the %s piece...\n", piece);
+/*	printf("[=] Bulkwriting the %s piece...\n", piece);
 	fflush(stdout);
 
 	#define BSIZE 0x20000
@@ -437,9 +407,9 @@ void flash_image(struct image * image)
 		}
 		fflush(stdout);
 	}
-//	fclose(fd);
+//	fclose(fd);*/
 	/*/ EOF */
-	usb_bulk_write(dev, 2, (char *)nolofiller, 0, 1000);
+/*	usb_bulk_write(dev, 2, (char *)nolofiller, 0, 1000);
 	printf_progressbar(1, 1);
 	printf("\n");
 
@@ -474,198 +444,9 @@ void flash_image(struct image * image)
 		exit(1);
 	}
 	printf("Flash done succesfully.\n");
-}
+}*/
 
-char strbuf[1024];
-
-/* wait for status = 0 */
-int get_status()
-{
-	int ret = 0;
-	if (usb_control_msg(dev, CMD_QUERY, 1, 0, 0, (char *)&ret, 4, 2000) == -1) {
-		fprintf(stderr, "Cannot get device status.\n");
-		exit(1);
-	}
-
-	return ret;
-}
-
-/**
- * request type: CMD_WRITE
- * request     : 16
- * value       : 0|1 (=> client|host)
- * index       : 2
- */
-int set_usb_mode(unsigned int mode)
-{
-	if (mode > 1) {
-		printf("Invalid USB mode specified '%d'.\n", mode);
-		return -1;
-	}
-	
-	if (usb_control_msg(dev, CMD_WRITE, 16, mode, 2, 0, 0, 2000) == -1) {
-		fprintf(stderr, "Cannot set USB mode.\n");
-		return -1;
-	}
-
-	printf("Set USB mode to: '%s'.\n", (mode) ? "host" : "client");
-
-	return 0;
-}
-
-/**
- * request type: CMD_QUERY
- * request     : 17
- * index       : 2
- * 
- * return value: 0|1 (=> client|host)
- */
-int get_usb_mode()
-{
-	unsigned short mode = 0;
-
-	if (usb_control_msg(dev, CMD_QUERY, 17, 0, 2, (void *) &mode, sizeof(mode), 2000) == -1) {
-		fprintf(stderr, "Cannot query device.\n");
-		return -1;
-	}
-
-	sprintf(strbuf, "Device's USB mode is '%s'\n", (mode) ? "host" : "client");
-	printf("%s", strbuf);
-
-	return 0;
-}
-
-/*
- * Boots the Kernel with the given command-line.
- */
-int boot_board(char *cmdline)
-{
-	if (usb_control_msg(dev, CMD_WRITE, 130, 0, 0, cmdline, strlen(cmdline), 2000) == -1) {
-		fprintf(stderr, "Cannot boot kernel.\n");
-		perror("boot_board");
-		return -1;
-	}
-
-	printf("Booting kernel with arguments: '%s'.\n", cmdline);
-
-	return 0;
-}
-
-/*
- * Reboots the omap mobo.
- */
-int reboot_board()
-{
-	// 131 = reboot
-	if (usb_control_msg(dev, CMD_WRITE, 131, 0, 0, 0, 0, 2000) == -1) {
-		fprintf(stderr, "Cannot reboot board.\n");
-		return -1;
-	}
-
-	printf("Mobo rebooted!\n");
-
-	return 0;
-}
-
-int set_rd_mode(unsigned short mode)
-{
-	if (((short)mode)==-1)
-		return 1;
-
-	if (usb_control_msg(dev, CMD_WRITE, NOLO_SET_RDFLAGS, mode, 0, 0, 0, 2000) == -1) {
-		fprintf(stderr, "Cannot set R&D flags.\n");
-		return 1;
-	}
-
-	printf("rd mode changed to %s\n", mode?"on":"off");
-
-	return 0;
-}
-
-/*
- * query root device
- */
-int get_hw_revision(char *str, int len)
-{
-	unsigned char string[512];
-	char tmpstr[64];
-	int i = 0, j=0, mod=0;
-
-	if (str == NULL)
-		str = tmpstr;
-	memset(string,'\0',512);
-	if (usb_control_msg(dev, CMD_QUERY, NOLO_GET_HWVERSION, 0, 0, (char *)string, 512, 2000) == -1) {
-		fprintf(stderr, "Cannot query hw revision.\n");
-		return -1;
-	}
-
-	for(i=0;i<44&&i<len;i++) { // XXX ??
-		if (string[i]>19) {
-			if (i>0 && string[i-1]<19)
-				str[j++] = (++mod%2)?':':',';
-			str[j++] = string[i];
-		}
-	}
-	printf("HW revision string: '%s'\n", str);
-
-	return 0;
-}
-
-int get_rd_mode()
-{
-	char isrd = 1;
-
-	strbuf[0]='\0';
-	if (usb_control_msg(dev, CMD_QUERY, NOLO_GET_RDFLAGS, 0, 0, (char *)&isrd, 1, 2000) == -1) {
-		fprintf(stderr, "Cannot query rd mode.\n");
-		return -1;
-	}
-	sprintf(strbuf, "RD mode is: %s\n", isrd?"on":"off");
-
-	return isrd;
-}
-
-int get_root_device()
-{
-	unsigned char opcode;
-
-	if (usb_control_msg(dev, CMD_QUERY, NOLO_GET_RDFLAGS, 0, 1, (char *)&opcode, 1, 2000) < 0) {
-		fprintf(stderr, "Cannot query root device\n");
-		return -1;
-	}
-
-	if (opcode>2) { // use sizeof || enum
-		fprintf(stderr, "Invalid root device received from the device '%d'.\n", opcode);
-		return -1;
-	}
-
-//	printf("Root device is: %s\n", root_devices[opcode]);
-
-	return 0;
-}
-
-/**
- * request type: CMD_WRITE
- * request     : 16
- * value       : 0|1|2 (=> flash|mmc|usb)
- * index       : 1
- */
-int set_root_device(unsigned short root_device)
-{
-	if (root_device>2) {
-		printf("Invalid root device specified '%d'.\n", root_device);
-		return -1;
-	}
-
-	if (usb_control_msg(dev, CMD_WRITE, NOLO_SET_RDFLAGS, root_device, 1, 0, 0, 2000) == -1) {
-		fprintf(stderr, "Cannot set root device\n");
-		return -1;
-	}
-
-//	printf("Root device set to: %s\n", root_devices[root_device]);
-
-	return 0;
-}
+//char strbuf[1024];
 
 /**
  * Set flags:
@@ -693,6 +474,7 @@ int set_root_device(unsigned short root_device)
  * non set bits.  
  * 
  */
+/*
 int set_rd_flags(unsigned short flags)
 {
 	unsigned short reverse_flags = 0;
@@ -763,51 +545,4 @@ int get_rd_flags()
 	
 	return 0; 
 }
-
-int get_nolo_version()
-{
-	unsigned int version; // ensure uint is at least 32 bits
-
-	//if (usb_control_msg(dev, CMD_QUERY, 3, 0, 1, (char *)&version, 4 , 2000) < 0) {
-	if (usb_control_msg(dev, CMD_QUERY, NOLO_GET_VERSION, 0, 0, (char *)&version, 4 , 2000) < 0) {
-		fprintf(stderr, "Cannot query nolo version. Old bootloader version?\n");
-		sprintf(strbuf, "error: Cannot query nolo version. Old bootloader?");
-		return -1;
-	}
-
-	sprintf(strbuf,
-		"NOLO Version %d.%d.%d\n",
-		version >> 20 & 15,
-		version >> 16 & 15,
-		version >> 8 & 255);
-
-	if ((version & 255)> 1)
-		printf("Invalid API version (%d)\n", version&255);
-
-	return 0;
-}
-
-int get_sw_version()
-{
-	int ret;
-	char bytes[1024];
-
-	strcpy(bytes, "version:sw-release");
-	ret = usb_control_msg(dev, CMD_WRITE, 18, 0, 0, (char *)&bytes, 18, 2000);
-	if (ret<0) {
-		fprintf(stderr, "error: cannot write query 18\n");
-		return 0;
-	}
-	bytes[0]='\0';
-	ret = usb_control_msg(dev, CMD_QUERY, 20, 0, 0, (char *)&bytes, 512, 2000);
-	if (ret<0) {
-		fprintf(stderr, "error: b0rken swversion read!\n");
-		return 0;
-	}
-	if (bytes[0]) {
-		sprintf(strbuf, "Software Version: %s\n", bytes);
-		printf("Software Version: %s\n", bytes); //???+strlen(bytes)+1));
-	} else printf("No software version detected\n");
-
-	return 1;
-}
+*/
