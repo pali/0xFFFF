@@ -1,6 +1,7 @@
 /*
  *  0xFFFF - Open Free Fiasco Firmware Flasher
  *  Copyright (C) 2008  pancake <pancake@youterm.com>
+ *  Copyright (C) 2012  Pali Rohár <pali.rohar@gmail.com>
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -16,30 +17,47 @@
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "main.h"
-#include "os.h"
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
 #include <signal.h>
+
+#include <unistd.h>
 #include <sys/types.h>
 #include <sys/wait.h>
 #include <sys/stat.h>
+
+#include "qmode.h"
+#include "nolo.h"
+
+#if __linux__ || __NetBSD__ || __FreBSD__ || __OpenBSD__ || __Darwin__ || __MacOSX__
+#define HAVE_SQUEUE 1
+#else
+#define HAVE_SQUEUE 0
+#endif
+
+#if HAVE_SQUEUE
+
+#include "squeue/squeue.h"
+extern int qmode;
+extern struct squeue_t *p;
+
+#endif
 
 #if HAVE_SQUEUE
 
 struct squeue_t *q;
 struct squeue_t *p;
 
-int fork_enabled = 0;
-int dofork()
+static int fork_enabled = 0;
+static int dofork()
 {
 	if (fork_enabled)
 		return fork();
 	return 0;
 }
 
-void process_message(char *msg)
+static void process_message(char *msg)
 {
 	char *str;
 	char *arg;
@@ -78,7 +96,7 @@ void process_message(char *msg)
 	free(str);
 }
 
-static void cc()
+static void cc(int signum)
 {
 	squeue_close(p);
 	squeue_close(q);
@@ -88,7 +106,7 @@ static void cc()
 	exit(1);
 }
 
-int queue_mode()
+int queue_mode(void)
 {
 	int pid = 0;
 	char *msg;
@@ -138,9 +156,10 @@ int queue_mode()
 	return 0;
 }
 #else
-int queue_mode()
+int queue_mode(void)
 {
 	/* dummy */
 	fprintf(stderr, "No HAVE_SQUEUE support\n");
+	return 1;
 }
 #endif
