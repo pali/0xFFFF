@@ -727,7 +727,7 @@ int main(int argc, char **argv) {
 				continue;
 			}
 
-			cold_flash(usb_dev->udev, image_2nd, image_secondary);
+			cold_flash(usb_dev, image_2nd, image_secondary);
 			usb_close_device(usb_dev);
 			usb_dev = NULL;
 

@@ -305,7 +305,7 @@ static int ping_timeout(usb_dev_handle * udev) {
 
 }
 
-int cold_flash(usb_dev_handle * udev, struct image * x2nd, struct image * secondary) {
+int cold_flash(struct usb_device_info * dev, struct image * x2nd, struct image * secondary) {
 
 	if ( x2nd->type != IMAGE_2ND ) {
 		fprintf(stderr, "Image type is not 2nd X-Loader\n");
@@ -317,22 +317,22 @@ int cold_flash(usb_dev_handle * udev, struct image * x2nd, struct image * second
 		return 1;
 	}
 
-	if ( ! read_asic(udev) ) {
+	if ( ! read_asic(dev->udev) ) {
 		fprintf(stderr, "Reading ASIC ID failed\n");
 		return 1;
 	}
 
-	if ( ! send_2nd(udev, x2nd) ) {
+	if ( ! send_2nd(dev->udev, x2nd) ) {
 		fprintf(stderr, "Sending 2nd X-Loader image failed\n");
 		return 1;
 	}
 
-	if ( ! ping_timeout(udev) ) {
+	if ( ! ping_timeout(dev->udev) ) {
 		fprintf(stderr, "Sending X-Loader ping message failed\n");
 		return 1;
 	}
 
-	if ( ! send_secondary(udev, secondary) ) {
+	if ( ! send_secondary(dev->udev, secondary) ) {
 		fprintf(stderr, "Sending Secondary image failed\n");
 		return 1;
 	}
@@ -342,17 +342,17 @@ int cold_flash(usb_dev_handle * udev, struct image * x2nd, struct image * second
 
 }
 
-int leave_cold_flash(usb_dev_handle * udev) {
+int leave_cold_flash(struct usb_device_info * dev) {
 
 	int ret;
 
-	if ( ! read_asic(udev) ) {
+	if ( ! read_asic(dev->udev) ) {
 		fprintf(stderr, "Reading ASIC ID failed\n");
 		return 1;
 	}
 
 	printf("Sending OMAP memory boot message...\n");
-	ret = usb_bulk_write(udev, WRITE_DEV, (char *)&omap_memory_msg, sizeof(omap_memory_msg), WRITE_TIMEOUT);
+	ret = usb_bulk_write(dev->udev, WRITE_DEV, (char *)&omap_memory_msg, sizeof(omap_memory_msg), WRITE_TIMEOUT);
 	usleep(5000);
 	if ( ret != sizeof(omap_memory_msg) ) {
 		fprintf(stderr, "Error while sending OMAP memory boot message\n");

@@ -20,14 +20,13 @@
 #ifndef COLD_FLASH_H
 #define COLD_FLASH_H
 
-#include <usb.h>
-
 #include "image.h"
+#include "usb-device.h"
 
 /* Flash 2nd and secondary image in Cold Flash mode. After flashing device will boot secondary image */
-int cold_flash(usb_dev_handle * udev, struct image * x2nd, struct image * secondary);
+int cold_flash(struct usb_device_info * dev, struct image * x2nd, struct image * secondary);
 
 /* Leave Cold Flashing mode and continue booting */
-int leave_cold_flash(usb_dev_handle * udev);
+int leave_cold_flash(struct usb_device_info * dev);
 
 #endif
