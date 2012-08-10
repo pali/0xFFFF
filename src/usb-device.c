@@ -78,6 +78,7 @@ static struct usb_device_info * usb_device_is_valid(struct usb_device * dev) {
 
 		if ( dev->descriptor.idVendor == usb_devices[i].vendor && dev->descriptor.idProduct == usb_devices[i].product ) {
 
+			printf("\b\b  ");
 			PRINTF_END();
 			PRINTF_ADD("Found ");
 			usb_flash_device_info_print(&usb_devices[i]);

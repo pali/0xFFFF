@@ -52,6 +52,7 @@ int nolo_init(struct usb_device_info * dev) {
 
 	uint32_t val = 1;
 
+	printf("Initializing NOLO...\n");
 	while ( val != 0 )
 		if ( usb_control_msg(dev->udev, NOLO_QUERY, NOLO_STATUS, 0, 0, (char *)&val, 4, 2000) == -1 )
 			ERROR_RETURN("NOLO_STATUS failed", -1);
@@ -71,7 +72,7 @@ int nolo_identify_string(struct usb_device_info * dev, const char * str, char * 
 	if ( ret < 0 )
 		ERROR_RETURN("NOLO_IDENTIFY failed", -1);
 
-	ptr = strstr(buf, str);
+	ptr = memmem(buf, ret, str, strlen(str));
 	if ( ! ptr )
 		ERROR_RETURN("Substring was not found", -1);
 
@@ -85,7 +86,7 @@ int nolo_identify_string(struct usb_device_info * dev, const char * str, char * 
 
 	strncpy(out, ptr, size-1);
 	out[size-1] = 0;
-	return 0;
+	return strlen(out);
 
 }
 
@@ -107,29 +108,19 @@ int nolo_flash_image(struct usb_device_info * dev, struct image * image) {
 
 }
 
-int nolo_boot(struct usb_device_info * dev, const char * cmdline) {
+int nolo_boot(struct usb_device_info * dev, char * cmdline) {
 
-	char * buf;
-	int ret;
+	int size = 0;
 
-	if ( cmdline )
-		buf = strdup(cmdline);
-	else
-		buf = calloc(1, 1);
+	if ( cmdline && cmdline[0] ) {
+		printf("Booting kernel with cmdline: '%s'...\n", cmdline);
+		size = strlen(cmdline)+1;
+	} else {
+		printf("Booting kernel with default cmdline...\n");
+		cmdline = NULL;
+	}
 
-	if ( ! buf )
-		ALLOC_ERROR_RETURN(-1);
-
-	if ( buf[0] )
-		printf("Booting kernel with cmdline: %s\n", buf);
-	else
-		printf("Booting kernel with default cmdline\n");
-
-	ret = usb_control_msg(dev->udev, NOLO_WRITE, NOLO_BOOT, 0, 0, buf, strlen(buf)+1, 2000);
-
-	free(buf);
-
-	if ( ret < 0 )
+	if ( usb_control_msg(dev->udev, NOLO_WRITE, NOLO_BOOT, 0, 0, cmdline, size, 2000) < 0 )
 		ERROR_RETURN("NOLO_BOOT failed", -1);
 
 	return 0;
@@ -142,6 +133,7 @@ int nolo_boot_to_update_mode(struct usb_device_info * dev) {
 
 int nolo_reboot_device(struct usb_device_info * dev) {
 
+	printf("Rebooting device...\n");
 	if ( usb_control_msg(dev->udev, NOLO_WRITE, NOLO_REBOOT, 0, 0, NULL, 0, 2000) < 0 )
 		ERROR_RETURN("NOLO_REBOOT failed", -1);
 	return 0;
@@ -159,6 +151,7 @@ int nolo_get_root_device(struct usb_device_info * dev) {
 
 int nolo_set_root_device(struct usb_device_info * dev, int device) {
 
+	printf("Setting root device to %d\n", device);
 	if ( usb_control_msg(dev->udev, NOLO_WRITE, NOLO_SET, device, NOLO_ROOT_DEVICE, NULL, 0, 2000) < 0 )
 		ERROR_RETURN("Cannot set root device", -1);
 	return 0;

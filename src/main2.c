@@ -36,6 +36,7 @@
 #include "cold-flash.h"
 #include "console.h"
 #include "qmode.h"
+#include "nolo.h"
 
 #undef VERSION
 #define VERSION "0.6"
@@ -330,10 +331,14 @@ int main(int argc, char **argv) {
 
 	struct usb_device_info * usb_dev = NULL;
 
+	char hwrev[20];
+	char buf[512];
+
 	simulate = 0;
 	noverify = 0;
 	verbose = 0;
 
+	memset(hwrev, 0, sizeof(hwrev));
 	show_title();
 
 	while ( ( c = getopt(argc, argv, optstring) ) != -1 ) {
@@ -714,7 +719,7 @@ int main(int argc, char **argv) {
 
 	if ( dev_boot || dev_reboot || dev_load || dev_flash || dev_cold_flash || dev_ident || set_root || set_usb || set_rd || set_rd_flags || set_hw || set_kernel || set_nolo || set_sw || set_emmc ) {
 
-		while ( image_first ) {
+		do {
 
 			usb_dev = usb_open_and_wait_for_device();
 
@@ -738,19 +743,61 @@ int main(int argc, char **argv) {
 			}
 
 			/* device identify */
-//			while(get_status());
+			if ( nolo_init(usb_dev) < 0 ) {
+				printf("Cannot initialize NOLO\n");
+				usb_close_device(usb_dev);
+				usb_dev = NULL;
+				continue;
+			}
+
+			usb_dev->detected_device = nolo_get_device(usb_dev);
+			if ( ! usb_dev->detected_device ) {
+				printf("Cannot detect device\n");
+				usb_close_device(usb_dev);
+				usb_dev = NULL;
+				continue;
+			}
+
+			printf("Device: %s\n", device_to_string(usb_dev->detected_device));
+
+			if ( nolo_get_hwrev(usb_dev, hwrev, sizeof(hwrev)) < 0 ) {
+				printf("Cannot detect HW revision\n");
+				usb_close_device(usb_dev);
+				usb_dev = NULL;
+				continue;
+			}
+
+			printf("HW revision: %s\n", hwrev);
+
+			buf[0] = 0;
+			nolo_get_sw_ver(usb_dev, buf, sizeof(buf));
+			printf("Software release version: %s\n", buf[0] ? buf : "(not detected)");
 
 			/* flash */
+//			if ( image_first )
 
 			/* configuration */
 
 			/* load */
+//			if ( image_first )
 
 			/* boot */
+			if ( dev_boot ) {
+				nolo_boot(usb_dev, dev_boot_arg);
+				usb_close_device(usb_dev);
+				usb_dev = NULL;
+				break;
+			}
 
 			/* reboot */
+			if ( dev_reboot ) {
+				nolo_reboot_device(usb_dev);
+				usb_close_device(usb_dev);
+				usb_dev = NULL;
+				break;
+			}
 
-		}
+		} while ( dev_cold_flash || dev_flash );
 
 	}
 
