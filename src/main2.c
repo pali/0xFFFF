@@ -56,9 +56,9 @@ static void show_usage(void) {
 		"Over USB:\n"
 		" -b cmdline      boot default or loaded kernel with cmdline, empty use default\n"
 		" -r              reboot device\n"
-		" -l              load all specified images to RAM\n"
+		" -l              load kernel and initfs images to RAM\n"
 		" -f              flash all specified images\n"
-		" -c              cold flash 2nd and secondary image and normal flash all others\n"
+		" -c              cold flash 2nd and secondary image\n"
 		"\n"
 #endif
 
