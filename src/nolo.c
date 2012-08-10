@@ -48,19 +48,7 @@
 #define NOLO_ROOT_DEVICE	1
 #define NOLO_USB_HOST_MODE	2
 
-int nolo_init(struct usb_device_info * dev) {
-
-	uint32_t val = 1;
-
-	printf("Initializing NOLO...\n");
-	while ( val != 0 )
-		if ( usb_control_msg(dev->udev, NOLO_QUERY, NOLO_STATUS, 0, 0, (char *)&val, 4, 2000) == -1 )
-			ERROR_RETURN("NOLO_STATUS failed", -1);
-
-	return 0;
-}
-
-int nolo_identify_string(struct usb_device_info * dev, const char * str, char * out, size_t size) {
+static int nolo_identify_string(struct usb_device_info * dev, const char * str, char * out, size_t size) {
 
 	char buf[512];
 	char * ptr;
@@ -88,6 +76,44 @@ int nolo_identify_string(struct usb_device_info * dev, const char * str, char * 
 	out[size-1] = 0;
 	return strlen(out);
 
+}
+
+static int nolo_get_version_string(struct usb_device_info * dev, const char * str, char * out, size_t size) {
+
+	char buf[512];
+
+	if ( strlen(str) > 500 )
+		return -1;
+
+	sprintf(buf, "version:%s", str);
+
+	if ( usb_control_msg(dev->udev, NOLO_WRITE, NOLO_REQUEST_VERSION, 0, 0, (char *)&buf, strlen(buf), 2000) < 0 )
+		ERROR_RETURN("NOLO_REQUEST_VERSION failed", -1);
+
+	memset(buf, 0, sizeof(buf));
+
+	if ( usb_control_msg(dev->udev, NOLO_QUERY, NOLO_RESPONCE_VERSION, 0, 0, (char *)&buf, sizeof(buf), 2000) < 0 )
+		ERROR_RETURN("NOLO_RESPONCE_VERSION failed", -1);
+
+	if ( ! buf[0] )
+		return -1;
+
+	strncpy(out, buf, size-1);
+	out[size-1] = 0;
+	return strlen(out);
+
+}
+
+int nolo_init(struct usb_device_info * dev) {
+
+	uint32_t val = 1;
+
+	printf("Initializing NOLO...\n");
+	while ( val != 0 )
+		if ( usb_control_msg(dev->udev, NOLO_QUERY, NOLO_STATUS, 0, 0, (char *)&val, 4, 2000) == -1 )
+			ERROR_RETURN("NOLO_STATUS failed", -1);
+
+	return 0;
 }
 
 enum device nolo_get_device(struct usb_device_info * dev) {
@@ -232,8 +258,7 @@ int nolo_set_hwrev(struct usb_device_info * dev, const char * hwrev) {
 
 int nolo_get_kernel_ver(struct usb_device_info * dev, char * ver, size_t size) {
 
-	printf("nolo_get_kernel_ver is not implemented yet\n");
-	return -1;
+	return nolo_get_version_string(dev, "kernel", ver, size);
 
 }
 
@@ -267,23 +292,7 @@ int nolo_set_nolo_ver(struct usb_device_info * dev, const char * ver) {
 
 int nolo_get_sw_ver(struct usb_device_info * dev, char * ver, size_t size) {
 
-	char buf[512];
-	strcpy(buf, "version:sw-release");
-
-	if ( usb_control_msg(dev->udev, NOLO_WRITE, NOLO_REQUEST_VERSION, 0, 0, (char *)&buf, strlen(buf), 2000) < 0 )
-		ERROR_RETURN("Cannot request SW Release version", -1);
-
-	memset(buf, 0, sizeof(buf));
-
-	if ( usb_control_msg(dev->udev, NOLO_QUERY, NOLO_RESPONCE_VERSION, 0, 0, (char *)&buf, sizeof(buf), 2000) < 0 )
-		ERROR_RETURN("Cannot get SW Release version", -1);
-
-	if ( ! buf[0] )
-		return -1;
-
-	strncpy(ver, buf, size-1);
-	ver[size-1] = 0;
-	return strlen(ver);
+	return nolo_get_version_string(dev, "sw-release", ver, size);
 
 }
 
@@ -296,8 +305,7 @@ int nolo_set_sw_ver(struct usb_device_info * dev, const char * ver) {
 
 int nolo_get_content_ver(struct usb_device_info * dev, char * ver, size_t size) {
 
-	printf("nolo_get_content_ver is not implemented yet\n");
-	return -1;
+	return nolo_get_version_string(dev, "content", ver, size);
 
 }
 
