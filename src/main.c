@@ -269,19 +269,27 @@ int main(int argc, char **argv) {
 
 	int ret = 0;
 
+#if defined(WITH_USB) && ! defined(WITH_DEVICE)
 	int dev_boot = 0;
 	char * dev_boot_arg = NULL;
-	int dev_reboot = 0;
 	int dev_load = 0;
-	int dev_flash = 0;
 	int dev_cold_flash = 0;
+#endif
+
+#ifdef WITH_DEVICE
 	int dev_check = 0;
 	char * dev_check_arg = NULL;
 	int dev_dump_fiasco = 0;
 	char * dev_dump_fiasco_arg = NULL;
 	int dev_dump = 0;
 	char * dev_dump_arg = NULL;
+#endif
+
+#if defined(WITH_USB) || defined(WITH_DEVICE)
+	int dev_flash = 0;
+	int dev_reboot = 0;
 	int dev_ident = 0;
+
 	int set_root = 0;
 	char * set_root_arg = NULL;
 	int set_usb = 0;
@@ -300,21 +308,30 @@ int main(int argc, char **argv) {
 	char * set_sw_arg = NULL;
 	int set_emmc = 0;
 	char * set_emmc_arg = NULL;
+#endif
+
 	int image_fiasco = 0;
 	char * image_fiasco_arg = NULL;
+
 	int filter_type = 0;
 	char * filter_type_arg = NULL;
 	int filter_device = 0;
 	char * filter_device_arg = NULL;
 	int filter_hwrev = 0;
 	char * filter_hwrev_arg = NULL;
+
 	int fiasco_un = 0;
 	char * fiasco_un_arg = NULL;
 	int fiasco_gen = 0;
 	char * fiasco_gen_arg = NULL;
+
 	int image_ident = 0;
+#if defined(WITH_USB) || defined(WITH_DEVICE)
 	int console = 0;
+#endif
+#if ( defined(WITH_USB) || defined(WITH_DEVICE) ) && defined(WITH_SQUEUES)
 	int queue = 0;
+#endif
 
 	int help = 0;
 
@@ -344,23 +361,20 @@ int main(int argc, char **argv) {
 	while ( ( c = getopt(argc, argv, optstring) ) != -1 ) {
 
 		switch (c) {
+#if defined(WITH_USB) && ! defined(WITH_DEVICE)
 			case 'b':
 				dev_boot = 1;
 				dev_boot_arg = optarg;
 				break;
-			case 'r':
-				dev_reboot = 1;
-				break;
 			case 'l':
 				dev_load = 1;
-				break;
-			case 'f':
-				dev_flash = 1;
 				break;
 			case 'c':
 				dev_cold_flash = 1;
 				break;
+#endif
 
+#ifdef WITH_DEVICE
 			case 'x':
 				dev_check = 1;
 				dev_check_arg = optarg;
@@ -372,6 +386,15 @@ int main(int argc, char **argv) {
 			case 'e':
 				dev_dump = 1;
 				dev_dump_arg = optarg;
+				break;
+#endif
+
+#if defined(WITH_USB) || defined(WITH_DEVICE)
+			case 'f':
+				dev_flash = 1;
+				break;
+			case 'r':
+				dev_reboot = 1;
 				break;
 
 			case 'I':
@@ -413,6 +436,7 @@ int main(int argc, char **argv) {
 				set_emmc = 1;
 				set_emmc_arg = optarg;
 				break;
+#endif
 
 			case 'M':
 				image_fiasco = 1;
@@ -447,12 +471,16 @@ int main(int argc, char **argv) {
 			case 'i':
 				image_ident = 1;
 				break;
+#if defined(WITH_USB) || defined(WITH_DEVICE)
 			case 'p':
 				console = 1;
 				break;
+#endif
+#if ( defined(WITH_USB) || defined(WITH_DEVICE) ) && defined(WITH_SQUEUES)
 			case 'Q':
 				queue = 1;
 				break;
+#endif
 
 			case 's':
 				simulate = 1;
@@ -481,19 +509,23 @@ int main(int argc, char **argv) {
 		goto clean;
 	}
 
+#if defined(WITH_USB) || defined(WITH_DEVICE)
 	/* console */
 	if ( console ) {
 		console_prompt();
 		ret = 0;
 		goto clean;
 	}
+#endif
 
+#if ( defined(WITH_USB) || defined(WITH_DEVICE) ) && defined(WITH_SQUEUES)
 	/* share queues */
 	if ( queue ) {
 		queue_mode();
 		ret = 0;
 		goto clean;
 	}
+#endif
 
 
 	/* load images from files */
@@ -839,6 +871,8 @@ int main(int argc, char **argv) {
 				usb_dev = NULL;
 				break;
 			}
+
+			printf("\n");
 
 			/* load */
 //			if ( image_first )
