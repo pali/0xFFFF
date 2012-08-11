@@ -320,6 +320,7 @@ int main(int argc, char **argv) {
 	int c;
 
 	int ret = 0;
+	int do_something = 0;
 
 #if defined(WITH_USB) && ! defined(WITH_DEVICE)
 	int dev_boot = 0;
@@ -598,6 +599,39 @@ int main(int argc, char **argv) {
 		ret = 1;
 		goto clean;
 	}
+
+#if defined(WITH_USB) && ! defined(WITH_DEVICE)
+	if ( dev_boot || dev_load || dev_cold_flash )
+		do_something = 1;
+#endif
+#ifdef WITH_DEVICE
+	if ( dev_check || dev_dump_fiasco || dev_dump )
+		do_something = 1;
+#endif
+#if defined(WITH_USB) || defined(WITH_DEVICE)
+	if ( dev_flash || dev_reboot || dev_ident || set_root || set_usb || set_rd || set_rd_flags || set_hw || set_kernel || set_nolo || set_sw || set_emmc )
+		do_something = 1;
+#endif
+	if ( fiasco_un || fiasco_gen || image_ident )
+		do_something = 1;
+#if defined(WITH_USB) || defined(WITH_DEVICE)
+	if ( console )
+		do_something = 1;
+#endif
+#if ( defined(WITH_USB) || defined(WITH_DEVICE) ) && defined(WITH_SQUEUES)
+	if ( queue )
+		do_something = 1;
+#endif
+	if ( help )
+		do_something = 1;
+
+	if ( ! do_something ) {
+		ERROR("Nothing to do");
+		ret = 1;
+		goto clean;
+	}
+
+	printf("\n");
 
 	/* help */
 	if ( help ) {
