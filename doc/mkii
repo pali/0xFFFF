@@ -1,0 +1,90 @@
+ Copyright (C) 2012  Pali Rohár <pali.rohar@gmail.com>
+
+Mk II protocol is the only protocol which can be used to flash eMMC images.
+NOLO does not support eMMC, so flashing eMMC is done in Maemo system. NOLO
+will boot device into "update" mode and Maemo will start only softupd daemon
+(which is responsible for flashing from Maemo system) and load kernel driver
+g_softupd which handle USB communication to user space daemon. When device
+is in PC Suite mode Maemo system start softupd daemon and load kernel driver
+g_nokia which can also handle communication via Mk II protocol.
+
+Default Maemo flasher (v2.5.2 (Oct 21 2009)) support only some basic functions
+via Mk II protocol - it can send eMMC image to softupd server which flash it.
+But there is unofficial Maemo flasher (flasher v2.8.2 (Jan  8 2010)) distributed
+with omap aes kernel driver for Nokia RX-51 under name "flasher.rover" which
+support more functions. So "flasher.rover" is better for RE this protocol.
+
+Via Mk II protocol over usb with softupd daemon in device it is possible to
+flash any type of image except rootfs (xloader, secondary, kernel, mmc,
+cmt-2nd, cmt-algo, cmt-mcusw). Maemo system using same Mk II protocol over
+local TCP socket (server also provided by softupd) to update/flash system.
+
+Over usb are used only these functions for communication:
+
+ usb_claim_interface (interface=1)
+ usb_set_altinterface (alternate=1)
+
+ usb_bulk_write (ep=1, timeout=5000)
+ usb_bulk_read (ep=129, timeout=5000)
+
+For every (request) message which is send by host, server send back responce.
+Format of message every message is same. It has 6 bytes header and (at least)
+4 bytes body.
+
+HEADER
+
+   4 bytes          --  type of header
+                          0x8810001B - out (sent by host: usb_bulk_write)
+                          0x8800101B - in (received by host: usb_bulk_read)
+   2 bytes          --  size of body (big endian)
+
+BODY
+
+   4 bytes          --  type of message
+   N bytes          --  data
+
+Reply message data always starts with char 0x00 (except pong responce).
+
+Here are some sniffed messages from Nokia RX-51. First two messages seems to
+must be always protocol version exchange (first host ask for protocol version of
+server and then host send its protocol version). On RX-51 is used version "2".
+
+ Ping:
+   req_type = 0x00000000
+   res_type = 0x20000000
+
+ Get protocol version:
+   req_type = 0x01010000
+   req_data = "/update/protocol_version"
+   res_type = 0x21010000
+   res_data = 0x00 "2"
+
+ Tell our protocol version:
+   req_type = 0x02020000
+   req_data = "/update/host_protocol_version" 0x00 "2"
+   res_type = 0x22020000
+   res_data = 0x00
+
+ Get device:
+   req_type = 0x01030000
+   req_data = "/device/product_code"
+   res_type = 0x21030000
+   res_data = 0x00 "RX-51"
+
+ Get hwrev:
+   req_type = 0x01040000
+   req_data = "/device/hw_build"
+   res_type = 0x21040000
+   res_data = 0x00 "2101"
+
+ Get image types:
+   req_type = 0x01050000
+   req_data = "/update/supported_images"
+   res_type = 0x21050000
+   res_data = 0x00 "xloader,secondary,kernel,mmc,cmt-2nd,cmt-algo,cmt-mcusw"
+
+ Reboot device:
+   req_type = 0x0C060000
+   req_data = "reboot"
+   res_type = 0x2C060000
+   res_data = 0x00
