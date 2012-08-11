@@ -30,8 +30,8 @@
 #include "device.h"
 #include "image.h"
 
-#define IMAGE_STORE_CUR(image) do { if ( image->is_shared_fd ) image->cur = lseek(image->fd, 0, SEEK_CUR) - image->offset; } while (0)
-#define IMAGE_RESTORE_CUR(image) do { if ( image->is_shared_fd ) lseek(image->fd, image->offset + image->cur, SEEK_SET); } while (0)
+#define IMAGE_STORE_CUR(image) do { if ( image->is_shared_fd ) { image->cur = lseek(image->fd, 0, SEEK_CUR) - image->offset; if ( image->cur >= image->size ) image->cur = image->size - 1; } } while (0)
+#define IMAGE_RESTORE_CUR(image) do { if ( image->is_shared_fd ) { if ( image->cur < image->size ) lseek(image->fd, image->offset + image->cur, SEEK_SET); else lseek(image->fd, image->offset + image->size - 1, SEEK_SET); } } while (0)
 
 static void image_missing_values_from_name(struct image * image, const char * name) {
 
@@ -175,6 +175,7 @@ static void image_align(struct image * image) {
 	align = ((image->size >> align) + 1) << align;
 
 	image->align = align - image->size;
+	image->size = align;
 
 	image->hash = image_hash_from_data(image);
 
@@ -280,34 +281,36 @@ void image_seek(struct image * image, off_t whence) {
 
 size_t image_read(struct image * image, void * buf, size_t count) {
 
+	off_t cur;
+	ssize_t ret;
 	size_t new_count = 0;
 	size_t ret_count = 0;
 
 	IMAGE_RESTORE_CUR(image);
 
-	if ( image->size < image->cur )
-		return 0;
+	if ( ! image->is_shared_fd || image->cur < image->size - image->align ) {
 
-	if ( image->cur < image->size - image->align ) {
-
-		if ( image->cur + count > image->size - image->align )
+		if ( image->is_shared_fd && image->cur + count > image->size - image->align )
 			new_count = image->size - image->align - image->cur;
 		else
 			new_count = count;
 
-		ret_count += read(image->fd, buf, new_count);
+		ret = read(image->fd, buf, new_count);
+		if ( ret > 0 )
+			ret_count += ret;
+		else if ( ret < 0 )
+			return ret;
 
 		IMAGE_STORE_CUR(image);
-
-		if ( new_count != ret_count )
-			return ret_count;
 
 	}
 
 	if ( ret_count == count )
 		return ret_count;
 
-	if ( image->align && image->cur == image->size - image->align - 1 && image->acur < image->align ) {
+	cur = lseek(image->fd, 0, SEEK_CUR) - image->offset;
+
+	if ( image->align && cur == image->size - image->align && image->acur < image->align ) {
 
 		if ( image->acur + count - ret_count > image->align )
 			new_count = image->align - image->acur;
