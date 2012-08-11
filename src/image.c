@@ -443,6 +443,8 @@ enum image_type image_type_from_data(struct image * image) {
 		return IMAGE_CMT_ALGO;
 	else if ( memcmp(buf, "\xb2\x00\x00\x01\x44\x00\x00\x00", 8) == 0 )
 		return IMAGE_CMT_MCUSW;
+	else if ( memcmp(buf, "\x45\x3d\xcd\x28", 2) == 0 ) /* Compressed ROMFS header */
+		return IMAGE_INITFS;
 	else if ( memcmp(buf, "\x85\x19\x01\xe0", 2) == 0 ) { /* JFFS2 MAGIC */
 		if ( image->size < 0x300000 )
 			return IMAGE_INITFS;
