@@ -156,6 +156,7 @@ int verbose;
 /* arg = [[[dev:[hw:]]ver:]type:]file[%%lay] */
 static void parse_image_arg(char * arg, struct image_list ** image_first) {
 
+	struct stat st;
 	struct image * image;
 	char * file;
 	char * type;
@@ -164,6 +165,17 @@ static void parse_image_arg(char * arg, struct image_list ** image_first) {
 	char * version;
 	char * layout;
 	char * layout_file;
+
+	/* Fisrt check if arg is file, then try to parse arg format */
+	if ( stat(arg, &st) == 0 ) {
+		image = image_alloc_from_file(arg, NULL, NULL, NULL, NULL, NULL);
+		if ( ! image ) {
+			ERROR("Cannot load image file %s", file);
+			exit(1);
+		}
+		image_list_add(image_first, image);
+		return;
+	}
 
 	layout_file = strchr(arg, '%');
 	if (layout_file)
