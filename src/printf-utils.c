@@ -55,6 +55,7 @@ void printf_progressbar(unsigned long long part, unsigned long long total) {
 		for(tmp=cols*pc/100;tmp;tmp--) PRINTF_ADD("#");
 		for(tmp=cols-(cols*pc/100);tmp;tmp--) PRINTF_ADD("-");
 		PRINTF_ADD("]");
+		if (part == total) PRINTF_END();
 		fflush(stdout);
 #if HAVE_SQUEUE
 	}
