@@ -59,12 +59,42 @@ static void usb_flash_device_info_print(const struct usb_flash_device * dev) {
 
 	int i;
 
-	PRINTF_ADD("USB device %s", device_to_string(dev->devices[0]));
+	PRINTF_ADD("USB device: %s", device_to_string(dev->devices[0]));
 
 	for ( i = 1; dev->devices[i]; ++i )
 		PRINTF_ADD("/%s", device_to_string(dev->devices[i]));
 
 	PRINTF_ADD(" (%#04x:%#04x) in %s mode", dev->vendor, dev->product, usb_flash_protocol_to_string(dev->protocol));
+
+}
+
+static void usb_descriptor_info_print(usb_dev_handle * udev, struct usb_device * dev) {
+
+	char buf[1024];
+	char buf2[1024];
+	unsigned int x;
+	int ret;
+	int i;
+
+	buf[0] = 0;
+	usb_get_string_simple(udev, dev->descriptor.iProduct, buf, sizeof(buf));
+	PRINTF_LINE("USB device product string: %s", buf[0] ? buf : "(not detected)");
+	PRINTF_END();
+
+	buf[0] = 0;
+	buf2[0] = 0;
+	ret = usb_get_string_simple(udev, dev->descriptor.iSerialNumber, buf, sizeof(buf));
+	for ( i = 0; i < ret; i+=2 ) {
+		sscanf(buf+i, "%2x", &x);
+		if ( x > 32 && x < 128 )
+			buf2[i/2] = x;
+		else {
+			buf2[0] = 0;
+			break;
+		}
+	}
+	PRINTF_LINE("USB device serial number string: %s", buf2[0] ? buf2 : "(not detected)");
+	PRINTF_END();
 
 }
 
@@ -89,6 +119,8 @@ static struct usb_device_info * usb_device_is_valid(struct usb_device * dev) {
 				PRINTF_ERROR("usb_open failed");
 				return NULL;
 			}
+
+			usb_descriptor_info_print(udev, dev);
 
 #if defined(LIBUSB_HAS_GET_DRIVER_NP) && defined(LIBUSB_HAS_DETACH_KERNEL_DRIVER_NP)
 			PRINTF_LINE("Detaching kernel from USB interface...");
@@ -171,6 +203,9 @@ struct usb_device_info * usb_open_and_wait_for_device(void) {
 	usb_init();
 	usb_find_busses();
 
+	PRINTF_BACK();
+	printf("\n");
+
 	while ( 1 ) {
 
 		PRINTF_LINE("Waiting for USB device... %c", progress[++i%sizeof(progress)]);
@@ -203,6 +238,7 @@ struct usb_device_info * usb_open_and_wait_for_device(void) {
 	}
 
 	PRINTF_BACK();
+	printf("\n");
 
 	if ( ! ret )
 		return NULL;
