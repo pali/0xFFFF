@@ -44,7 +44,8 @@ struct usb_flash_device {
 
 struct usb_device_info {
 	enum device detected_device;
-	struct usb_flash_device * flash_device;
+	char * detected_hwrev;
+	const struct usb_flash_device * flash_device;
 	usb_dev_handle * udev;
 };
 
