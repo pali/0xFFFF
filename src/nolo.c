@@ -50,7 +50,7 @@
 #define NOLO_ADD_RD_FLAGS	3
 #define NOLO_DEL_RD_FLAGS	4
 
-/* R&D flags */
+/* Values - R&D flags */
 #define NOLO_RD_FLAG_NO_OMAP_WD		0x002
 #define NOLO_RD_FLAG_NO_EXT_WD		0x004
 #define NOLO_RD_FLAG_NO_LIFEGUARD	0x008
@@ -59,6 +59,10 @@
 #define NOLO_RD_FLAG_STI_CONSOLE	0x040
 #define NOLO_RD_FLAG_NO_CHARGING	0x080
 #define NOLO_RD_FLAG_FORCE_POWER_KEY	0x100
+
+/* Values - Boot mode */
+#define NOLO_BOOT_MODE_NORMAL		0
+#define NOLO_BOOT_MODE_UPDATE		1
 
 static int nolo_identify_string(struct usb_device_info * dev, const char * str, char * out, size_t size) {
 
@@ -166,8 +170,8 @@ int nolo_boot(struct usb_device_info * dev, char * cmdline) {
 		cmdline = NULL;
 	}
 
-	if ( usb_control_msg(dev->udev, NOLO_WRITE, NOLO_BOOT, 0, 0, cmdline, size, 2000) < 0 )
-		ERROR_RETURN("NOLO_BOOT failed", -1);
+	if ( usb_control_msg(dev->udev, NOLO_WRITE, NOLO_BOOT, NOLO_BOOT_MODE_NORMAL, 0, cmdline, size, 2000) < 0 )
+		ERROR_RETURN("Booting failed", -1);
 
 	return 0;
 
@@ -175,8 +179,10 @@ int nolo_boot(struct usb_device_info * dev, char * cmdline) {
 
 int nolo_boot_to_update_mode(struct usb_device_info * dev) {
 
-	printf("nolo_boot_to_update_mode is not implemented yet\n");
-	return -1;
+	printf("Booting to update mode...\n");
+	if ( usb_control_msg(dev->udev, NOLO_WRITE, NOLO_BOOT, NOLO_BOOT_MODE_UPDATE, 0, NULL, 0, 2000) < 0 )
+		ERROR_RETURN("Booting failed", -1);
+	return 0;
 
 }
 
