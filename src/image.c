@@ -30,8 +30,8 @@
 #include "device.h"
 #include "image.h"
 
-#define IMAGE_STORE_CUR(image) do { if ( image->is_shared_fd ) { image->cur = lseek(image->fd, 0, SEEK_CUR) - image->offset; if ( image->cur >= image->size ) image->cur = image->size - 1; } } while (0)
-#define IMAGE_RESTORE_CUR(image) do { if ( image->is_shared_fd ) { if ( image->cur < image->size ) lseek(image->fd, image->offset + image->cur, SEEK_SET); else lseek(image->fd, image->offset + image->size - 1, SEEK_SET); } } while (0)
+#define IMAGE_STORE_CUR(image) do { if ( image->is_shared_fd ) { image->cur = lseek(image->fd, 0, SEEK_CUR) - image->offset; if ( image->cur > image->size ) image->cur = image->size; } } while (0)
+#define IMAGE_RESTORE_CUR(image) do { if ( image->is_shared_fd ) { if ( image->cur <= image->size ) lseek(image->fd, image->offset + image->cur, SEEK_SET); else lseek(image->fd, image->offset + image->size, SEEK_SET); } } while (0)
 
 static void image_missing_values_from_name(struct image * image, const char * name) {
 
@@ -208,6 +208,7 @@ struct image * image_alloc_from_file(const char * file, const char * type, const
 	image->offset = 0;
 	image->cur = 0;
 	image->orig_filename = strdup(file);
+	lseek(image->fd, 0, SEEK_SET);
 
 	image_append(image, type, device, hwrevs, version, layout);
 
@@ -298,10 +299,11 @@ size_t image_read(struct image * image, void * buf, size_t count) {
 		ret = read(image->fd, buf, new_count);
 		if ( ret > 0 )
 			ret_count += ret;
-		else if ( ret < 0 )
-			return ret;
 
 		IMAGE_STORE_CUR(image);
+
+		if ( ret < 0 )
+			return ret;
 
 	}
 
@@ -392,6 +394,7 @@ uint16_t image_hash_from_data(struct image * image) {
 	uint16_t hash = 0;
 	int ret;
 
+	image_seek(image, 0);
 	while ( ( ret = image_read(image, &buf, sizeof(buf)) ) )
 		hash ^= do_hash((uint16_t *)&buf, ret);
 
