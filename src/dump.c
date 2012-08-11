@@ -21,6 +21,8 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "global.h"
+
 #include "dump.h"
 #include "printf-utils.h"
 

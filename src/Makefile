@@ -1,31 +1,30 @@
 include ../config.mk
-OBJ=main.o dump.o nolo.o qmode.o
-OBJ+=printf-utils.o console.o
-OBJ+=squeue/squeue.o
-OBJ+=image.o fiasco.o device.o usb-device.o cold-flash.o
-BIN=0xFFFF
-#LIBS=`${HAVE_USB} && echo -- '-lusb'`
-LIBS=`if [ "${HAVE_USB}" = 1 ]; then echo '-lusb'; fi`
-CFLAGS+=-DVERSION=\"${VERSION}\" -Wall -I .
-CFLAGS+=-pedantic -std=c99 -DHAVE_USB=${HAVE_USB} -Wno-unused-result
-USBOBJ=../libusb/error.o ../libusb/usb.o ../libusb/descriptors.o
-USBOBJ+=../libusb/linux.o ## XXX not portable
 
-CFLAGS+=-I../libusb
-LDFLAGS+=-L../libusb
+CPPFLAGS += -DVERSION=\"$(VERSION)\" -D_GNU_SOURCE
+CFLAGS += -DVERSION=\"$(VERSION)\" -W -Wall -Wno-unused-parameter -Wno-unused-result -O2 -pedantic -std=c99 -I.
+ifdef WITH_USB
+CPPFLAGS += -DWITH_USB
+LIBS += -lusb
+endif
 
-CFLAGS+=-D_GNU_SOURCE
+ifdef WITH_DEVICE
+CPPFLAGS += -DWITH_DEVICE
+endif
 
-all: ${BIN}
+ifdef WITH_SQUEUES
+CPPFLAGS += -DWITH_SQUEUES
+endif
 
-${BIN}: ${OBJ}
-	${CC} ${LDFLAGS} -o ${BIN} ${OBJ} ${LIBS}
+OBJS = main.o nolo.o printf-utils.o image.o fiasco.o device.o usb-device.o cold-flash.o dump.o qmode.o console.o squeue/squeue.o
+BIN = 0xFFFF
 
-allusb: ${OBJ}
-	${CC} ${LDFLAGS} -o ${BIN} ${OBJ} ${USBOBJ}
+all: $(BIN)
 
-static: ${OBJ}
-	${CC} ${LDFLAGS} -o ${BIN} -static ${OBJ} ${USBOBJ}
+$(BIN): $(OBJS) Makefile ../config.mk
+	$(CC) $(CFLAGS) $(LDFLAGS) -o $(BIN) $(OBJS) $(LIBS)
+
+%.o: %.c Makefile ../config.mk
+	$(CC) $(CFLAGS) $(CPPFLAGS) -c -o $@ $<
 
 clean:
-	-rm -f ${OBJ} ${BIN}
+	-rm -f $(OBJS) $(BIN)

@@ -29,6 +29,7 @@
 #include <unistd.h>
 
 #include "global.h"
+
 #include "device.h"
 #include "image.h"
 #include "fiasco.h"

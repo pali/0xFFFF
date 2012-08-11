@@ -21,6 +21,8 @@
 #include <stdint.h>
 #include <string.h>
 
+#include "global.h"
+
 #include "device.h"
 
 static const char * devices[] = {

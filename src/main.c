@@ -29,6 +29,7 @@
 #include <unistd.h>
 
 #include "global.h"
+
 #include "image.h"
 #include "fiasco.h"
 #include "device.h"
@@ -38,15 +39,9 @@
 #include "qmode.h"
 #include "nolo.h"
 
-#undef VERSION
-#define VERSION "0.6"
-
 static void show_title(void) {
 	printf("0xFFFF v%s  // The Free Fiasco Firmware Flasher\n", VERSION);
 }
-
-#define WITH_USB
-//#define WITH_DEVICE
 
 static void show_usage(void) {
 

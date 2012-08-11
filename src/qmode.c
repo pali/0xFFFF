@@ -27,14 +27,10 @@
 #include <sys/wait.h>
 #include <sys/stat.h>
 
+#include "global.h"
+
 #include "qmode.h"
 #include "nolo.h"
-
-#if __linux__ || __NetBSD__ || __FreBSD__ || __OpenBSD__ || __Darwin__ || __MacOSX__
-#define HAVE_SQUEUE 1
-#else
-#define HAVE_SQUEUE 0
-#endif
 
 #if HAVE_SQUEUE
 

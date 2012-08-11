@@ -22,6 +22,8 @@
 #include <stdarg.h>
 #include <unistd.h>
 
+#include "global.h"
+
 #include "printf-utils.h"
 
 int printf_prev = 0;

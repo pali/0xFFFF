@@ -23,11 +23,12 @@
 #include <errno.h>
 #include <usb.h>
 
+#include "global.h"
+
 #include "cold-flash.h"
 #include "image.h"
 #include "usb-device.h"
 #include "printf-utils.h"
-#include "global.h"
 
 #define READ_DEV		0x81
 #define WRITE_DEV		0x01

@@ -17,13 +17,15 @@
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#if HAVE_USB
+#if WITH_USB
 
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
 #include <getopt.h>
 #include <unistd.h>
+
+#include <global.h>
 
 #include "console.h"
 #include "nolo.h"
