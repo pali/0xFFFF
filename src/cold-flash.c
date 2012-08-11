@@ -128,7 +128,7 @@ struct xloader_msg xloader_msg_create(uint32_t type, struct image * image) {
 			if ( need > sizeof(buffer) )
 				need = sizeof(buffer);
 			ret = image_read(image, buffer, need);
-			if ( ret < 0 )
+			if ( ret == 0 )
 				break;
 			msg.crc1 = crc32(buffer, ret, msg.crc1);
 			readed += ret;
@@ -188,7 +188,7 @@ static int send_2nd(usb_dev_handle * udev, struct image * image) {
 		if ( need > sizeof(buffer) )
 			need = sizeof(buffer);
 		ret = image_read(image, buffer, need);
-		if ( ret < 0 )
+		if ( ret == 0 )
 			break;
 		if ( usb_bulk_write(udev, WRITE_DEV, (char *)buffer, ret, WRITE_TIMEOUT) != ret )
 			ERROR_RETURN("Sending 2nd X-Loader image failed", -1);
@@ -230,7 +230,7 @@ static int send_secondary(usb_dev_handle * udev, struct image * image) {
 		if ( need > sizeof(buffer) )
 			need = sizeof(buffer);
 		ret = image_read(image, buffer, need);
-		if ( ret < 0 )
+		if ( ret == 0 )
 			break;
 		if ( usb_bulk_write(udev, WRITE_DEV, (char *)buffer, ret, WRITE_TIMEOUT) != ret )
 			ERROR_RETURN("Sending Secondary image failed", -1);

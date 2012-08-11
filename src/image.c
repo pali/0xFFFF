@@ -419,6 +419,7 @@ enum image_type image_type_from_data(struct image * image) {
 
 	unsigned char buf[512];
 
+	memset(buf, 0, sizeof(buf));
 	image_seek(image, 0);
 	image_read(image, buf, sizeof(buf));
 

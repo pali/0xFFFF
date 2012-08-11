@@ -457,7 +457,7 @@ int fiasco_write_to_file(struct fiasco * fiasco, const char * file) {
 		image_seek(image, 0);
 		while ( 1 ) {
 			size = image_read(image, buf, sizeof(buf));
-			if ( size < 1 )
+			if ( size == 0 )
 				break;
 			WRITE_OR_FAIL(file, fd, buf, size);
 		}
@@ -543,7 +543,7 @@ int fiasco_unpack(struct fiasco * fiasco, const char * dir) {
 		image_seek(image, 0);
 		while ( 1 ) {
 			size = image_read(image, buf, sizeof(buf));
-			if ( size < 1 )
+			if ( size == 0 )
 				break;
 			WRITE_OR_FAIL(name, fd, buf, size);
 		}
