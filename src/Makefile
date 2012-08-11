@@ -1,7 +1,7 @@
 include ../config.mk
 
-CPPFLAGS += -DVERSION=\"$(VERSION)\" -D_GNU_SOURCE
-CFLAGS += -DVERSION=\"$(VERSION)\" -W -Wall -Wno-unused-parameter -Wno-unused-result -O2 -pedantic -std=c99 -I.
+CPPFLAGS += -DVERSION=\"$(VERSION)\" -D_GNU_SOURCE -I.
+CFLAGS += -W -Wall -Wno-unused-parameter -Wno-unused-result -O2 -pedantic -std=c99
 ifdef WITH_USB
 CPPFLAGS += -DWITH_USB
 LIBS += -lusb
