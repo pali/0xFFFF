@@ -241,6 +241,51 @@ static void parse_image_arg(char * arg, struct image_list ** image_first) {
 
 }
 
+void filter_images_by_type(enum image_type type, struct image_list ** image_first) {
+
+	struct image_list * image_ptr = *image_first;
+	while ( image_ptr ) {
+		struct image_list * next = image_ptr->next;
+		if ( image_ptr->image->type != type ) {
+			image_list_del(image_ptr);
+			if ( image_ptr == *image_first )
+				*image_first = next;
+		}
+		image_ptr = next;
+	}
+
+}
+
+void filter_images_by_device(enum device device, struct image_list ** image_first) {
+
+	struct image_list * image_ptr = *image_first;
+	while ( image_ptr ) {
+		struct image_list * next = image_ptr->next;
+		if ( image_ptr->image->device != device && image_ptr->image->device != DEVICE_ANY ) {
+			image_list_del(image_ptr);
+			if ( image_ptr == *image_first )
+				*image_first = next;
+		}
+		image_ptr = next;
+	}
+
+}
+
+void filter_images_by_hwrev(const char * hwrev, struct image_list ** image_first) {
+
+	struct image_list * image_ptr = *image_first;
+	while ( image_ptr ) {
+		struct image_list * next = image_ptr->next;
+		if ( ! image_hwrev_is_valid(image_ptr->image, hwrev) ) {
+			image_list_del(image_ptr);
+			if ( image_ptr == *image_first )
+				*image_first = next;
+		}
+		image_ptr = next;
+	}
+
+}
+
 int main(int argc, char **argv) {
 
 	const char * optstring = ""
@@ -348,14 +393,12 @@ int main(int argc, char **argv) {
 
 	struct usb_device_info * usb_dev = NULL;
 
-	char hwrev[20];
 	char buf[512];
 
 	simulate = 0;
 	noverify = 0;
 	verbose = 0;
 
-	memset(hwrev, 0, sizeof(hwrev));
 	show_title();
 
 	while ( ( c = getopt(argc, argv, optstring) ) != -1 ) {
@@ -547,54 +590,24 @@ int main(int argc, char **argv) {
 	/* filter images by type */
 	if ( filter_type ) {
 		enum image_type type = image_type_from_string(filter_type_arg);
-		if ( ! type ) {
+		if ( ! type )
 			ERROR("Specified unknown image type for filtering: %s", filter_type_arg);
-		} else {
-			image_ptr = image_first;
-			while ( image_ptr ) {
-				struct image_list * next = image_ptr->next;
-				if ( image_ptr->image->type != type ) {
-					image_list_del(image_ptr);
-					if ( image_ptr == image_first )
-						image_first = next;
-				}
-				image_ptr = next;
-			}
-		}
+		else
+			filter_images_by_type(type, &image_first);
 	}
 
 	/* filter images by device */
 	if ( filter_device ) {
 		enum device device = device_from_string(filter_device_arg);
-		if ( ! device ) {
+		if ( ! device )
 			ERROR("Specified unknown device for filtering: %s", filter_device_arg);
-		} else {
-			image_ptr = image_first;
-			while ( image_ptr ) {
-				struct image_list * next = image_ptr->next;
-				if ( image_ptr->image->device != device && image_ptr->image->device != DEVICE_ANY ) {
-					image_list_del(image_ptr);
-					if ( image_ptr == image_first )
-						image_first = next;
-				}
-				image_ptr = next;
-			}
-		}
+		else
+			filter_images_by_device(device, &image_first);
 	}
 
 	/* filter images by hwrev */
-	if ( filter_hwrev ) {
-		image_ptr = image_first;
-		while ( image_ptr ) {
-			struct image_list * next = image_ptr->next;
-			if ( ! image_hwrev_is_valid(image_ptr->image, filter_hwrev_arg) ) {
-				image_list_del(image_ptr);
-				if ( image_ptr == image_first )
-					image_first = next;
-			}
-			image_ptr = next;
-		}
-	}
+	if ( filter_hwrev )
+		filter_images_by_hwrev(filter_hwrev_arg, &image_first);
 
 	/* reorder images for flashing (first x-loader, second secondary) */
 	/* set 2nd and secondary images for cold-flashing */
@@ -749,6 +762,12 @@ int main(int argc, char **argv) {
 		}
 	}
 
+	if ( dev_load && dev_flash ) {
+		ERROR("Options load and flash cannot de used together");
+		ret = 1;
+		goto clean;
+	}
+
 	if ( dev_boot || dev_reboot || dev_load || dev_flash || dev_cold_flash || dev_ident || set_root || set_usb || set_rd || set_rd_flags || set_hw || set_kernel || set_nolo || set_sw || set_emmc ) {
 
 		do {
@@ -789,23 +808,17 @@ int main(int argc, char **argv) {
 			}
 
 			usb_dev->detected_device = nolo_get_device(usb_dev);
-			if ( ! usb_dev->detected_device ) {
-				printf("Cannot detect device\n");
-				usb_close_device(usb_dev);
-				usb_dev = NULL;
-				continue;
-			}
+			if ( ! usb_dev->detected_device )
+				printf("Device: (not detected)\n");
+			else
+				printf("Device: %s\n", device_to_string(usb_dev->detected_device));
 
-			printf("Device: %s\n", device_to_string(usb_dev->detected_device));
+			buf[0] = 0;
+			nolo_get_hwrev(usb_dev, buf, sizeof(buf));
+			printf("HW revision: %s\n", buf[0] ? buf : "(not detected)");
 
-			if ( nolo_get_hwrev(usb_dev, hwrev, sizeof(hwrev)) < 0 ) {
-				printf("Cannot detect HW revision\n");
-				usb_close_device(usb_dev);
-				usb_dev = NULL;
-				continue;
-			}
-
-			printf("HW revision: %s\n", hwrev);
+			if ( buf[0] )
+				usb_dev->detected_hwrev = strdup(buf);
 
 			buf[0] = 0;
 			nolo_get_nolo_ver(usb_dev, buf, sizeof(buf));
@@ -874,11 +887,21 @@ int main(int argc, char **argv) {
 
 			printf("\n");
 
+			/* filter images by device & hwrev */
+			if ( usb_dev->detected_device )
+				filter_images_by_device(usb_dev->detected_device, &image_first);
+			if ( usb_dev->detected_hwrev )
+				filter_images_by_hwrev(usb_dev->detected_hwrev, &image_first);
+
 			/* load */
+			if ( dev_load ) {
 //			if ( image_first )
+			}
 
 			/* flash */
+			if ( dev_flash) {
 //			if ( image_first )
+			}
 
 			/* configuration */
 			if ( set_rd_flags ) {
