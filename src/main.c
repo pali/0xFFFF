@@ -50,7 +50,7 @@ static void show_usage(void) {
 
 #if defined(WITH_USB) && ! defined(WITH_DEVICE)
 		"Over USB:\n"
-		" -b cmdline      boot default or loaded kernel with cmdline, empty use default\n"
+		" -b [cmdline]    boot default or loaded kernel with cmdline (empty cmdline: use kernel default)\n"
 		" -r              reboot device\n"
 		" -l              load kernel and initfs images to RAM\n"
 		" -f              flash all specified images\n"
@@ -64,7 +64,7 @@ static void show_usage(void) {
 		" -f              flash all specified images\n"
 		" -x /dev/mtd     check for bad blocks on mtd device\n"
 		" -E file         dump all images from device to one fiasco image, see -t\n"
-		" -e dir          dump all images from device to directory, see -t\n"
+		" -e [dir]        dump all images from device to directory, see -t (default: current directory)\n"
 		"\n"
 #endif
 
@@ -102,7 +102,7 @@ static void show_usage(void) {
 		"\n"
 
 		"Fiasco image:\n"
-		" -u dir          unpack fiasco image to directory\n"
+		" -u [dir]        unpack fiasco image to directory (default: current directory)\n"
 		" -g file[%%sw]    generate fiasco image to file with SW release version sw (default: without SW release)\n"
 		"\n"
 
@@ -283,7 +283,7 @@ void filter_images_by_hwrev(const char * hwrev, struct image_list ** image_first
 
 int main(int argc, char **argv) {
 
-	const char * optstring = ""
+	const char * optstring = ":"
 #if defined(WITH_USB) && ! defined(WITH_DEVICE)
 	"b:rlfc"
 #endif
@@ -396,13 +396,50 @@ int main(int argc, char **argv) {
 
 	show_title();
 
+	opterr = 0;
+
 	while ( ( c = getopt(argc, argv, optstring) ) != -1 ) {
 
 		switch (c) {
+
+			default:
+				ERROR("Unknown option '%c'", c);
+				ret = 1;
+				goto clean;
+
+			case '?':
+				ERROR("Unknown option '%c'", optopt);
+				ret = 1;
+				goto clean;
+
+			case ':':
+#if defined(WITH_USB) && ! defined(WITH_DEVICE)
+				if ( optopt == 'b' ) {
+					dev_boot = 1;
+					break;
+				}
+#endif
+#ifdef WITH_DEVICE
+				if ( optopt == 'e' ) {
+					dev_dump = 1;
+					break;
+				}
+#endif
+				if ( optopt == 'u' ) {
+					fiasco_un = 1;
+					break;
+				}
+				ERROR("Option '%c' requires an argument", optopt);
+				ret = 1;
+				goto clean;
+
 #if defined(WITH_USB) && ! defined(WITH_DEVICE)
 			case 'b':
 				dev_boot = 1;
-				dev_boot_arg = optarg;
+				if ( optarg[0] != '-' )
+					dev_boot_arg = optarg;
+				else
+					--optind;
 				break;
 			case 'l':
 				dev_load = 1;
@@ -423,7 +460,10 @@ int main(int argc, char **argv) {
 				break;
 			case 'e':
 				dev_dump = 1;
-				dev_dump_arg = optarg;
+				if ( optarg[0] != '-' )
+					dev_dump_arg = optarg;
+				else
+					--optind;
 				break;
 #endif
 
@@ -503,7 +543,10 @@ int main(int argc, char **argv) {
 				break;
 			case 'g':
 				fiasco_gen = 1;
-				fiasco_gen_arg = optarg;
+				if ( optarg[0] != '-' )
+					fiasco_gen_arg = optarg;
+				else
+					--optind;
 				break;
 
 			case 'i':
@@ -534,10 +577,14 @@ int main(int argc, char **argv) {
 				help = 1;
 				break;
 
-			default:
-				return 1;
 		}
 
+	}
+
+	if ( optind < argc ) {
+		ERROR("Extra argument '%s'", argv[optind]);
+		ret = 1;
+		goto clean;
 	}
 
 	/* help */
@@ -691,8 +738,14 @@ int main(int argc, char **argv) {
 	}
 
 	/* unpack fiasco */
-	if ( fiasco_un )
+	if ( fiasco_un ) {
+		if ( ! fiasco_in ) {
+			ERROR("No fiasco image specified");
+			ret = 1;
+			goto clean;
+		}
 		fiasco_unpack(fiasco_in, fiasco_un_arg);
+	}
 
 	/* remove unknown images */
 	image_ptr = image_first;
