@@ -42,7 +42,7 @@ static struct usb_flash_device usb_devices[] = {
 static const char * usb_flash_protocols[] = {
 	[FLASH_NOLO] = "NOLO",
 	[FLASH_COLD] = "Cold flashing",
-	[FLASH_MKII] = "Mkii protcol",
+	[FLASH_MKII] = "Mk II protocol",
 	[FLASH_DISK] = "RAW disk",
 };
 
@@ -93,7 +93,7 @@ static void usb_descriptor_info_print(usb_dev_handle * udev, struct usb_device *
 			break;
 		}
 	}
-	PRINTF_LINE("USB device serial number string: %s", buf2[0] ? buf2 : "(not detected)");
+	PRINTF_LINE("USB device serial number string: %s", buf2[0] ? buf2 : ( buf[0] ? buf : "(not detected)" ));
 	PRINTF_END();
 
 }
