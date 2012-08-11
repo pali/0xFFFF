@@ -781,8 +781,11 @@ int main(int argc, char **argv) {
 				usb_close_device(usb_dev);
 				usb_dev = NULL;
 
-				if ( ret != 0 )
+				if ( ret != -EAGAIN )
 					continue;
+
+				if ( ret != 0 )
+					goto clean;
 
 				if ( dev_flash ) {
 					dev_cold_flash = 0;
