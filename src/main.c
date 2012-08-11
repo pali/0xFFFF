@@ -818,7 +818,11 @@ int main(int argc, char **argv) {
 
 	if ( dev_boot || dev_reboot || dev_load || dev_flash || dev_cold_flash || dev_ident || set_root || set_usb || set_rd || set_rd_flags || set_hw || set_kernel || set_nolo || set_sw || set_emmc ) {
 
-		do {
+		int again = 1;
+
+		while ( again ) {
+
+			again = 0;
 
 			usb_dev = usb_open_and_wait_for_device();
 
@@ -829,19 +833,30 @@ int main(int argc, char **argv) {
 				usb_close_device(usb_dev);
 				usb_dev = NULL;
 
-				if ( ret != -EAGAIN )
+				if ( ret != -EAGAIN ) {
+					again = 1;
 					continue;
+				}
 
 				if ( ret != 0 )
 					goto clean;
 
 				if ( dev_flash ) {
 					dev_cold_flash = 0;
+					again = 1;
 					continue;
 				}
 
 				break;
 
+			}
+
+			if ( usb_dev->flash_device->protocol == FLASH_COLD ) {
+				leave_cold_flash(usb_dev);
+				usb_close_device(usb_dev);
+				usb_dev = NULL;
+				again = 1;
+				continue;
 			}
 
 			if ( usb_dev->flash_device->protocol != FLASH_NOLO ) {
@@ -855,6 +870,7 @@ int main(int argc, char **argv) {
 				printf("Cannot initialize NOLO\n");
 				usb_close_device(usb_dev);
 				usb_dev = NULL;
+				again = 1;
 				continue;
 			}
 
@@ -994,7 +1010,7 @@ int main(int argc, char **argv) {
 				break;
 			}
 
-		} while ( dev_cold_flash || dev_flash );
+		}
 
 	}
 
