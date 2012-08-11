@@ -50,7 +50,7 @@ static void show_usage(void) {
 
 #if defined(WITH_USB) && ! defined(WITH_DEVICE)
 		"Over USB:\n"
-		" -b [cmdline]    boot default or loaded kernel with cmdline (empty cmdline: use kernel default)\n"
+		" -b [cmdline]    boot default or loaded kernel (if cmdline is empty use default, if cmdline starts with \"update\" boot to update mode)\n"
 		" -r              reboot device\n"
 		" -l              load kernel and initfs images to RAM\n"
 		" -f              flash all specified images\n"
@@ -980,7 +980,7 @@ int main(int argc, char **argv) {
 
 			/* boot */
 			if ( dev_boot ) {
-				nolo_boot(usb_dev, dev_boot_arg);
+				nolo_boot_device(usb_dev, dev_boot_arg);
 				usb_close_device(usb_dev);
 				usb_dev = NULL;
 				break;
