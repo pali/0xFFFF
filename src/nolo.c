@@ -158,11 +158,25 @@ int nolo_flash_image(struct usb_device_info * dev, struct image * image) {
 
 }
 
-int nolo_boot(struct usb_device_info * dev, char * cmdline) {
+int nolo_boot_device(struct usb_device_info * dev, char * cmdline) {
 
 	int size = 0;
+	int mode = NOLO_BOOT_MODE_NORMAL;
 
-	if ( cmdline && cmdline[0] ) {
+	if ( cmdline && strncmp(cmdline, "update", strlen("update")) == 0 && cmdline[strlen("update")] <= 32 ) {
+		mode = NOLO_BOOT_MODE_UPDATE;
+		cmdline += strlen("update");
+		if ( *cmdline ) ++cmdline;
+		while ( *cmdline && *cmdline <= 32 )
+			++cmdline;
+		if ( *cmdline ) {
+			printf("Booting kernel to update mode with cmdline: %s...\n", cmdline);
+			size = strlen(cmdline);
+		} else {
+			printf("Booting kernel to update mode with default cmdline...\n");
+			cmdline = NULL;
+		}
+	} else if ( cmdline && cmdline[0] ) {
 		printf("Booting kernel with cmdline: '%s'...\n", cmdline);
 		size = strlen(cmdline)+1;
 	} else {
@@ -170,18 +184,9 @@ int nolo_boot(struct usb_device_info * dev, char * cmdline) {
 		cmdline = NULL;
 	}
 
-	if ( usb_control_msg(dev->udev, NOLO_WRITE, NOLO_BOOT, NOLO_BOOT_MODE_NORMAL, 0, cmdline, size, 2000) < 0 )
+	if ( usb_control_msg(dev->udev, NOLO_WRITE, NOLO_BOOT, mode, 0, cmdline, size, 2000) < 0 )
 		ERROR_RETURN("Booting failed", -1);
 
-	return 0;
-
-}
-
-int nolo_boot_to_update_mode(struct usb_device_info * dev) {
-
-	printf("Booting to update mode...\n");
-	if ( usb_control_msg(dev->udev, NOLO_WRITE, NOLO_BOOT, NOLO_BOOT_MODE_UPDATE, 0, NULL, 0, 2000) < 0 )
-		ERROR_RETURN("Booting failed", -1);
 	return 0;
 
 }
