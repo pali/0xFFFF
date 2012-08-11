@@ -121,8 +121,10 @@ enum device nolo_get_device(struct usb_device_info * dev) {
 	char buf[20];
 	if ( nolo_identify_string(dev, "prod_code", buf, sizeof(buf)) < 0 )
 		return DEVICE_UNKNOWN;
-	else
+	else if ( buf[0] )
 		return device_from_string(buf);
+	else
+		return DEVICE_UNKNOWN;
 
 }
 
