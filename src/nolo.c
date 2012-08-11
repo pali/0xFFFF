@@ -47,6 +47,18 @@
 #define NOLO_RD_MODE		0
 #define NOLO_ROOT_DEVICE	1
 #define NOLO_USB_HOST_MODE	2
+#define NOLO_ADD_RD_FLAGS	3
+#define NOLO_DEL_RD_FLAGS	4
+
+/* R&D flags */
+#define NOLO_RD_FLAG_NO_OMAP_WD		0x002
+#define NOLO_RD_FLAG_NO_EXT_WD		0x004
+#define NOLO_RD_FLAG_NO_LIFEGUARD	0x008
+#define NOLO_RD_FLAG_SERIAL_CONSOLE	0x010
+#define NOLO_RD_FLAG_NO_USB_TIMEOUT	0x020
+#define NOLO_RD_FLAG_STI_CONSOLE	0x040
+#define NOLO_RD_FLAG_NO_CHARGING	0x080
+#define NOLO_RD_FLAG_FORCE_POWER_KEY	0x100
 
 static int nolo_identify_string(struct usb_device_info * dev, const char * str, char * out, size_t size) {
 
@@ -188,7 +200,7 @@ int nolo_get_root_device(struct usb_device_info * dev) {
 
 int nolo_set_root_device(struct usb_device_info * dev, int device) {
 
-	printf("Setting root device to %d\n", device);
+	printf("Setting root device to %d...\n", device);
 	if ( usb_control_msg(dev->udev, NOLO_WRITE, NOLO_SET, device, NOLO_ROOT_DEVICE, NULL, 0, 2000) < 0 )
 		ERROR_RETURN("Cannot set root device", -1);
 	return 0;
@@ -206,7 +218,7 @@ int nolo_get_usb_host_mode(struct usb_device_info * dev) {
 
 int nolo_set_usb_host_mode(struct usb_device_info * dev, int enable) {
 
-	printf("%s USB host mode\n", enable ? "Enabling" : "Disabling");
+	printf("%s USB host mode...\n", enable ? "Enabling" : "Disabling");
 	if ( usb_control_msg(dev->udev, NOLO_WRITE, NOLO_SET, enable, NOLO_USB_HOST_MODE, NULL, 0, 2000) < 0 )
 		ERROR_RETURN("Cannot change USB host mode status", -1);
 	return 0;
@@ -224,24 +236,124 @@ int nolo_get_rd_mode(struct usb_device_info * dev) {
 
 int nolo_set_rd_mode(struct usb_device_info * dev, int enable) {
 
-	printf("%s R&D mode\n", enable ? "Enabling" : "Disabling");
+	printf("%s R&D mode...\n", enable ? "Enabling" : "Disabling");
 	if ( usb_control_msg(dev->udev, NOLO_WRITE, NOLO_SET, enable, NOLO_RD_MODE, NULL, 0, 2000) < 0 )
-		ERROR_RETURN("Cannot chnage R&D mode status", -1);
+		ERROR_RETURN("Cannot change R&D mode status", -1);
 	return 0;
 
 }
 
+#define APPEND_STRING(ptr, buf, size, string) do { if ( (int)size > ptr-buf ) ptr += snprintf(ptr, size-(ptr-buf), "%s,", string); } while (0)
+
 int nolo_get_rd_flags(struct usb_device_info * dev, char * flags, size_t size) {
 
-	printf("nolo_get_rd_flags is not implemented yet\n");
-	return -1;
+	uint16_t add_flags;
+	char * ptr = flags;
+
+	if ( usb_control_msg(dev->udev, NOLO_QUERY, NOLO_GET, 0, NOLO_ADD_RD_FLAGS, (char *)&add_flags, 2, 2000) < 0 )
+		ERROR_RETURN("Cannot get R&D flags", -1);
+
+	if ( add_flags & NOLO_RD_FLAG_NO_OMAP_WD )
+		APPEND_STRING(ptr, flags, size, "no-omap-wd");
+	if ( add_flags & NOLO_RD_FLAG_NO_EXT_WD )
+		APPEND_STRING(ptr, flags, size, "no-ext-wd");
+	if ( add_flags & NOLO_RD_FLAG_NO_LIFEGUARD )
+		APPEND_STRING(ptr, flags, size, "no-lifeguard-reset");
+	if ( add_flags & NOLO_RD_FLAG_SERIAL_CONSOLE )
+		APPEND_STRING(ptr, flags, size, "serial-console");
+	if ( add_flags & NOLO_RD_FLAG_NO_USB_TIMEOUT )
+		APPEND_STRING(ptr, flags, size, "no-usb-timeout");
+	if ( add_flags & NOLO_RD_FLAG_STI_CONSOLE )
+		APPEND_STRING(ptr, flags, size, "sti-console");
+	if ( add_flags & NOLO_RD_FLAG_NO_CHARGING )
+		APPEND_STRING(ptr, flags, size, "no-charging");
+	if ( add_flags & NOLO_RD_FLAG_FORCE_POWER_KEY )
+		APPEND_STRING(ptr, flags, size, "force-power-key");
+
+	if ( ptr != flags && *(ptr-1) == ',' )
+		*(--ptr) = 0;
+
+	return ptr-flags;
 
 }
 
+#undef APPEND_STRING
+
 int nolo_set_rd_flags(struct usb_device_info * dev, const char * flags) {
 
-	printf("nolo_set_rd_flags is not implemented yet\n");
-	return -1;
+	const char * ptr = flags;
+	const char * endptr = ptr;
+
+	int add_flags = 0;
+	int del_flags = 0;
+
+	if ( flags && flags[0] )
+		printf("Setting R&D flags to: %s...\n", flags);
+	else
+		printf("Clearing all R&D flags...\n");
+
+	while ( ptr && *ptr ) {
+
+		while ( *ptr <= 32 )
+			++ptr;
+
+		if ( ! *ptr )
+			break;
+
+		endptr = strchr(ptr, ',');
+		if ( endptr )
+			endptr -= 1;
+		else
+			endptr = ptr+strlen(ptr);
+
+		if ( strncmp("no-omap-wd", ptr, endptr-ptr) == 0 )
+			add_flags |= NOLO_RD_FLAG_NO_OMAP_WD;
+		if ( strncmp("no-ext-wd", ptr, endptr-ptr) == 0 )
+			add_flags |= NOLO_RD_FLAG_NO_EXT_WD;
+		if ( strncmp("no-lifeguard-reset", ptr, endptr-ptr) == 0 )
+			add_flags |= NOLO_RD_FLAG_NO_LIFEGUARD;
+		if ( strncmp("serial-console", ptr, endptr-ptr) == 0 )
+			add_flags |= NOLO_RD_FLAG_SERIAL_CONSOLE;
+		if ( strncmp("no-usb-timeout", ptr, endptr-ptr) == 0 )
+			add_flags |= NOLO_RD_FLAG_NO_USB_TIMEOUT;
+		if ( strncmp("sti-console", ptr, endptr-ptr) == 0 )
+			add_flags |= NOLO_RD_FLAG_STI_CONSOLE;
+		if ( strncmp("no-charging", ptr, endptr-ptr) == 0 )
+			add_flags |= NOLO_RD_FLAG_NO_CHARGING;
+		if ( strncmp("force-power-key", ptr, endptr-ptr) == 0 )
+			add_flags |= NOLO_RD_FLAG_FORCE_POWER_KEY;
+
+		if ( *(endptr+1) )
+			ptr = endptr+2;
+		else
+			break;
+
+	}
+
+	if ( ! ( add_flags & NOLO_RD_FLAG_NO_OMAP_WD ) )
+		del_flags |= NOLO_RD_FLAG_NO_OMAP_WD;
+	if ( ! ( add_flags & NOLO_RD_FLAG_NO_EXT_WD ) )
+		del_flags |= NOLO_RD_FLAG_NO_EXT_WD;
+	if ( ! ( add_flags & NOLO_RD_FLAG_NO_LIFEGUARD ) )
+		del_flags |= NOLO_RD_FLAG_NO_LIFEGUARD;
+	if ( ! ( add_flags & NOLO_RD_FLAG_SERIAL_CONSOLE ) )
+		del_flags |= NOLO_RD_FLAG_SERIAL_CONSOLE;
+	if ( ! ( add_flags & NOLO_RD_FLAG_NO_USB_TIMEOUT ) )
+		del_flags |= NOLO_RD_FLAG_NO_USB_TIMEOUT;
+	if ( ! ( add_flags & NOLO_RD_FLAG_STI_CONSOLE ) )
+		del_flags |= NOLO_RD_FLAG_STI_CONSOLE;
+	if ( ! ( add_flags & NOLO_RD_FLAG_NO_CHARGING ) )
+		del_flags |= NOLO_RD_FLAG_NO_CHARGING;
+	if ( ! ( add_flags & NOLO_RD_FLAG_FORCE_POWER_KEY ) )
+		del_flags |= NOLO_RD_FLAG_FORCE_POWER_KEY;
+
+	if ( usb_control_msg(dev->udev, NOLO_WRITE, NOLO_SET, add_flags, NOLO_ADD_RD_FLAGS, NULL, 0, 2000) < 0 )
+		ERROR_RETURN("Cannot add R&D flags", -1);
+
+	if ( usb_control_msg(dev->udev, NOLO_WRITE, NOLO_SET, del_flags, NOLO_DEL_RD_FLAGS, NULL, 0, 2000) < 0 )
+		ERROR_RETURN("Cannot del R&D flags", -1);
+
+	return 0;
 
 }
 
@@ -492,103 +604,3 @@ int nolo_set_content_ver(struct usb_device_info * dev, const char * ver) {
 	printf("Flash done succesfully.\n");
 }*/
 
-//char strbuf[1024];
-
-/**
- * Set flags:
- * request type: CMD_WRITE
- * request     : 16
- * value       : flags to set, see below
- * index       : 3
- * 
- * Clear flags:
- * request type: CMD_WRITE
- * request     : 16
- * value       : flags to clear, see below
- * index       : 4
- 
- * Flags are composed of:
- * 0x02 - disable OMAP watchdog (possibly)
- * 0x04 - disable RETU watchdog (possibly)
- * 0x08 - disable lifeguard reset
- * 0x10 - enable serial console
- * 0x20 - disable USB timeout
- * 
- * The function encapsule the NOLO API in a way that it works like
- * a chmod 707. The bits that are not set will be cleared after the
- * call. This is done by issuing a 'clear flags' command with all the
- * non set bits.  
- * 
- */
-/*
-int set_rd_flags(unsigned short flags)
-{
-	unsigned short reverse_flags = 0;
-	
-	if (flags & ~(0x02 | 0x04 | 0x08 | 0x10 | 0x20)) {
-		printf("Invalid rd flags specified '%x'.\n", flags);
-		return -1;
-	}
-	
-	if (!(flags & 0x02))
-	  reverse_flags |= 0x02;
-
-	if (!(flags & 0x04))
-	  reverse_flags |= 0x04;
-
-	if (!(flags & 0x08))
-	  reverse_flags |= 0x08;
-
-	if (!(flags & 0x10))
-	  reverse_flags |= 0x10;
-
-	if (!(flags & 0x20))
-	  reverse_flags |= 0x20;
-	  
-	if (usb_control_msg(dev, CMD_WRITE, 16, flags, 3, 0, 0, 2000) == -1) {
-		fprintf(stderr, "Cannot set rd flags\n");
-		return -1;
-	}
-
-	if (usb_control_msg(dev, CMD_WRITE, 16, reverse_flags, 4, 0, 0, 2000) == -1) {
-		fprintf(stderr, "Cannot set rd flags\n");
-		return -1;
-	}
-
-	printf("Set rd flags successfully!\n");
-	printf("disable OMAP watchdog  : %s\n", (flags & 0x02) ? "set" : "not set"); 
-	printf("disable RETU watchdog  : %s\n", (flags & 0x04) ? "set" : "not set"); 
-	printf("disable lifeguard reset: %s\n", (flags & 0x08) ? "set" : "not set"); 
-	printf("enable serial console  : %s\n", (flags & 0x10) ? "set" : "not set"); 
-	printf("disable USB timeout    : %s\n", (flags & 0x20) ? "set" : "not set"); 
-
-	return 0;
-}
-
-int get_rd_flags()
-{
-	unsigned short flags = 0;
-	
-	if (usb_control_msg (dev, CMD_QUERY, NOLO_GET_RDFLAGS, 0, 3, (void *) &flags,sizeof(flags), 2000) == -1) {
-		fprintf(stderr, "Cannot get rd flags\n");
-		sprintf(strbuf, "error: Cannot read rd flags\n");
-		return -1;
-	}
-	
-	sprintf (strbuf,
-	"Current rd flag setting:\n"
-	"disable OMAP watchdog  : %s\n"
-	"disable RETU watchdog  : %s\n"
-	"disable lifeguard reset: %s\n"
-	"enable serial console  : %s\n"
-	"disable USB timeout    : %s\n"
-		, (flags & 0x02) ? "set" : "not set"
-		, (flags & 0x04) ? "set" : "not set"
-		, (flags & 0x08) ? "set" : "not set"
-		, (flags & 0x10) ? "set" : "not set"
-		, (flags & 0x20) ? "set" : "not set");
-	puts (strbuf);
-	
-	return 0; 
-}
-*/
