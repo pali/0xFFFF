@@ -532,10 +532,12 @@ int fiasco_unpack(struct fiasco * fiasco, const char * dir) {
 
 		printf("    Output file: %s\n", name);
 
-		fd = open(name, O_RDWR|O_CREAT|O_TRUNC, 0644);
-		if ( fd < 0 ) {
-			ERROR_INFO("Cannot create output file %s", name);
-			return -1;
+		if ( ! simulate ) {
+			fd = open(name, O_RDWR|O_CREAT|O_TRUNC, 0644);
+			if ( fd < 0 ) {
+				ERROR_INFO("Cannot create output file %s", name);
+				return -1;
+			}
 		}
 
 		free(name);
@@ -552,10 +554,12 @@ int fiasco_unpack(struct fiasco * fiasco, const char * dir) {
 
 		if ( image->layout ) {
 
-			fd = open(layout_name, O_RDWR|O_CREAT|O_TRUNC, 0644);
-			if ( fd < 0 ) {
-				ERROR_INFO("Cannot create layout file %s", layout_name);
-				return -1;
+			if ( ! simulate ) {
+				fd = open(layout_name, O_RDWR|O_CREAT|O_TRUNC, 0644);
+				if ( fd < 0 ) {
+					ERROR_INFO("Cannot create layout file %s", layout_name);
+					return -1;
+				}
 			}
 
 			free(layout_name);
