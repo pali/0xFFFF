@@ -42,6 +42,7 @@ static void image_missing_values_from_name(struct image * image, const char * na
 	char * device = NULL;
 	char * hwrevs = NULL;
 	char * version = NULL;
+	enum device new_device;
 
 	str = strdup(name);
 	if ( ! str )
@@ -72,8 +73,11 @@ static void image_missing_values_from_name(struct image * image, const char * na
 		image->type = image_type_from_string(type);
 	free(type);
 
-	if ( ! image->device || image->device == DEVICE_ANY )
-		image->device = device_from_string(device);
+	if ( ! image->device || image->device == DEVICE_ANY ) {
+		new_device = device_from_string(device);
+		if ( new_device )
+			image->device = new_device;
+	}
 	free(device);
 
 	if ( ! image->hwrevs )
