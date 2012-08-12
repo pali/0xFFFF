@@ -408,7 +408,6 @@ static const char * image_types[] = {
 	[IMAGE_KERNEL] = "kernel",
 	[IMAGE_INITFS] = "initfs",
 	[IMAGE_ROOTFS] = "rootfs",
-	[IMAGE_OMAP_NAND] = "omap-nand",
 	[IMAGE_MMC] = "mmc",
 	[IMAGE_CMT_2ND] = "cmt-2nd",
 	[IMAGE_CMT_ALGO] = "cmt-algo",
