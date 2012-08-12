@@ -85,8 +85,35 @@ static uint32_t crc32(unsigned char * bytes, size_t size, uint32_t crc) {
 /* Omap Peripheral boot message */
 static const uint32_t omap_peripheral_msg = 0xF0030002;
 
+/* Omap Void (no device) boot message */
+static const uint32_t omap_void_msg = 0xF0030006;
+
+/* Omap XIP memory boot message */
+static const uint32_t omap_xip_msg = 0xF0030106;
+
+/* Omap Nand boot message */
+static const uint32_t omap_nand_msg = 0xF0030206;
+
 /* Omap OneNAND boot message */
 static const uint32_t omap_onenand_msg = 0xF0030306;
+
+/* Omap DOC boot message */
+static const uint32_t omap_doc_msg = 0xF0030406;
+
+/* Omap MMC/SD2 boot message */
+static const uint32_t omap_mmc2_msg = 0xF0030506;
+
+/* Omap MMC/SD1 boot message */
+static const uint32_t omap_mmc1_msg = 0xF0030606;
+
+/* Omap XIP memory with wait monitoring boot message */
+static const uint32_t omap_xipwait_msg = 0xF0030706;
+
+/* Omap UART boot message */
+static const uint32_t omap_uart_msg = 0xF0031006;
+
+/* Omap HS USB boot message */
+static const uint32_t omap_hsusb_msg = 0xF0031106;
 
 /* Omap next device boot message */
 static const uint32_t omap_next_msg = 0xFFFFFFFF;
