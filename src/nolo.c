@@ -212,6 +212,8 @@ int nolo_get_root_device(struct usb_device_info * dev) {
 int nolo_set_root_device(struct usb_device_info * dev, int device) {
 
 	printf("Setting root device to %d...\n", device);
+	if ( simulate )
+		return 0;
 	if ( usb_control_msg(dev->udev, NOLO_WRITE, NOLO_SET, device, NOLO_ROOT_DEVICE, NULL, 0, 2000) < 0 )
 		ERROR_RETURN("Cannot set root device", -1);
 	return 0;
@@ -230,6 +232,8 @@ int nolo_get_usb_host_mode(struct usb_device_info * dev) {
 int nolo_set_usb_host_mode(struct usb_device_info * dev, int enable) {
 
 	printf("%s USB host mode...\n", enable ? "Enabling" : "Disabling");
+	if ( simulate )
+		return 0;
 	if ( usb_control_msg(dev->udev, NOLO_WRITE, NOLO_SET, enable, NOLO_USB_HOST_MODE, NULL, 0, 2000) < 0 )
 		ERROR_RETURN("Cannot change USB host mode status", -1);
 	return 0;
@@ -248,6 +252,8 @@ int nolo_get_rd_mode(struct usb_device_info * dev) {
 int nolo_set_rd_mode(struct usb_device_info * dev, int enable) {
 
 	printf("%s R&D mode...\n", enable ? "Enabling" : "Disabling");
+	if ( simulate )
+		return 0;
 	if ( usb_control_msg(dev->udev, NOLO_WRITE, NOLO_SET, enable, NOLO_RD_MODE, NULL, 0, 2000) < 0 )
 		ERROR_RETURN("Cannot change R&D mode status", -1);
 	return 0;
@@ -357,6 +363,9 @@ int nolo_set_rd_flags(struct usb_device_info * dev, const char * flags) {
 		del_flags |= NOLO_RD_FLAG_NO_CHARGING;
 	if ( ! ( add_flags & NOLO_RD_FLAG_FORCE_POWER_KEY ) )
 		del_flags |= NOLO_RD_FLAG_FORCE_POWER_KEY;
+
+	if ( simulate )
+		return 0;
 
 	if ( usb_control_msg(dev->udev, NOLO_WRITE, NOLO_SET, add_flags, NOLO_ADD_RD_FLAGS, NULL, 0, 2000) < 0 )
 		ERROR_RETURN("Cannot add R&D flags", -1);
