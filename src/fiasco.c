@@ -477,9 +477,9 @@ int fiasco_write_to_file(struct fiasco * fiasco, const char * file) {
 
 int fiasco_unpack(struct fiasco * fiasco, const char * dir) {
 
-	int fd;
-	char * name;
-	char * layout_name;
+	int fd = -1;
+	char * name = NULL;
+	char * layout_name = NULL;
 	struct image * image;
 	struct image_list * image_list;
 	uint32_t size;
