@@ -170,7 +170,7 @@ static void parse_image_arg(char * arg, struct image_list ** image_first) {
 	if ( stat(arg, &st) == 0 ) {
 		image = image_alloc_from_file(arg, NULL, NULL, NULL, NULL, NULL);
 		if ( ! image ) {
-			ERROR("Cannot load image file %s", file);
+			ERROR("Cannot load image file %s", arg);
 			exit(1);
 		}
 		image_list_add(image_first, image);
