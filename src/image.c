@@ -426,21 +426,21 @@ enum image_type image_type_from_data(struct image * image) {
 	image_seek(image, 0);
 	image_read(image, buf, sizeof(buf));
 
-	if ( memcmp(buf+0x34, "2NDAPE", 6) == 0 )
+	if ( memcmp(buf+52, "2NDAPE", 6) == 0 )
 		return IMAGE_2ND;
-	else if ( memcmp(buf+0x14, "2ND", 3) == 0 )
+	else if ( memcmp(buf+20, "2ND", 3) == 0 )
 		return IMAGE_2ND;
-	else if ( memcmp(buf+0x04, "NOLOScnd", 8) == 0 )
+	else if ( memcmp(buf+4, "NOLOScnd", 8) == 0 )
 		return IMAGE_SECONDARY;
-	else if ( memcmp(buf+0x14, "X-LOADER", 8) == 0 )
+	else if ( memcmp(buf+20, "X-LOADER", 8) == 0 )
 		return IMAGE_XLOADER;
-	else if ( memcmp(buf+0x0c, "NOLOXldr", 8) == 0 )
+	else if ( memcmp(buf+12, "NOLOXldr", 8) == 0 )
 		return IMAGE_XLOADER;
 	else if ( memcmp(buf+4, "NOLOXldr", 8) == 0 )
 		return IMAGE_2ND;
-	else if ( memcmp(buf, "\x00\x00\xa0\xe1\x00\x00\xa0\xe1", 8) == 0 )
+	else if ( memcmp(buf+36, "\x18\x28\x6f\x01", 4) == 0 ) /* ARM Linux kernel magic number */
 		return IMAGE_KERNEL;
-	else if ( memcmp(buf, "\x21\x01\x01", 3) == 0 )
+	else if ( memcmp(buf, "\x14\x00\x00\xea", 4) == 0 ) /* ARM U-Boot - instruction branch +0x50 */
 		return IMAGE_KERNEL;
 	else if ( memcmp(buf, "UBI#", 4) == 0 ) /* UBI EC header */
 		return IMAGE_ROOTFS;
@@ -450,9 +450,9 @@ enum image_type image_type_from_data(struct image * image) {
 		return IMAGE_CMT_ALGO;
 	else if ( memcmp(buf, "\xb2\x00\x00\x01\x44\x00\x00\x00", 8) == 0 )
 		return IMAGE_CMT_MCUSW;
-	else if ( memcmp(buf, "\x45\x3d\xcd\x28", 2) == 0 ) /* Compressed ROMFS header */
+	else if ( memcmp(buf, "\x45\x3d\xcd\x28", 4) == 0 ) /* CRAMFS MAGIC */
 		return IMAGE_INITFS;
-	else if ( memcmp(buf, "\x85\x19\x01\xe0", 2) == 0 ) { /* JFFS2 MAGIC */
+	else if ( memcmp(buf, "\x85\x19", 2) == 0 ) { /* JFFS2 MAGIC */
 		if ( image->size < 0x300000 )
 			return IMAGE_INITFS;
 		else
