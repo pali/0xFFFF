@@ -134,15 +134,38 @@ char * image_name_alloc_from_values(struct image * image) {
 
 }
 
-static void image_append(struct image * image, const char * type, const char * device, const char * hwrevs, const char * version, const char * layout) {
+static int image_append(struct image * image, const char * type, const char * device, const char * hwrevs, const char * version, const char * layout) {
+
+	enum image_type detected_type;
 
 	image->hash = image_hash_from_data(image);
-	image->device = device_from_string(device);
+	image->device = DEVICE_ANY;
 
-	if ( type && type[0] )
+	if ( device && device[0] ) {
+		image->device = device_from_string(device);
+		if ( image->device == DEVICE_UNKNOWN ) {
+			ERROR("Specified Device %s is unknown", device);
+			image_free(image);
+			return -1;
+		}
+	}
+
+	detected_type = image_type_from_data(image);
+	image->type = detected_type;
+
+	if ( type && type[0] ) {
 		image->type = image_type_from_string(type);
-	else
-		image->type = image_type_from_data(image);
+		if ( image->type == IMAGE_UNKNOWN ) {
+			ERROR("Specified Image type %s is unknown", type);
+			image_free(image);
+			return -1;
+		}
+		if ( ! noverify && detected_type != image->type ) {
+			ERROR("Image type mishmash (detected %s, got %s)", image_type_to_string(detected_type), type);
+			image_free(image);
+			return -1;
+		}
+	}
 
 	if ( hwrevs && hwrevs[0] )
 		image->hwrevs = strdup(hwrevs);
@@ -158,6 +181,8 @@ static void image_append(struct image * image, const char * type, const char * d
 		image->layout = strdup(layout);
 	else
 		image->layout = NULL;
+
+	return 0;
 
 }
 
@@ -214,7 +239,8 @@ struct image * image_alloc_from_file(const char * file, const char * type, const
 	image->orig_filename = strdup(file);
 	lseek(image->fd, 0, SEEK_SET);
 
-	image_append(image, type, device, hwrevs, version, layout);
+	if ( image_append(image, type, device, hwrevs, version, layout) < 0 )
+		return NULL;
 
 	if ( ( ! type || ! type[0] ) && ( ! device || ! device[0] ) && ( ! hwrevs || ! hwrevs[0] ) && ( ! version || ! version[0] ) )
 		image_missing_values_from_name(image, file);
@@ -237,7 +263,8 @@ struct image * image_alloc_from_shared_fd(int fd, size_t size, size_t offset, ui
 	image->offset = offset;
 	image->cur = 0;
 
-	image_append(image, type, device, hwrevs, version, layout);
+	if ( image_append(image, type, device, hwrevs, version, layout) < 0 )
+		return NULL;
 
 	if ( ! noverify && image->hash != hash ) {
 		ERROR("Image hash mishmash (counted %#04x, got %#04x)", image->hash, hash);
