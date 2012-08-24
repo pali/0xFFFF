@@ -50,7 +50,8 @@ static void show_usage(void) {
 
 #if defined(WITH_USB) && ! defined(WITH_DEVICE)
 		"Over USB:\n"
-		" -b [cmdline]    boot default or loaded kernel (if cmdline is empty use default, if cmdline starts with \"update\" boot to update mode)\n"
+		" -b [cmdline]    boot default or loaded kernel (default: no cmdline)\n"
+		" -b update       boot default or loaded kernel to Update mode\n"
 		" -r              reboot device\n"
 		" -l              load kernel and initfs images to RAM\n"
 		" -f              flash all specified images\n"
@@ -63,8 +64,8 @@ static void show_usage(void) {
 		" -r              reboot device\n"
 		" -f              flash all specified images\n"
 		" -x /dev/mtd     check for bad blocks on mtd device\n"
-		" -E file         dump all images from device to one fiasco image, see -t\n"
-		" -e [dir]        dump all images from device to directory, see -t (default: current directory)\n"
+		" -E file         dump all device images to one fiasco image, see -t\n"
+		" -e [dir]        dump all device images to directory, see -t (default: current)\n"
 		"\n"
 #endif
 
@@ -90,7 +91,7 @@ static void show_usage(void) {
 		"                   dev is device name string (default: emtpy)\n"
 		"                   hw are comma separated list of HW revisions (default: empty)\n"
 		"                   ver is image version string (default: empty)\n"
-		"                   type is image type (default: try autodetect)\n"
+		"                   type is image type (default: autodetect)\n"
 		"                   file is image file name\n"
 		"                   lay is layout file name (default: none)\n"
 		"\n"
@@ -102,8 +103,8 @@ static void show_usage(void) {
 		"\n"
 
 		"Fiasco image:\n"
-		" -u [dir]        unpack fiasco image to directory (default: current directory)\n"
-		" -g file[%%sw]    generate fiasco image to file with SW release version sw (default: without SW release)\n"
+		" -u [dir]        unpack fiasco image to directory (default: current)\n"
+		" -g file[%%sw]    generate fiasco image with SW rel version (default: no version)\n"
 		"\n"
 
 		"Other options:\n"
