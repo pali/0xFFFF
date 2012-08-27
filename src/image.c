@@ -143,7 +143,7 @@ static int image_append(struct image * image, const char * type, const char * de
 
 	if ( device && device[0] ) {
 		image->device = device_from_string(device);
-		if ( image->device == DEVICE_UNKNOWN ) {
+		if ( ! noverify && image->device == DEVICE_UNKNOWN ) {
 			ERROR("Specified Device %s is unknown", device);
 			image_free(image);
 			return -1;
@@ -155,7 +155,7 @@ static int image_append(struct image * image, const char * type, const char * de
 
 	if ( type && type[0] ) {
 		image->type = image_type_from_string(type);
-		if ( image->type == IMAGE_UNKNOWN ) {
+		if ( ! noverify && image->type == IMAGE_UNKNOWN ) {
 			ERROR("Specified Image type %s is unknown", type);
 			image_free(image);
 			return -1;
