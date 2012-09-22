@@ -122,9 +122,21 @@ int usb_control_msg(usb_dev_handle *dev, int requesttype, int request, int value
 	if ( ! real_usb_control_msg )
 		real_usb_control_msg = dlsym(RTLD_NEXT, "usb_control_msg");
 
+	if ( requesttype == 64 && ! getenv("USBSNIFF_SKIP_CONTROL") ) {
+
+		printf("\n==== usb_control_msg(requesttype=%d, request=%d, value=%d, index=%d, size=%d, timeout=%d) ====\n", requesttype, request, value, index, size, timeout);
+		dump_bytes(bytes, size);
+		printf("====\n");
+
+		if ( getenv("USBSNIFF_WAIT") ) {
+			printf("Press ENTER"); fflush(stdout); getchar();
+		}
+
+	}
+
 	ret = real_usb_control_msg(dev, requesttype, request, value, index, bytes, size, timeout);
 
-	if ( ! getenv("USBSNIFF_SKIP_CONTROL") ) {
+	if ( requesttype != 64 && ! getenv("USBSNIFF_SKIP_CONTROL") ) {
 
 		printf("\n==== usb_control_msg(requesttype=%d, request=%d, value=%d, index=%d, size=%d, timeout=%d) ret = %d ====\n", requesttype, request, value, index, size, timeout, ret);
 		if ( ret > 0 ) {
