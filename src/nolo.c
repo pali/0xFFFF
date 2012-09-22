@@ -20,6 +20,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
+#include <arpa/inet.h>
 
 #include <usb.h>
 
@@ -41,10 +42,21 @@
 #define NOLO_STRING		18
 #define NOLO_SET_STRING		19
 #define NOLO_GET_STRING		20
+#define NOLO_SEND_IMAGE		66
+#define NOLO_SET_SW_RELEASE	67
+#define NOLO_FLASH_IMAGE	80
+#define NOLO_SEND_FLASH_FINISH	82
+#define NOLO_SEND_FLASH_IMAGE	84
 #define NOLO_BOOT		130
 #define NOLO_REBOOT		131
 
-/* Index */
+/* Indexes - Flash image */
+#define NOLO_IMAGE_BOOTLOADER	1
+#define NOLO_IMAGE_KERNEL	3
+#define NOLO_IMAGE_INITFS	4
+#define NOLO_IMAGE_CMT		66
+
+/* Indexes - Set & Get */
 #define NOLO_RD_MODE		0
 #define NOLO_ROOT_DEVICE	1
 #define NOLO_USB_HOST_MODE	2
@@ -165,17 +177,214 @@ enum device nolo_get_device(struct usb_device_info * dev) {
 
 }
 
+static int nolo_send_image(struct usb_device_info * dev, struct image * image, int flash) {
+
+	char buf[0x20000];
+	char * ptr;
+	const char * type;
+	uint8_t len;
+	uint16_t hash;
+	uint32_t size;
+	uint32_t need;
+	uint32_t readed;
+	int request;
+	int ret;
+
+	if ( flash )
+		printf("Send and flash image:\n");
+	else
+		printf("Load image:\n");
+	image_print_info(image);
+
+	if ( image->type == IMAGE_2ND || image->type == IMAGE_MMC )
+		ERROR_RETURN("Sending 2nd and mmc images are not supported", -1);
+
+	if ( ! flash && image->type == IMAGE_ROOTFS )
+		ERROR_RETURN("Rootfs image must be sent in flash mode", -1);
+
+	ptr = buf;
+
+	/* Signature */
+	memcpy(ptr, "\x2E\x19\x01\x01", 4);
+	ptr += 4;
+
+	/* Space */
+	memcpy(ptr, "\x00", 1);
+	ptr += 1;
+
+	/* Hash */
+	hash = htons(image->hash);
+	memcpy(ptr, &hash, 2);
+	ptr += 2;
+
+	/* Type */
+	type = image_type_to_string(image->type);
+	if ( ! type )
+		ERROR_RETURN("Unknown image type", -1);
+	memset(ptr, 0, 12);
+	strncpy(ptr, type, 12);
+	ptr += 12;
+
+	/* Size */
+	size = htonl(image->size);
+	memcpy(ptr, &size, 4);
+	ptr += 4;
+
+	/* Space */
+	memcpy(ptr, "\x00\x00\x00\x00", 4);
+	ptr += 4;
+
+	/* Device & hwrev */
+	if ( image->devices ) {
+
+		int i;
+		uint8_t len;
+		char buf[9];
+		char ** bufs;
+		struct device_list * device = image->devices;
+
+		while ( device )
+			if ( device->device == dev->detected_device && hwrev_is_valid(device->hwrevs, dev->detected_hwrev) )
+				break;
+
+		if ( device )
+			bufs = device_list_alloc_to_bufs(device);
+
+		if ( bufs ) {
+
+			memset(buf, 0, sizeof(buf));
+			snprintf(buf, 8, "%d", dev->detected_hwrev);
+
+			for ( i = 0; bufs[i]; ++i ) {
+				len = ((uint8_t*)bufs[i])[0];
+				if ( memmem(bufs[i]+1, len, buf, strlen(buf)) )
+					break;
+			}
+
+			if ( bufs[i] ) {
+				/* Device & hwrev string header */
+				memcpy(ptr, "\x32", 1);
+				ptr += 1;
+				/* Device & hwrev string size */
+				memcpy(ptr, &len, 1);
+				ptr += 1;
+				/* Device & hwrev string */
+				memcpy(ptr, bufs[i]+1, len);
+				ptr += len;
+			}
+
+			free(bufs);
+
+		}
+
+	}
+
+	/* Version */
+	if ( image->version ) {
+		len = strnlen(image->version, 255) + 1;
+		/* Version string header */
+		memcpy(ptr, "\x31", 1);
+		ptr += 1;
+		/* Version string size */
+		memcpy(ptr, &len, 1);
+		ptr += 1;
+		/* Version string */
+		memcpy(ptr, image->version, len);
+		ptr += len;
+	}
+
+	if ( flash )
+		request = NOLO_SEND_FLASH_IMAGE;
+	else
+		request = NOLO_SEND_IMAGE;
+
+	printf("Sending image header...\n");
+	if ( usb_control_msg(dev->udev, NOLO_WRITE, request, 0, 0, buf, ptr-buf, 2000) < 0 )
+		ERROR_RETURN("Sending image header failed", -1);
+
+	if ( flash )
+		printf("Sending and flashing image...\n");
+	else
+		printf("Sending image...\n");
+	printf_progressbar(0, image->size);
+	image_seek(image, 0);
+	readed = 0;
+	while ( readed < image->size ) {
+		need = image->size - readed;
+		if ( need > sizeof(buf) )
+			need = sizeof(buf);
+		ret = image_read(image, buf, need);
+		if ( ret == 0 )
+			break;
+		if ( usb_bulk_write(dev->udev, 2, buf, ret, 5000) != ret )
+			ERROR_RETURN("Sending image failed", -1);
+		readed += ret;
+		printf_progressbar(readed, image->size);
+	}
+
+	if ( flash ) {
+		printf("Finishing flashing...\n");
+		if ( usb_control_msg(dev->udev, NOLO_WRITE, NOLO_SEND_FLASH_FINISH, 0, 0, NULL, 0, 30000) < 0 )
+			ERROR_RETURN("Finishing failed", -1);
+	}
+
+	printf("Done\n");
+
+	return 0;
+
+}
+
 int nolo_load_image(struct usb_device_info * dev, struct image * image) {
 
-	printf("nolo_load_image is not implemented yet\n");
-	return -1;
+	if ( image->type != IMAGE_KERNEL && image->type != IMAGE_INITFS )
+		ERROR_RETURN("Only kernel or initfs image can be loaded", -1);
+
+	return nolo_send_image(dev, image, 0);
 
 }
 
 int nolo_flash_image(struct usb_device_info * dev, struct image * image) {
 
-	printf("nolo_flash_image is not implemented yet\n");
-	return -1;
+	int ret;
+	int flash;
+	int index;
+
+	if ( image->type == IMAGE_ROOTFS )
+		flash = 1;
+	else
+		flash = 0;
+
+	ret = nolo_send_image(dev, image, flash);
+	if ( ret < 0 )
+		return ret;
+
+	if ( image->type == IMAGE_SECONDARY )
+		index = NOLO_IMAGE_BOOTLOADER;
+	else if ( image->type == IMAGE_KERNEL )
+		index = NOLO_IMAGE_KERNEL;
+	else if ( image->type == IMAGE_CMT_MCUSW )
+		index = NOLO_IMAGE_CMT;
+	else
+		index = -1;
+
+	if ( image->type == IMAGE_CMT_MCUSW )
+		nolo_set_string(dev, "cmt:verify", "1");
+
+	if ( ! flash && index >= 0 ) {
+
+		printf("Flashing image...\n");
+		if ( usb_control_msg(dev->udev, NOLO_WRITE, NOLO_FLASH_IMAGE, 0, index, NULL, 0, 10000) )
+			ERROR_RETURN("Flashing failed", -1);
+
+		printf("Done\n");
+
+	}
+
+	if ( image->type == IMAGE_CMT_MCUSW ) {
+		/* TODO: show CMT progressbar and wait */
+	}
+
+	return 0;
 
 }
 
