@@ -148,53 +148,87 @@ char * hwrevs_alloc_to_string(const int16_t * hwrevs) {
 
 }
 
-char ** device_hwrevs_alloc_to_256bufs(const struct device_hwrevs * device_hwrevs) {
+char ** device_list_alloc_to_bufs(const struct device_list * device_list) {
 
-	int16_t * hwrevs = device_hwrevs->hwrevs;
-	const char * device;
 	int count = 0;
+	int size = 0;
+	const char * device;
+	const struct device_list * device_first;
 	char ** ret;
+	char * last_ptr;
 	int i, j, k;
 
-	device = device_to_string(device_hwrevs->device);
-	if ( ! device )
-		return NULL;
+	device_first = device_list;
 
-	for ( i = 0; hwrevs[i] != -1; ++i )
-		if ( hwrevs[i] >= 0 && hwrevs[i] <= 9999 )
+	while ( device_first ) {
+
+		int local = 0;
+
+		if ( ! device_to_string(device_first->device) )
+			continue;
+
+		for ( i = 0; device_first->hwrevs[i] != -1; ++i )
+			if ( device_first->hwrevs[i] >= 0 && device_first->hwrevs[i] <= 9999 )
+				++local;
+
+		size += 1+16+local*8;
+		count += local/30;
+		if ( local%30 != 0 || local == 0 )
 			++count;
 
-	count = count/30 + 2;
+		device_first = device_first->next;
 
-	ret = malloc(count*sizeof(char *) + count*256);
+	}
+
+	ret = calloc(1, count*sizeof(char *) + size);
 	if ( ! ret )
 		return NULL;
 
-	i = -1;
 	j = 0;
+	last_ptr = (char *)ret + count*sizeof(char *);
+	device_first = device_list;
 
-	while ( hwrevs[i+1] != -1 ) {
+	while ( device_first ) {
 
-		ret[j] = (char *)ret + count*sizeof(char *) + j*256;
+		i = -1;
 
-		memset(ret[j], 0, 256);
-		strncpy(ret[j], device, 16);
+		device = device_to_string(device_first->device);
+		if ( ! device ) {
+			device_first = device_first->next;
+			continue;
+		}
 
-		k = 0;
+		while ( device_first->hwrevs[i+1] != -1 ) {
 
-		for ( k = 0; k < 30; ++k ) {
+			uint8_t len = 0;
+			ret[j] = last_ptr;
 
-			++i;
+			strncpy(ret[j]+1, device, 16);
+			last_ptr += 16;
+			len += 16;
 
-			if ( hwrevs[i] < 0 || hwrevs[i] > 9999 )
-				continue;
+			k = 0;
 
-			memset(ret[j] + k*8, 0, 8);
-			snprintf(ret[j] + k*8, 8, "%d", hwrevs[i]);
+			for ( k = 0; k < 30; ++k ) {
+
+				++i;
+
+				if ( device_first->hwrevs[i] < 0 || device_first->hwrevs[i] > 9999 )
+					continue;
+
+				snprintf(ret[j]+1+k*8, 8, "%d", device_first->hwrevs[i]);
+				last_ptr += 8;
+				len += 8;
+
+			}
+
+			ret[j][0] = len;
+
+			++j;
 
 		}
 
-		++j;
+		device_first = device_first->next;
 
 	}
 
@@ -204,7 +238,7 @@ char ** device_hwrevs_alloc_to_256bufs(const struct device_hwrevs * device_hwrev
 
 }
 
-struct device_hwrevs device_hwrevs_alloc_from_256buf(const char * buf, size_t size) {
+struct device_list * device_list_alloc_from_buf(const char * buf, size_t size) {
 
 	int i;
 	int len;
@@ -212,7 +246,11 @@ struct device_hwrevs device_hwrevs_alloc_from_256buf(const char * buf, size_t si
 	char str[17];
 	const char * ptr1;
 	const char * ptr;
-	struct device_hwrevs ret;
+	struct device_list * ret;
+
+	ret = calloc(1, sizeof(struct device_list));
+	if ( ! ret )
+		return NULL;
 
 	len = strnlen(buf, size);
 	if ( len > 16 )
@@ -222,7 +260,7 @@ struct device_hwrevs device_hwrevs_alloc_from_256buf(const char * buf, size_t si
 	memcpy(str, buf, len);
 	ptr1 = buf + len;
 
-	ret.device = device_from_string(str);
+	ret->device = device_from_string(str);
 
 	ptr = ptr1;
 	count = 1;
@@ -243,8 +281,8 @@ struct device_hwrevs device_hwrevs_alloc_from_256buf(const char * buf, size_t si
 
 	}
 
-	ret.hwrevs = calloc(count, sizeof(int16_t));
-	if ( ! ret.hwrevs )
+	ret->hwrevs = calloc(count, sizeof(int16_t));
+	if ( ! ret->hwrevs )
 		return ret;
 
 	ptr = ptr1;
@@ -264,11 +302,11 @@ struct device_hwrevs device_hwrevs_alloc_from_256buf(const char * buf, size_t si
 		memset(str, 0, sizeof(str));
 		memcpy(str, ptr, len);
 		ptr += len + 1;
-		ret.hwrevs[i++] = atoi(str);
+		ret->hwrevs[i++] = atoi(str);
 
 	}
 
-	ret.hwrevs[i] = -1;
+	ret->hwrevs[i] = -1;
 	return ret;
 
 }

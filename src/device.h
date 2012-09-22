@@ -36,9 +36,10 @@ enum device {
          - terminated by -1
          - valid numbers: 0-9999
 */
-struct device_hwrevs {
+struct device_list {
 	enum device device;
 	int16_t * hwrevs;
+	struct device_list * next;
 };
 
 enum device device_from_string(const char * device);
@@ -50,7 +51,7 @@ int hwrevs_is_valid(const int16_t * hwrevs, int16_t hwrev);
 int16_t * hwrevs_alloc_from_string(const char * str);
 char * hwrevs_alloc_to_string(const int16_t * hwrevs);
 
-char ** device_hwrevs_alloc_to_256bufs(const struct device_hwrevs * device_hwrevs);
-struct device_hwrevs device_hwrevs_alloc_from_256buf(const char * buf, size_t size);
+char ** device_list_alloc_to_bufs(const struct device_list * device_list);
+struct device_list * device_list_alloc_from_buf(const char * buf, size_t size);
 
 #endif
