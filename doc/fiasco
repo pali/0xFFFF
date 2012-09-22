@@ -46,7 +46,7 @@ IMAGE
              block {
    1 byte           --  type of subsection block
                           '1' - version
-                          '2' - device & hw revisions (separated by char 0x00, max size of device is 16, hw revision 8)
+                          '2' - device & hw revisions (size of device is 16, hw revision 8)
                           '3' - layout
                           '4' - unknown
                           '/' - unknown
