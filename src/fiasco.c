@@ -38,7 +38,7 @@
 #define FIASCO_WRITE_ERROR(file, fd, ...) do { ERROR_INFO_STR(file, __VA_ARGS__); if ( fd >= 0 ) close(fd); return -1; } while (0)
 #define READ_OR_FAIL(fiasco, buf, size) do { if ( read(fiasco->fd, buf, size) != size ) { FIASCO_READ_ERROR(fiasco, "Cannot read %d bytes", size); } } while (0)
 #define READ_OR_RETURN(fiasco, buf, size) do { if ( read(fiasco->fd, buf, size) != size ) return fiasco; } while (0)
-#define WRITE_OR_FAIL(file, fd, buf, size) do { if ( ! simulate ) { if ( write(fd, buf, size) != size ) { FIASCO_WRITE_ERROR(file, fd, "Cannot write %d bytes", size); } } } while (0)
+#define WRITE_OR_FAIL(file, fd, buf, size) do { if ( ! simulate ) { if ( write(fd, buf, size) != (ssize_t)size ) { FIASCO_WRITE_ERROR(file, fd, "Cannot write %d bytes", size); } } } while (0)
 
 struct fiasco * fiasco_alloc_empty(void) {
 

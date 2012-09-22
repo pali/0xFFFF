@@ -203,7 +203,7 @@ int check_badblocks(char *mtddev)
 		} else {
 			char readbuf[2048]; // XXX hardcoded like mtd-utils?? ugly!
 			// dummy -- should be removed
-			if (pread(fd, readbuf, meminfo.writesize, i) != meminfo.writesize) {
+			if (pread(fd, readbuf, meminfo.writesize, i) != (ssize_t)meminfo.writesize) {
 				perror("pread");
 				goto closeall;
 			}

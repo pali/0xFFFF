@@ -320,7 +320,7 @@ void image_free(struct image * image) {
 
 }
 
-void image_seek(struct image * image, off_t whence) {
+void image_seek(struct image * image, size_t whence) {
 
 	if ( whence > image->size )
 		return;
@@ -339,7 +339,7 @@ void image_seek(struct image * image, off_t whence) {
 
 size_t image_read(struct image * image, void * buf, size_t count) {
 
-	off_t cur;
+	size_t cur;
 	ssize_t ret;
 	size_t new_count = 0;
 	size_t ret_count = 0;
