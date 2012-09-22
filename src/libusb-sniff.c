@@ -19,6 +19,7 @@
 
 /* compile: gcc libusb-sniff.c -o libusb-sniff.so -W -Wall -O2 -fPIC -ldl -shared -m32 */
 /* usage: sudo USBSNIFF_WAIT=1 LD_PRELOAD=./libusb-sniff.so flasher-3.5 ... */
+/* usage: sudo USBSNIFF_SKIP_READ=1 USBSNIFF_SKIP_WRITE=1 LD_PRELOAD=./libusb-sniff.so flasher-3.5 ... */
 
 #define _GNU_SOURCE
 #include <stdio.h>
@@ -69,12 +70,16 @@ int usb_bulk_write(usb_dev_handle * dev, int ep, const char * bytes, int size, i
 	if ( ! real_usb_bulk_write )
 		real_usb_bulk_write = dlsym(RTLD_NEXT, "usb_bulk_write");
 
-	printf("\n==== usb_bulk_write (ep=%d size=%d timeout=%d) ====\n", ep, size, timeout);
-	dump_bytes(bytes, size);
-	printf("====\n");
+	if ( ! getenv("USBSNIFF_SKIP_WRITE") ) {
 
-	if ( getenv("USBSNIFF_WAIT") ) {
-		printf("Press ENTER"); fflush(stdout); getchar();
+		printf("\n==== usb_bulk_write (ep=%d size=%d timeout=%d) ====\n", ep, size, timeout);
+		dump_bytes(bytes, size);
+		printf("====\n");
+
+		if ( getenv("USBSNIFF_WAIT") ) {
+			printf("Press ENTER"); fflush(stdout); getchar();
+		}
+
 	}
 
 	return real_usb_bulk_write(dev, ep, bytes, size, timeout);
@@ -91,14 +96,18 @@ int usb_bulk_read(usb_dev_handle * dev, int ep, char * bytes, int size, int time
 
 	ret = real_usb_bulk_read(dev, ep, bytes, size, timeout);
 
-	printf("\n==== usb_bulk_read (ep=%d size=%d timeout=%d) ret = %d ====\n", ep, size, timeout, ret);
-	if ( ret > 0 ) {
-		dump_bytes(bytes, ret);
-		printf("====\n");
-	}
+	if ( ! getenv("USBSNIFF_SKIP_READ") ) {
 
-	if ( getenv("USBSNIFF_WAIT") ) {
-		printf("Press ENTER"); fflush(stdout); getchar();
+		printf("\n==== usb_bulk_read (ep=%d size=%d timeout=%d) ret = %d ====\n", ep, size, timeout, ret);
+		if ( ret > 0 ) {
+			dump_bytes(bytes, ret);
+			printf("====\n");
+		}
+
+		if ( getenv("USBSNIFF_WAIT") ) {
+			printf("Press ENTER"); fflush(stdout); getchar();
+		}
+
 	}
 
 	return ret;
@@ -115,14 +124,18 @@ int usb_control_msg(usb_dev_handle *dev, int requesttype, int request, int value
 
 	ret = real_usb_control_msg(dev, requesttype, request, value, index, bytes, size, timeout);
 
-	printf("\n==== usb_control_msg(requesttype=%d, request=%d, value=%d, index=%d, size=%d, timeout=%d) ret = %d ====\n", requesttype, request, value, index, size, timeout, ret);
-	if ( ret > 0 ) {
-		dump_bytes(bytes, ret);
-		printf("====\n");
-	}
+	if ( ! getenv("USBSNIFF_SKIP_CONTROL") ) {
 
-	if ( getenv("USBSNIFF_WAIT") ) {
-		printf("Press ENTER"); fflush(stdout); getchar();
+		printf("\n==== usb_control_msg(requesttype=%d, request=%d, value=%d, index=%d, size=%d, timeout=%d) ret = %d ====\n", requesttype, request, value, index, size, timeout, ret);
+		if ( ret > 0 ) {
+			dump_bytes(bytes, ret);
+			printf("====\n");
+		}
+
+		if ( getenv("USBSNIFF_WAIT") ) {
+			printf("Press ENTER"); fflush(stdout); getchar();
+		}
+
 	}
 
 	return ret;
