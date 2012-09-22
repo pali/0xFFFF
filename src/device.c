@@ -75,7 +75,7 @@ const char * device_to_long_string(enum device device) {
 
 }
 
-int hwrevs_is_valid(const int16_t * hwrevs, int16_t hwrev) {
+int hwrev_is_valid(const int16_t * hwrevs, int16_t hwrev) {
 
 	int i;
 	for ( i = 0; hwrevs[i] != -1; ++i )

@@ -46,7 +46,7 @@ enum device device_from_string(const char * device);
 const char * device_to_string(enum device device);
 const char * device_to_long_string(enum device device);
 
-int hwrevs_is_valid(const int16_t * hwrevs, int16_t hwrev);
+int hwrev_is_valid(const int16_t * hwrevs, int16_t hwrev);
 
 int16_t * hwrevs_alloc_from_string(const char * str);
 char * hwrevs_alloc_to_string(const int16_t * hwrevs);
