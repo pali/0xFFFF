@@ -82,7 +82,6 @@ static void usb_descriptor_info_print(usb_dev_handle * udev, struct usb_device *
 	PRINTF_END();
 
 	buf[0] = 0;
-	buf2[0] = 0;
 	memset(buf2, 0, sizeof(buf2));
 	ret = usb_get_string_simple(udev, dev->descriptor.iSerialNumber, buf, sizeof(buf));
 	for ( i = 0; i < ret; i+=2 ) {
@@ -132,6 +131,7 @@ static struct usb_device_info * usb_device_is_valid(struct usb_device * dev) {
 			if ( usb_claim_interface(udev, usb_devices[i].interface) < 0 ) {
 				PRINTF_ERROR("usb_claim_interface failed");
 				usb_close(udev);
+				exit(1);
 				return NULL;
 			}
 
