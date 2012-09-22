@@ -409,7 +409,7 @@ int fiasco_write_to_file(struct fiasco * fiasco, const char * file) {
 		for ( i = 0; i < device_count; ++i ) {
 			WRITE_OR_FAIL(file, fd, "2", 1); /* 2 - device & hwrevs */
 			WRITE_OR_FAIL(file, fd, &device_hwrevs_bufs[i][0], 1);
-			WRITE_OR_FAIL(file, fd, device_hwrevs_bufs[i]+1, device_hwrevs_bufs[i][0]);
+			WRITE_OR_FAIL(file, fd, device_hwrevs_bufs[i]+1, ((uint8_t *)(device_hwrevs_bufs[i]))[0]);
 		}
 		free(device_hwrevs_bufs);
 

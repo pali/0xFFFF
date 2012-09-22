@@ -231,7 +231,7 @@ char ** device_list_alloc_to_bufs(const struct device_list * device_list) {
 
 			}
 
-			ret[j][0] = len;
+			((uint8_t*)ret[j])[0] = len;
 
 			++j;
 
