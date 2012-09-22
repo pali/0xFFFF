@@ -83,6 +83,7 @@ static void usb_descriptor_info_print(usb_dev_handle * udev, struct usb_device *
 
 	buf[0] = 0;
 	buf2[0] = 0;
+	memset(buf2, 0, sizeof(buf2));
 	ret = usb_get_string_simple(udev, dev->descriptor.iSerialNumber, buf, sizeof(buf));
 	for ( i = 0; i < ret; i+=2 ) {
 		sscanf(buf+i, "%2x", &x);
