@@ -106,6 +106,7 @@ int16_t * hwrevs_alloc_from_string(const char * str) {
 
 	i = 0;
 
+	ptr = str;
 	while ( (ptr = strchr(ptr, ',')) ) {
 		strncpy(buf, oldptr, ptr-oldptr);
 		buf[4] = 0;
