@@ -394,8 +394,12 @@ int main(int argc, char **argv) {
 
 	int have_2nd = 0;
 	int have_secondary = 0;
+	int have_kernel = 0;
+	int have_initfs = 0;
 	struct image * image_2nd = NULL;
 	struct image * image_secondary = NULL;
+	struct image * image_kernel = NULL;
+	struct image * image_initfs = NULL;
 
 	struct fiasco * fiasco_in = NULL;
 	struct fiasco * fiasco_out = NULL;
@@ -863,6 +867,18 @@ int main(int argc, char **argv) {
 		goto clean;
 	}
 
+	if ( dev_load && ! image_first ) {
+		ERROR("No image specified for loading");
+		ret = 1;
+		goto clean;
+	}
+
+	if ( dev_flash && ! image_first ) {
+		ERROR("No image specified for flashing");
+		ret = 1;
+		goto clean;
+	}
+
 	if ( dev_boot || dev_reboot || dev_load || dev_flash || dev_cold_flash || dev_ident || set_root || set_usb || set_rd || set_rd_flags || set_hw || set_kernel || set_nolo || set_sw || set_emmc ) {
 
 		int again = 1;
@@ -1007,14 +1023,73 @@ int main(int argc, char **argv) {
 			if ( usb_dev->detected_hwrev )
 				filter_images_by_hwrev(usb_dev->detected_hwrev, &image_first);
 
+			/* set kernel and initfs images for loading */
+			if ( dev_load ) {
+				image_ptr = image_first;
+				while ( image_ptr ) {
+					struct image_list * next = image_ptr->next;
+					if ( image_ptr->image->type == IMAGE_KERNEL ) {
+						if ( have_kernel == 0 ) {
+							image_kernel = image_ptr->image;
+							have_kernel = 1;
+						} else if ( have_kernel == 1 ) {
+							image_kernel = NULL;
+							have_kernel = 2;
+						}
+					}
+					image_ptr = next;
+				}
+
+				image_ptr = image_first;
+				while ( image_ptr ) {
+					struct image_list * next = image_ptr->next;
+					if ( image_ptr->image->type == IMAGE_INITFS ) {
+						if ( have_initfs == 0 ) {
+							image_initfs = image_ptr->image;
+							have_initfs = 1;
+						} else if ( have_initfs == 1 ) {
+							image_initfs = NULL;
+							have_initfs = 2;
+						}
+					}
+					image_ptr = next;
+				}
+
+				if ( have_kernel == 2 ) {
+					ERROR("More Kernel images for loading was specified");
+					ret = 1;
+					goto clean;
+				}
+
+				if ( have_initfs == 2 ) {
+					ERROR("More Initfs images for loading was specified");
+					ret = 1;
+					goto clean;
+				}
+
+				if ( have_kernel == 0 && have_initfs == 0 ) {
+					ERROR("Kernel image or Initfs image for loading was not specified");
+					ret = 1;
+					goto clean;
+				}
+			}
+
 			/* load */
 			if ( dev_load ) {
-//			if ( image_first )
+				if ( image_kernel )
+					nolo_load_image(usb_dev, image_kernel);
+				if ( image_initfs )
+					nolo_load_image(usb_dev, image_initfs);
 			}
 
 			/* flash */
-			if ( dev_flash) {
-//			if ( image_first )
+			if ( dev_flash ) {
+				image_ptr = image_first;
+				while ( image_ptr ) {
+					struct image_list * next = image_ptr->next;
+					nolo_flash_image(usb_dev, image_ptr->image);
+					image_ptr = next;
+				}
 			}
 
 			/* configuration */
