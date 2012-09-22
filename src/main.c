@@ -269,7 +269,16 @@ void filter_images_by_device(enum device device, struct image_list ** image_firs
 	struct image_list * image_ptr = *image_first;
 	while ( image_ptr ) {
 		struct image_list * next = image_ptr->next;
-		if ( image_ptr->image->device != device && image_ptr->image->device != DEVICE_ANY ) {
+		struct device_list * device_ptr = image_ptr->image->devices;
+		int match = 0;
+		while ( device_ptr ) {
+			if ( device_ptr->device == device || device_ptr->device == DEVICE_ANY ) {
+				match = 1;
+				break;
+			}
+			device_ptr = device_ptr->next;
+		}
+		if ( ! match ) {
 			image_list_del(image_ptr);
 			if ( image_ptr == *image_first )
 				*image_first = next;
@@ -282,9 +291,10 @@ void filter_images_by_device(enum device device, struct image_list ** image_firs
 void filter_images_by_hwrev(const char * hwrev, struct image_list ** image_first) {
 
 	struct image_list * image_ptr = *image_first;
+	int num = atoi(hwrev);
 	while ( image_ptr ) {
 		struct image_list * next = image_ptr->next;
-		if ( ! image_hwrev_is_valid(image_ptr->image, hwrev) ) {
+		if ( ! image_hwrev_is_valid(image_ptr->image, num) ) {
 			image_list_del(image_ptr);
 			if ( image_ptr == *image_first )
 				*image_first = next;
@@ -802,7 +812,7 @@ int main(int argc, char **argv) {
 	image_ptr = image_first;
 	while ( image_ptr ) {
 		struct image_list * next = image_ptr->next;
-		if ( image_ptr->image->type == IMAGE_UNKNOWN || image_ptr->image->device == DEVICE_UNKNOWN ) {
+		if ( image_ptr->image->type == IMAGE_UNKNOWN ) {
 			WARNING("Removing unknown image (specified by %s %s)", image_ptr->image->orig_filename ? "file" : "fiasco", image_ptr->image->orig_filename ? image_ptr->image->orig_filename : "image");
 			image_list_unlink(image_ptr);
 			free(image_ptr);
