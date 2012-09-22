@@ -729,8 +729,42 @@ int nolo_get_sw_ver(struct usb_device_info * dev, char * ver, size_t size) {
 
 int nolo_set_sw_ver(struct usb_device_info * dev, const char * ver) {
 
-	printf("nolo_set_sw_ver is not implemented yet\n");
-	return -1;
+	char buf[512];
+	char * ptr;
+	uint8_t len;
+	const char * str = "OSSO UART+USB";
+
+	printf("Setting Software release string to: %s\n", ver);
+
+	if ( strlen(ver) > UINT8_MAX )
+		ERROR_RETURN("Software release string is too long", -1);
+
+	ptr = buf;
+
+	memcpy(ptr, "\xe8", 1);
+	ptr += 1;
+
+	len = strlen(str)+1;
+	memcpy(ptr, &len, 1);
+	ptr += 1;
+
+	memcpy(ptr, str, len);
+	ptr += len;
+
+	memcpy(ptr, "\x31", 1);
+	ptr += 1;
+
+	len = strlen(ver)+1;
+	memcpy(ptr, &len, 1);
+	ptr += 1;
+
+	memcpy(ptr, ver, len);
+	ptr += len;
+
+	if ( usb_control_msg(dev->udev, NOLO_WRITE, NOLO_SET_SW_RELEASE, 0, 0, buf, ptr-buf, 2000) < 0 )
+		ERROR_RETURN("NOLO_SET_SW_RELEASE failed", -1);
+
+	return 0;
 
 }
 
