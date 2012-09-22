@@ -715,7 +715,7 @@ int main(int argc, char **argv) {
 				image_list_unlink(image_ptr);
 				free(image_ptr);
 				if ( image_ptr == image_unorder_first )
-					image_first = next;
+					image_unorder_first = next;
 			}
 			image_ptr = next;
 		}
@@ -735,7 +735,7 @@ int main(int argc, char **argv) {
 				image_list_unlink(image_ptr);
 				free(image_ptr);
 				if ( image_ptr == image_unorder_first )
-					image_first = next;
+					image_unorder_first = next;
 			}
 			image_ptr = next;
 		}
@@ -756,7 +756,7 @@ int main(int argc, char **argv) {
 			image_list_unlink(image_ptr);
 			free(image_ptr);
 			if ( image_ptr == image_unorder_first )
-				image_first = next;
+				image_unorder_first = next;
 			image_ptr = next;
 		}
 
@@ -880,7 +880,7 @@ int main(int argc, char **argv) {
 				usb_close_device(usb_dev);
 				usb_dev = NULL;
 
-				if ( ret != -EAGAIN ) {
+				if ( ret == -EAGAIN ) {
 					again = 1;
 					continue;
 				}
