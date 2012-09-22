@@ -180,7 +180,7 @@ static int image_append(struct image * image, const char * type, const char * de
 			image_free(image);
 			return -1;
 		}
-		if ( ! noverify && detected_type != image->type ) {
+		if ( ! noverify && detected_type != image->type && detected_type != IMAGE_UNKNOWN ) {
 			ERROR("Image type mishmash (detected %s, got %s)", image_type_to_string(detected_type), type);
 			image_free(image);
 			return -1;
@@ -588,7 +588,7 @@ void image_print_info(struct image * image) {
 		if ( str2 ) {
 			printf(", HW revisions: %s\n", str2);
 			free(str2);
-		} else {
+		} else if ( str ) {
 			printf("\n");
 		}
 
