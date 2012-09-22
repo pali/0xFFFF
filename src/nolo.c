@@ -240,12 +240,14 @@ static int nolo_send_image(struct usb_device_info * dev, struct image * image, i
 		int i;
 		uint8_t len;
 		char buf[9];
-		char ** bufs;
+		char ** bufs = NULL;
 		struct device_list * device = image->devices;
 
-		while ( device )
+		while ( device ) {
 			if ( device->device == dev->detected_device && hwrev_is_valid(device->hwrevs, dev->detected_hwrev) )
 				break;
+			device = device->next;
+		}
 
 		if ( device )
 			bufs = device_list_alloc_to_bufs(device);
