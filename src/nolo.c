@@ -38,8 +38,9 @@
 #define NOLO_IDENTIFY		4
 #define NOLO_SET		16
 #define NOLO_GET		17
-#define NOLO_REQUEST_VERSION	18
-#define NOLO_RESPONCE_VERSION	20
+#define NOLO_STRING		18
+#define NOLO_SET_STRING		19
+#define NOLO_GET_STRING		20
 #define NOLO_BOOT		130
 #define NOLO_REBOOT		131
 
@@ -94,8 +95,34 @@ static int nolo_identify_string(struct usb_device_info * dev, const char * str, 
 
 }
 
+static int nolo_set_string(struct usb_device_info * dev, char * str, char * arg) {
+
+	if ( usb_control_msg(dev->udev, NOLO_WRITE, NOLO_STRING, 0, 0, str, strlen(str), 2000) < 0 )
+		ERROR_RETURN("NOLO_REQUEST_STRING failed", -1);
+
+	if ( usb_control_msg(dev->udev, NOLO_WRITE, NOLO_SET_STRING, 0, 0, arg, strlen(arg), 2000) < 0 )
+		ERROR_RETURN("NOLO_REQUEST_STRING_ARG failed", -1);
+
+	return 0;
+
+}
+
+static int nolo_get_string(struct usb_device_info * dev, char * str, char * out, size_t size) {
+
+	if ( usb_control_msg(dev->udev, NOLO_WRITE, NOLO_STRING, 0, 0, str, strlen(str), 2000) < 0 )
+		ERROR_RETURN("NOLO_REQUEST_STRING failed", -1);
+
+	if ( usb_control_msg(dev->udev, NOLO_QUERY, NOLO_GET_STRING, 0, 0, out, size, 2000) < 0 )
+		ERROR_RETURN("NOLO_RESPONCE_STRING failed", -1);
+
+	out[size-1] = 0;
+	return strlen(out);
+
+}
+
 static int nolo_get_version_string(struct usb_device_info * dev, const char * str, char * out, size_t size) {
 
+	int ret;
 	char buf[512];
 
 	if ( strlen(str) > 500 )
@@ -103,20 +130,14 @@ static int nolo_get_version_string(struct usb_device_info * dev, const char * st
 
 	sprintf(buf, "version:%s", str);
 
-	if ( usb_control_msg(dev->udev, NOLO_WRITE, NOLO_REQUEST_VERSION, 0, 0, (char *)&buf, strlen(buf), 2000) < 0 )
-		ERROR_RETURN("NOLO_REQUEST_VERSION failed", -1);
+	ret = nolo_get_string(dev, buf, out, size);
+	if ( ret < 0 )
+		return ret;
 
-	memset(buf, 0, sizeof(buf));
-
-	if ( usb_control_msg(dev->udev, NOLO_QUERY, NOLO_RESPONCE_VERSION, 0, 0, (char *)&buf, sizeof(buf), 2000) < 0 )
-		ERROR_RETURN("NOLO_RESPONCE_VERSION failed", -1);
-
-	if ( ! buf[0] )
+	if ( ! out[0] )
 		return -1;
 
-	strncpy(out, buf, size-1);
-	out[size-1] = 0;
-	return strlen(out);
+	return ret;
 
 }
 
