@@ -95,6 +95,9 @@ int16_t * hwrevs_alloc_from_string(const char * str) {
 	int i;
 	char buf[5];
 
+	if ( ! str )
+		return NULL;
+
 	while ( (ptr = strchr(ptr, ',')) ) {
 		++count;
 		++ptr;
@@ -165,8 +168,10 @@ char ** device_list_alloc_to_bufs(const struct device_list * device_list) {
 
 		int local = 0;
 
-		if ( ! device_to_string(device_first->device) )
+		if ( ! device_to_string(device_first->device) ) {
+			device_first = device_first->next;
 			continue;
+		}
 
 		for ( i = 0; device_first->hwrevs[i] != -1; ++i )
 			if ( device_first->hwrevs[i] >= 0 && device_first->hwrevs[i] <= 9999 )
@@ -181,12 +186,12 @@ char ** device_list_alloc_to_bufs(const struct device_list * device_list) {
 
 	}
 
-	ret = calloc(1, count*sizeof(char *) + size);
+	ret = calloc(1, (count+1)*sizeof(char *) + size);
 	if ( ! ret )
 		return NULL;
 
 	j = 0;
-	last_ptr = (char *)ret + count*sizeof(char *);
+	last_ptr = (char *)ret + (count+1)*sizeof(char *);
 	device_first = device_list;
 
 	while ( device_first ) {
@@ -212,12 +217,15 @@ char ** device_list_alloc_to_bufs(const struct device_list * device_list) {
 
 			for ( k = 0; k < 30; ++k ) {
 
+				if ( device_first->hwrevs[i+1] == -1 )
+					break;
+
 				++i;
 
 				if ( device_first->hwrevs[i] < 0 || device_first->hwrevs[i] > 9999 )
 					continue;
 
-				snprintf(ret[j]+1+k*8, 8, "%d", device_first->hwrevs[i]);
+				snprintf(ret[j]+1+16+k*8, 8, "%d", device_first->hwrevs[i]);
 				last_ptr += 8;
 				len += 8;
 
