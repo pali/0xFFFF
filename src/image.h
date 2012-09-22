@@ -42,8 +42,7 @@ enum image_type {
 
 struct image {
 	enum image_type type;
-	enum device device;
-	char * hwrevs;
+	struct device_list * devices;
 	char * version;
 	char * layout;
 	uint16_t hash;

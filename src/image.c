@@ -73,15 +73,18 @@ static void image_missing_values_from_name(struct image * image, const char * na
 		image->type = image_type_from_string(type);
 	free(type);
 
-	if ( ! image->device || image->device == DEVICE_ANY ) {
+	if ( ! image->devices || image->devices->device || image->devices->device == DEVICE_ANY ) {
 		new_device = device_from_string(device);
-		if ( new_device )
-			image->device = new_device;
+		if ( new_device ) {
+			if ( ! image->devices ) image->devices = calloc(1, sizeof(struct device_list));
+			if ( image->devices )
+				image->devices->device = new_device;
+		}
 	}
 	free(device);
 
-	if ( ! image->hwrevs )
-		image->hwrevs = hwrevs;
+	if ( image->devices && image->devices->device && ! image->devices->hwrevs )
+		image->devices->hwrevs = hwrevs_alloc_from_string(hwrevs);
 	else
 		free(hwrevs);
 
@@ -97,22 +100,32 @@ char * image_name_alloc_from_values(struct image * image) {
 
 	char * name;
 	char * ptr;
+	char * hwrevs;
 	size_t length;
 	const char * type;
 	const char * device;
 
 	type = image_type_to_string(image->type);
-	device = device_to_string(image->device);
 
 	if ( ! type )
 		type = "unknown";
+
+	if ( image->devices )
+		device = device_to_string(image->devices->device);
+	else
+		device = NULL;
+
+	if ( image->devices && image->devices->hwrevs )
+		hwrevs = hwrevs_alloc_to_string(image->devices->hwrevs);
+	else
+		hwrevs = NULL;
 
 	length = 1 + strlen(type);
 
 	if ( device )
 		length += 1 + strlen(device);
-	if ( image->hwrevs )
-		length += 1 + strlen(image->hwrevs);
+	if ( hwrevs )
+		length += 1 + strlen(hwrevs);
 	if ( image->version )
 		length += 1 + strlen(image->version);
 
@@ -125,10 +138,12 @@ char * image_name_alloc_from_values(struct image * image) {
 
 	if ( device )
 		ptr += sprintf(ptr, "-%s", device);
-	if ( image->hwrevs )
-		ptr += sprintf(ptr, ":%s", image->hwrevs);
+	if ( hwrevs )
+		ptr += sprintf(ptr, ":%s", hwrevs);
 	if ( image->version )
 		ptr += sprintf(ptr, "_%s", image->version);
+
+	free(hwrevs);
 
 	return name;
 
@@ -139,11 +154,16 @@ static int image_append(struct image * image, const char * type, const char * de
 	enum image_type detected_type;
 
 	image->hash = image_hash_from_data(image);
-	image->device = DEVICE_ANY;
+
+	image->devices = calloc(1, sizeof(struct device_list));
+	if ( ! image->devices )
+		return -1;
+
+	image->devices->device = DEVICE_ANY;
 
 	if ( device && device[0] ) {
-		image->device = device_from_string(device);
-		if ( ! noverify && image->device == DEVICE_UNKNOWN ) {
+		image->devices->device = device_from_string(device);
+		if ( ! noverify && image->devices->device == DEVICE_UNKNOWN ) {
 			ERROR("Specified Device %s is unknown", device);
 			image_free(image);
 			return -1;
@@ -168,9 +188,9 @@ static int image_append(struct image * image, const char * type, const char * de
 	}
 
 	if ( hwrevs && hwrevs[0] )
-		image->hwrevs = strdup(hwrevs);
+		image->devices->hwrevs = hwrevs_alloc_from_string(hwrevs);
 	else
-		image->hwrevs = NULL;
+		image->devices->hwrevs = NULL;
 
 	if ( version && version[0] )
 		image->version = strdup(version);
@@ -285,7 +305,13 @@ void image_free(struct image * image) {
 		image->fd = -1;
 	}
 
-	free(image->hwrevs);
+	while ( image->devices ) {
+		struct device_list * next = image->devices->next;
+		free(image->devices->hwrevs);
+		free(image->devices);
+		image->devices = next;
+	}
+
 	free(image->version);
 	free(image->layout);
 	free(image->orig_filename);
@@ -516,7 +542,7 @@ const char * image_type_to_string(enum image_type type) {
 
 int image_hwrev_is_valid(struct image * image, const char * hwrev) {
 
-	const char * ptr = image->hwrevs;
+/*	const char * ptr = image->hwrevs;
 	const char * oldptr = ptr;
 
 	if ( ! hwrev || ! ptr )
@@ -532,13 +558,15 @@ int image_hwrev_is_valid(struct image * image, const char * hwrev) {
 	if ( strcmp(hwrev, oldptr) == 0 )
 		return 1;
 	else
-		return 0;
+		return 0;*/
+	return 1;
 
 }
 
 void image_print_info(struct image * image) {
 
 	const char * str;
+	struct device_list * device = image->devices;
 
 	if ( image->orig_filename )
 		printf("File: %s\n", image->orig_filename);
@@ -550,15 +578,30 @@ void image_print_info(struct image * image) {
 	if ( image->version )
 		printf("    Image version: %s\n", image->version);
 
-	if ( image->device == DEVICE_UNKNOWN )
-		str = "unknown device";
-	else
-		str = device_to_string(image->device);
+	while ( device ) {
 
-	if ( str )
-		printf("    Valid for device: %s\n", str);
+		char * str2 = NULL;
+		struct device_list * next = device->next;
 
-	if ( image->hwrevs )
-		printf("    Valid for HW revisions: %s\n", image->hwrevs);
+		if ( device->device == DEVICE_UNKNOWN )
+			str = "unknown";
+		else
+			str = device_to_string(device->device);
+
+		if ( str )
+			printf("    Valid for: device %s", str);
+
+		if ( str && device->hwrevs )
+			str2 = hwrevs_alloc_to_string(device->hwrevs);
+
+		if ( str2 ) {
+			printf(", HW revisions: %s\n", str2);
+			free(str2);
+		} else {
+			printf("\n");
+		}
+
+		device = next;
+	}
 
 }
