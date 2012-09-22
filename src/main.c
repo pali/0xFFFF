@@ -97,7 +97,7 @@ static void show_usage(void) {
 		"\n"
 
 		"Image filters:\n"
-		" -t types        filter images by comma separated list of image types\n"
+		" -t types        filter images by type\n"
 		" -d dev          filter images by device\n"
 		" -w hw           filter images by HW revision\n"
 		"\n"
@@ -684,28 +684,34 @@ int main(int argc, char **argv) {
 	/* load fiasco image */
 	if ( image_fiasco ) {
 		fiasco_in = fiasco_alloc_from_file(image_fiasco_arg);
-		if ( ! fiasco_in )
+		if ( ! fiasco_in ) {
 			ERROR("Cannot load fiasco image file %s", image_fiasco_arg);
-		else
-			image_first = fiasco_in->first;
+			ret = 1;
+			goto clean;
+		}
+		image_first = fiasco_in->first;
 	}
 
 	/* filter images by type */
 	if ( filter_type ) {
 		enum image_type type = image_type_from_string(filter_type_arg);
-		if ( ! type )
+		if ( ! type ) {
 			ERROR("Specified unknown image type for filtering: %s", filter_type_arg);
-		else
-			filter_images_by_type(type, &image_first);
+			ret = 1;
+			goto clean;
+		}
+		filter_images_by_type(type, &image_first);
 	}
 
 	/* filter images by device */
 	if ( filter_device ) {
 		enum device device = device_from_string(filter_device_arg);
-		if ( ! device )
+		if ( ! device ) {
 			ERROR("Specified unknown device for filtering: %s", filter_device_arg);
-		else
-			filter_images_by_device(device, &image_first);
+			ret = 1;
+			goto clean;
+		}
+		filter_images_by_device(device, &image_first);
 	}
 
 	/* filter images by hwrev */
