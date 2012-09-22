@@ -288,13 +288,12 @@ void filter_images_by_device(enum device device, struct image_list ** image_firs
 
 }
 
-void filter_images_by_hwrev(const char * hwrev, struct image_list ** image_first) {
+void filter_images_by_hwrev(int16_t hwrev, struct image_list ** image_first) {
 
 	struct image_list * image_ptr = *image_first;
-	int num = atoi(hwrev);
 	while ( image_ptr ) {
 		struct image_list * next = image_ptr->next;
-		if ( ! image_hwrev_is_valid(image_ptr->image, num) ) {
+		if ( ! image_hwrev_is_valid(image_ptr->image, hwrev) ) {
 			image_list_del(image_ptr);
 			if ( image_ptr == *image_first )
 				*image_first = next;
@@ -716,7 +715,7 @@ int main(int argc, char **argv) {
 
 	/* filter images by hwrev */
 	if ( filter_hwrev )
-		filter_images_by_hwrev(filter_hwrev_arg, &image_first);
+		filter_images_by_hwrev(atoi(filter_hwrev_arg), &image_first);
 
 	/* reorder images for flashing (first x-loader, second secondary) */
 	/* set 2nd and secondary images for cold-flashing */
@@ -964,7 +963,7 @@ int main(int argc, char **argv) {
 			printf("HW revision: %s\n", buf[0] ? buf : "(not detected)");
 
 			if ( buf[0] )
-				usb_dev->detected_hwrev = strdup(buf);
+				usb_dev->detected_hwrev = atoi(buf);
 
 			buf[0] = 0;
 			nolo_get_nolo_ver(usb_dev, buf, sizeof(buf));

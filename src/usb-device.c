@@ -160,7 +160,7 @@ static struct usb_device_info * usb_device_is_valid(struct usb_device * dev) {
 			}
 
 			ret->detected_device = DEVICE_UNKNOWN;
-			ret->detected_hwrev = NULL;
+			ret->detected_hwrev = -1;
 			ret->flash_device = &usb_devices[i];
 			ret->udev = udev;
 			break;
@@ -250,7 +250,6 @@ struct usb_device_info * usb_open_and_wait_for_device(void) {
 void usb_close_device(struct usb_device_info * dev) {
 
 	usb_close(dev->udev);
-	free(dev->detected_hwrev);
 	free(dev);
 
 }
