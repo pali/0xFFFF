@@ -348,6 +348,11 @@ int nolo_flash_image(struct usb_device_info * dev, struct image * image) {
 	int ret;
 	int flash;
 	int index;
+	unsigned long long int part;
+	unsigned long long int total;
+	unsigned long long int last_total;
+	char status[20];
+	char buf[128];
 
 	if ( image->type == IMAGE_ROOTFS )
 		flash = 1;
@@ -381,7 +386,67 @@ int nolo_flash_image(struct usb_device_info * dev, struct image * image) {
 	}
 
 	if ( image->type == IMAGE_CMT_MCUSW ) {
-		/* TODO: show CMT progressbar and wait */
+
+		int state = 0;
+		last_total = 0;
+
+		printf("Erasing CMT...\n");
+
+		while ( state != 4 ) {
+
+			if ( nolo_get_string(dev, "cmt:status", buf, sizeof(buf)) < 0 )
+				ERROR_RETURN("cmt:status failed", -1);
+
+			if ( strncmp(buf, "finished", strlen("finished")) == 0 ) {
+
+				if ( state <= 0 ) {
+					printf_progressbar(last_total, last_total);
+					printf("Done\n");
+				}
+				if ( state <= 1 )
+					printf("Programming CMT...\n");
+				if ( state <= 2 ) {
+					printf_progressbar(last_total, last_total);
+					printf("Done\n");
+				}
+
+				state = 4;
+
+			} else {
+
+				if ( sscanf(buf, "%s:%llu/%llu", status, &part, &total) != 3 )
+					ERROR_RETURN("cmt:status unknown", -1);
+
+				if ( strcmp(status, "program") == 0 && state <= 0 ) {
+					printf_progressbar(last_total, last_total);
+					printf("Done\n");
+					state = 1;
+				}
+
+				if ( strcmp(status, "program") == 0 && state <= 1 ) {
+					printf("Programming CMT...\n");
+					state = 2;
+				}
+
+				printf_progressbar(part, total);
+				last_total = total;
+
+				if ( strcmp(status, "erase") == 0 && state <= 0 && part == total ) {
+					printf("Done\n");
+					state = 1;
+				}
+
+				if ( strcmp(status, "program") == 0 && state <= 2 && part == total ) {
+					printf("Done\n");
+					state = 3;
+				}
+
+			}
+
+			usleep(0xc350); // 0.5s
+
+		}
+
 	}
 
 	return 0;
