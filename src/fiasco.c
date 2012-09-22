@@ -263,13 +263,15 @@ void fiasco_add_image(struct fiasco * fiasco, struct image * image) {
 int fiasco_write_to_file(struct fiasco * fiasco, const char * file) {
 
 	int fd = -1;
+	int i;
+	int device_count;
 	uint32_t size;
 	uint32_t length;
 	uint16_t hash;
 	uint8_t length8;
+	char ** device_hwrevs_bufs;
 	const char * str;
 	const char * type;
-	const char * device;
 	struct image_list * image_list;
 	struct image * image;
 	unsigned char buf[4096];
@@ -347,7 +349,12 @@ int fiasco_write_to_file(struct fiasco * fiasco, const char * file) {
 		image_print_info(image);
 
 		type = image_type_to_string(image->type);
-		device = device_to_string(image->device);
+
+		device_hwrevs_bufs = device_list_alloc_to_bufs(image->devices);
+
+		device_count = 0;
+		if ( device_hwrevs_bufs )
+			for ( ; device_hwrevs_bufs[device_count]; ++device_count );
 
 		if ( ! type )
 			FIASCO_WRITE_ERROR(file, fd, "Unknown image type");
@@ -364,10 +371,8 @@ int fiasco_write_to_file(struct fiasco * fiasco, const char * file) {
 		WRITE_OR_FAIL(file, fd, "T", 1);
 
 		/* number of subsections */
-		length8 = 1;
+		length8 = device_count;
 		if ( image->version )
-			++length8;
-		if ( device )
 			++length8;
 		if ( image->layout )
 			++length8;
@@ -401,45 +406,14 @@ int fiasco_write_to_file(struct fiasco * fiasco, const char * file) {
 		}
 
 		/* append device & hwrevs subsection */
-		if ( device ) {
-			const char *ptr = image->hwrevs;
-			const char *oldptr = ptr;
-			int i;
-			WRITE_OR_FAIL(file, fd, "2", 1); /* 2 - device & hwrevs */
-			length8 = 16;
-			if ( image->hwrevs ) {
-				i = 1;
-				while ( (ptr = strchr(ptr, ',')) ) { i++; ptr++; }
-				if ( (int)length8 + i*8 > 255 ) {
-					FIASCO_WRITE_ERROR(file, fd, "Device string and HW revisions are too long");
-				}
-				length8 += i*8;
-			}
-			WRITE_OR_FAIL(file, fd, &length8, 1);
-			length8 = strlen(device);
-			if ( length8 > 15 ) length8 = 15;
-			WRITE_OR_FAIL(file, fd, device, length8);
-			for ( i = 0; i < 16 - length8; ++i )
-				WRITE_OR_FAIL(file, fd, "\x00", 1);
-			if ( image->hwrevs ) {
-				ptr = image->hwrevs;
-				oldptr = ptr;
-				while ( (ptr = strchr(ptr, ',')) ) {
-					length8 = ptr-oldptr;
-					if ( length8 > 8 ) length8 = 8;
-					WRITE_OR_FAIL(file, fd, oldptr, length8);
-					for ( i=0; i < 8 - length8; ++i )
-						WRITE_OR_FAIL(file, fd, "\x00", 1);
-					++ptr;
-					oldptr = ptr;
-				}
-				length8 = strlen(oldptr);
-				if ( length8 > 8 ) length8 = 8;
-				WRITE_OR_FAIL(file, fd, oldptr, length8);
-				for ( i = 0; i < 8 - length8; ++i )
-				WRITE_OR_FAIL(file, fd, "\x00", 1);
+		if ( device_hwrevs_bufs ) {
+			for ( i = 0; i < device_count; ++i ) {
+				WRITE_OR_FAIL(file, fd, "2", 1); /* 2 - device & hwrevs */
+				WRITE_OR_FAIL(file, fd, &device_hwrevs_bufs[i][0], 1);
+				WRITE_OR_FAIL(file, fd, device_hwrevs_bufs[i]+1, device_hwrevs_bufs[i][0]);
 			}
 		}
+		free(device_hwrevs_bufs);
 
 		/* append layout subsection */
 		if ( image->layout ) {
