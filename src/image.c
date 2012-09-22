@@ -540,26 +540,17 @@ const char * image_type_to_string(enum image_type type) {
 
 }
 
-int image_hwrev_is_valid(struct image * image, const char * hwrev) {
+int image_hwrev_is_valid(struct image * image, int16_t hwrev) {
 
-/*	const char * ptr = image->hwrevs;
-	const char * oldptr = ptr;
+	struct device_list * device_ptr = image->devices;
 
-	if ( ! hwrev || ! ptr )
-		return 1;
-
-	while ( (ptr = strchr(ptr, ',')) ) {
-		if ( strncmp(hwrev, oldptr, ptr-oldptr) == 0 )
+	while ( device_ptr ) {
+		if ( hwrev_is_valid(device_ptr->hwrevs, hwrev) )
 			return 1;
-		++ptr;
-		oldptr = ptr;
+		device_ptr = device_ptr->next;
 	}
 
-	if ( strcmp(hwrev, oldptr) == 0 )
-		return 1;
-	else
-		return 0;*/
-	return 1;
+	return 0;
 
 }
 

@@ -78,6 +78,6 @@ enum image_type image_type_from_data(struct image * image);
 char * image_name_alloc_from_values(struct image * image);
 enum image_type image_type_from_string(const char * type);
 const char * image_type_to_string(enum image_type type);
-int image_hwrev_is_valid(struct image * image, const char * hwrev);
+int image_hwrev_is_valid(struct image * image, int16_t hwrev);
 
 #endif
