@@ -121,13 +121,16 @@ static int nolo_set_string(struct usb_device_info * dev, char * str, char * arg)
 
 static int nolo_get_string(struct usb_device_info * dev, char * str, char * out, size_t size) {
 
+	int ret;
+
 	if ( usb_control_msg(dev->udev, NOLO_WRITE, NOLO_STRING, 0, 0, str, strlen(str), 2000) < 0 )
 		ERROR_RETURN("NOLO_STRING failed", -1);
 
-	if ( usb_control_msg(dev->udev, NOLO_QUERY, NOLO_GET_STRING, 0, 0, out, size, 2000) < 0 )
+	if ( ( ret = usb_control_msg(dev->udev, NOLO_QUERY, NOLO_GET_STRING, 0, 0, out, size-1, 2000) ) < 0 )
 		ERROR_RETURN("NOLO_GET_STRING failed", -1);
 
 	out[size-1] = 0;
+	out[ret] = 0;
 	return strlen(out);
 
 }
