@@ -461,7 +461,7 @@ int nolo_flash_image(struct usb_device_info * dev, struct image * image) {
 
 }
 
-int nolo_boot_device(struct usb_device_info * dev, char * cmdline) {
+int nolo_boot_device(struct usb_device_info * dev, const char * cmdline) {
 
 	int size = 0;
 	int mode = NOLO_BOOT_MODE_NORMAL;
@@ -487,7 +487,7 @@ int nolo_boot_device(struct usb_device_info * dev, char * cmdline) {
 		cmdline = NULL;
 	}
 
-	if ( usb_control_msg(dev->udev, NOLO_WRITE, NOLO_BOOT, mode, 0, cmdline, size, 2000) < 0 )
+	if ( usb_control_msg(dev->udev, NOLO_WRITE, NOLO_BOOT, mode, 0, (char *)cmdline, size, 2000) < 0 )
 		ERROR_RETURN("Booting failed", -1);
 
 	return 0;

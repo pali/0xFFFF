@@ -29,7 +29,7 @@ enum device nolo_get_device(struct usb_device_info * dev);
 
 int nolo_load_image(struct usb_device_info * dev, struct image * image);
 int nolo_flash_image(struct usb_device_info * dev, struct image * image);
-int nolo_boot_device(struct usb_device_info * dev, char * cmdline);
+int nolo_boot_device(struct usb_device_info * dev, const char * cmdline);
 int nolo_reboot_device(struct usb_device_info * dev);
 
 int nolo_get_root_device(struct usb_device_info * dev);
