@@ -44,8 +44,8 @@ int nolo_set_rd_mode(struct usb_device_info * dev, int enable);
 int nolo_get_rd_flags(struct usb_device_info * dev, char * flags, size_t size);
 int nolo_set_rd_flags(struct usb_device_info * dev, const char * flags);
 
-int nolo_get_hwrev(struct usb_device_info * dev, char * hwrev, size_t size);
-int nolo_set_hwrev(struct usb_device_info * dev, const char * hwrev);
+int16_t nolo_get_hwrev(struct usb_device_info * dev);
+int nolo_set_hwrev(struct usb_device_info * dev, int16_t hwrev);
 
 int nolo_get_kernel_ver(struct usb_device_info * dev, char * ver, size_t size);
 int nolo_set_kernel_ver(struct usb_device_info * dev, const char * ver);

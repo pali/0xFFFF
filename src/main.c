@@ -415,6 +415,7 @@ int main(int argc, char **argv) {
 
 	struct usb_device_info * usb_dev = NULL;
 
+	int tmp;
 	char buf[512];
 
 	simulate = 0;
@@ -958,9 +959,11 @@ int main(int argc, char **argv) {
 			else
 				printf("Device: %s\n", device_to_string(usb_dev->detected_device));
 
-			buf[0] = 0;
-			nolo_get_hwrev(usb_dev, buf, sizeof(buf));
-			printf("HW revision: %s\n", buf[0] ? buf : "(not detected)");
+			tmp = nolo_get_hwrev(usb_dev);
+			if ( tmp <= 0 )
+				printf("HW revision: (not detected)\n");
+			else
+				printf("HW revision: %d\n", tmp);
 
 			if ( buf[0] )
 				usb_dev->detected_hwrev = atoi(buf);
@@ -1121,7 +1124,7 @@ int main(int argc, char **argv) {
 			if ( set_rd_flags )
 				nolo_set_rd_flags(usb_dev, set_rd_flags_arg);
 			if ( set_hw )
-				nolo_set_hwrev(usb_dev, set_hw_arg);
+				nolo_set_hwrev(usb_dev, atoi(set_hw_arg));
 			if ( set_nolo )
 				nolo_set_nolo_ver(usb_dev, set_nolo_arg);
 			if ( set_kernel )

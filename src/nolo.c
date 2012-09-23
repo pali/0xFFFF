@@ -680,16 +680,22 @@ int nolo_set_rd_flags(struct usb_device_info * dev, const char * flags) {
 
 }
 
-int nolo_get_hwrev(struct usb_device_info * dev, char * hwrev, size_t size) {
+int16_t nolo_get_hwrev(struct usb_device_info * dev) {
 
-	return nolo_identify_string(dev, "hw_rev", hwrev, size);
+	char buf[10];
+	if ( nolo_identify_string(dev, "hw_rev", buf, sizeof(buf)) <= 0 )
+		return -1;
+	return atoi(buf);
 
 }
 
-int nolo_set_hwrev(struct usb_device_info * dev, const char * hwrev) {
+int nolo_set_hwrev(struct usb_device_info * dev, int16_t hwrev) {
 
-	printf("Setting HW revision to: %s\n", hwrev);
-	return nolo_set_string(dev, "hw_rev", (char *)hwrev);
+	char buf[9];
+	memset(buf, 0, sizeof(buf));
+	snprintf(buf, 8, "%d", hwrev);
+	printf("Setting HW revision to: %s\n", buf);
+	return nolo_set_string(dev, "hw_rev", buf);
 
 }
 
