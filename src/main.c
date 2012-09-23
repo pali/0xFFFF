@@ -53,7 +53,7 @@ static void show_usage(void) {
 		" -l              load kernel and initfs images to RAM\n"
 		" -f              flash all specified images\n"
 		" -c              cold flash 2nd and secondary image\n"
-		" -x /dev/mtd     check for bad blocks on mtd device\n"
+		" -x [/dev/mtd]   check for bad blocks on mtd device (default: all)\n"
 		" -E file         dump all device images to one fiasco image, see -t\n"
 		" -e [dir]        dump all device images to directory, see -t (default: current)\n"
 		"\n"
@@ -416,6 +416,10 @@ int main(int argc, char **argv) {
 					fiasco_un = 1;
 					break;
 				}
+				if ( optopt == 'x' ) {
+					dev_check = 1;
+					break;
+				}
 				ERROR("Option '%c' requires an argument", optopt);
 				ret = 1;
 				goto clean;
@@ -436,7 +440,10 @@ int main(int argc, char **argv) {
 
 			case 'x':
 				dev_check = 1;
-				dev_check_arg = optarg;
+				if ( optarg[0] != '-' )
+					dev_check_arg = optarg;
+				else
+					--optind;
 				break;
 			case 'E':
 				dev_dump_fiasco = 1;
@@ -564,7 +571,8 @@ int main(int argc, char **argv) {
 		goto clean;
 	}
 
-	if ( dev_boot || dev_reboot || dev_load || dev_flash || dev_cold_flash || dev_ident || set_root || set_usb || set_rd || set_rd_flags || set_hw || set_kernel || set_nolo || set_sw || set_emmc )
+	if ( dev_boot || dev_reboot || dev_load || dev_flash || dev_cold_flash || dev_ident || dev_check || dev_dump_fiasco || dev_dump
+		|| set_root || set_usb || set_rd || set_rd_flags || set_hw || set_kernel || set_nolo || set_sw || set_emmc )
 		do_device = 1;
 
 	if ( dev_boot || dev_load || dev_cold_flash )
