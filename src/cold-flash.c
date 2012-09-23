@@ -211,7 +211,7 @@ static int send_2nd(usb_dev_handle * udev, struct image * image) {
 		if ( ret == 0 )
 			break;
 		if ( usb_bulk_write(udev, WRITE_DEV, (char *)buffer, ret, WRITE_TIMEOUT) != ret )
-			ERROR_RETURN("Sending 2nd X-Loader image failed", -1);
+			PRINTF_ERROR_RETURN("Sending 2nd X-Loader image failed", -1);
 		readed += ret;
 		printf_progressbar(readed, image->size);
 	}
@@ -253,7 +253,7 @@ static int send_secondary(usb_dev_handle * udev, struct image * image) {
 		if ( ret == 0 )
 			break;
 		if ( usb_bulk_write(udev, WRITE_DEV, (char *)buffer, ret, WRITE_TIMEOUT) != ret )
-			ERROR_RETURN("Sending Secondary image failed", -1);
+			PRINTF_ERROR_RETURN("Sending Secondary image failed", -1);
 		readed += ret;
 		printf_progressbar(readed, image->size);
 	}

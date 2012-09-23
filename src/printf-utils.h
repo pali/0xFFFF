@@ -20,6 +20,8 @@
 #ifndef PRINTF_UTILS_H
 #define PRINTF_UTILS_H
 
+#include "global.h"
+
 extern int printf_prev;
 
 #define PRINTF_BACK() do { if ( printf_prev ) { printf("\r%-*s\r", printf_prev, ""); printf_prev = 0; } } while (0)
@@ -27,6 +29,7 @@ extern int printf_prev;
 #define PRINTF_LINE(...) do { PRINTF_BACK(); PRINTF_ADD(__VA_ARGS__); fflush(stdout); } while (0)
 #define PRINTF_END() do { if ( printf_prev ) { printf("\n"); printf_prev = 0; } } while (0)
 #define PRINTF_ERROR(...) do { PRINTF_END(); ERROR_INFO(__VA_ARGS__); } while (0)
+#define PRINTF_ERROR_RETURN(str, ...) do { PRINTF_ERROR("%s", str); return __VA_ARGS__; } while (0)
 
 void printf_progressbar(unsigned long long part, unsigned long long total);
 void printf_and_wait(const char * format, ...);

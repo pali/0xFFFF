@@ -336,7 +336,7 @@ static int nolo_send_image(struct usb_device_info * dev, struct image * image, i
 		if ( ret == 0 )
 			break;
 		if ( usb_bulk_write(dev->udev, 2, buf, ret, 5000) != ret )
-			ERROR_RETURN("Sending image failed", -1);
+			PRINTF_ERROR_RETURN("Sending image failed", -1);
 		readed += ret;
 		printf_progressbar(readed, image->size);
 	}
@@ -420,7 +420,7 @@ int nolo_flash_image(struct usb_device_info * dev, struct image * image) {
 		while ( state != 4 ) {
 
 			if ( nolo_get_string(dev, "cmt:status", buf, sizeof(buf)) < 0 )
-				ERROR_RETURN("cmt:status failed", -1);
+				PRINTF_ERROR_RETURN("cmt:status failed", -1);
 
 			if ( strncmp(buf, "finished", strlen("finished")) == 0 ) {
 
@@ -440,7 +440,7 @@ int nolo_flash_image(struct usb_device_info * dev, struct image * image) {
 			} else {
 
 				if ( sscanf(buf, "%s:%llu/%llu", status, &part, &total) != 3 )
-					ERROR_RETURN("cmt:status unknown", -1);
+					PRINTF_ERROR_RETURN("cmt:status unknown", -1);
 
 				if ( strcmp(status, "program") == 0 && state <= 0 ) {
 					printf_progressbar(last_total, last_total);
