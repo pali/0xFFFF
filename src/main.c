@@ -980,7 +980,7 @@ int main(int argc, char **argv) {
 						if ( have_kernel == 0 ) {
 							image_kernel = image_ptr->image;
 							have_kernel = 1;
-						} else if ( have_kernel == 1 ) {
+						} else if ( have_kernel == 1 && image_kernel != image_ptr->image ) {
 							image_kernel = NULL;
 							have_kernel = 2;
 						}
@@ -995,7 +995,7 @@ int main(int argc, char **argv) {
 						if ( have_initfs == 0 ) {
 							image_initfs = image_ptr->image;
 							have_initfs = 1;
-						} else if ( have_initfs == 1 ) {
+						} else if ( have_initfs == 1 && image_initfs != image_ptr->image ) {
 							image_initfs = NULL;
 							have_initfs = 2;
 						}
