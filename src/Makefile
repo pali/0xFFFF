@@ -16,7 +16,7 @@ ifdef WITH_SQUEUES
 CPPFLAGS += -DWITH_SQUEUES
 endif
 
-OBJS = main.o nolo.o printf-utils.o image.o fiasco.o device.o usb-device.o cold-flash.o dump.o qmode.o console.o squeue/squeue.o
+OBJS = main.o nolo.o printf-utils.o image.o fiasco.o device.o usb-device.o cold-flash.o dump.o qmode.o console.o squeue/squeue.o operations.o
 BIN = 0xFFFF
 
 all: $(BIN)
