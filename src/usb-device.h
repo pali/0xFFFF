@@ -43,8 +43,8 @@ struct usb_flash_device {
 };
 
 struct usb_device_info {
-	enum device detected_device;
-	int16_t detected_hwrev;
+	enum device device;
+	int16_t hwrev;
 	const struct usb_flash_device * flash_device;
 	usb_dev_handle * udev;
 };

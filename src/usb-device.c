@@ -69,7 +69,7 @@ static void usb_flash_device_info_print(const struct usb_flash_device * dev) {
 
 }
 
-static void usb_descriptor_info_print(usb_dev_handle * udev, struct usb_device * dev) {
+static void usb_descriptor_info_print(usb_dev_handle * udev, struct usb_device * dev, char * product, size_t size) {
 
 	char buf[1024];
 	char buf2[1024];
@@ -81,6 +81,9 @@ static void usb_descriptor_info_print(usb_dev_handle * udev, struct usb_device *
 	usb_get_string_simple(udev, dev->descriptor.iProduct, buf, sizeof(buf));
 	PRINTF_LINE("USB device product string: %s", buf[0] ? buf : "(not detected)");
 	PRINTF_END();
+
+	if ( product && buf[0] )
+		strncpy(product, buf, size);
 
 	memset(buf, 0, sizeof(buf));
 	memset(buf2, 0, sizeof(buf2));
@@ -106,6 +109,7 @@ static void usb_descriptor_info_print(usb_dev_handle * udev, struct usb_device *
 static struct usb_device_info * usb_device_is_valid(struct usb_device * dev) {
 
 	int i;
+	char product[1024];
 	struct usb_device_info * ret = NULL;
 
 	for ( i = 0; usb_devices[i].vendor; ++i ) {
@@ -125,7 +129,7 @@ static struct usb_device_info * usb_device_is_valid(struct usb_device * dev) {
 				return NULL;
 			}
 
-			usb_descriptor_info_print(udev, dev);
+			usb_descriptor_info_print(udev, dev, product, sizeof(product));
 
 #if defined(LIBUSB_HAS_GET_DRIVER_NP) && defined(LIBUSB_HAS_DETACH_KERNEL_DRIVER_NP)
 			PRINTF_LINE("Detaching kernel from USB interface...");
@@ -165,8 +169,32 @@ static struct usb_device_info * usb_device_is_valid(struct usb_device * dev) {
 				return NULL;
 			}
 
-			ret->detected_device = DEVICE_UNKNOWN;
-			ret->detected_hwrev = -1;
+			if ( strstr(product, "N900") )
+				ret->device = DEVICE_RX_51;
+			else
+				ret->device = DEVICE_UNKNOWN;
+
+			/* TODO: Autodetect more devices */
+
+			if ( device_to_string(ret->device) )
+				PRINTF_LINE("Detected USB device: %s", device_to_string(ret->device));
+			else
+				PRINTF_LINE("Detected USB device: (not detected)");
+			PRINTF_END();
+
+			if ( ret->device ) {
+				enum device * device;
+				for ( device = usb_devices[i].devices; *device; ++device )
+					if ( *device == ret->device )
+						break;
+				if ( ! *device ) {
+					ERROR("Device mishmash");
+					usb_close(udev);
+					return NULL;
+				}
+			}
+
+			ret->hwrev = -1;
 			ret->flash_device = &usb_devices[i];
 			ret->udev = udev;
 			break;
