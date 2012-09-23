@@ -168,21 +168,14 @@ struct xloader_msg xloader_msg_create(uint32_t type, struct image * image) {
 
 }
 
-static int read_asic(usb_dev_handle * udev) {
+static int read_asic(usb_dev_handle * udev, uint8_t * asic_buffer, int size, int asic_size) {
 
-	uint8_t asic_buffer[127];
-	int asic_size = 69;
-	int i, ret;
+	int ret;
 
 	printf("Waiting for ASIC ID...\n");
-	ret = usb_bulk_read(udev, READ_DEV, (char *)asic_buffer, sizeof(asic_buffer), READ_TIMEOUT);
+	ret = usb_bulk_read(udev, READ_DEV, (char *)asic_buffer, size, READ_TIMEOUT);
 	if ( ret != asic_size )
 		ERROR_RETURN("Invalid size of ASIC ID", -1);
-
-	printf("Got ASIC ID:");
-	for ( i = 0; i < asic_size; ++i )
-		printf(" 0x%.2X", (unsigned int)asic_buffer[i]);
-	printf("\n");
 
 	return 0;
 
@@ -322,21 +315,70 @@ static int ping_timeout(usb_dev_handle * udev) {
 
 }
 
-int cold_flash(struct usb_device_info * dev, struct image * x2nd, struct image * secondary) {
+int init_cold_flash(struct usb_device_info * dev) {
 
-	if ( dev->flash_device->protocol != FLASH_COLD ) {
-		printf_and_wait("Device is not in Cold Flash mode\nUnplug USB cable, turn device off, press ENTER and plug USB cable again");
-		return -EAGAIN;
+	uint8_t asic_buffer[127];
+	int asic_size = 69;
+	int i;
+
+	if ( dev->flash_device->protocol != FLASH_COLD )
+		ERROR_RETURN("Device is not in Cold Flash mode", -1);
+
+	if ( read_asic(dev->udev, asic_buffer, sizeof(asic_buffer), asic_size) != 0 )
+		ERROR_RETURN("Reading ASIC ID failed", -1);
+
+	if ( verbose ) {
+		printf("Got ASIC ID:");
+		for ( i = 0; i < asic_size; ++i )
+			printf(" 0x%.2X", (unsigned int)asic_buffer[i]);
+		printf("\n");
 	}
+
+	/* TODO: Detect device from asic id */
+
+	/* ASIC ID specification: http://processors.wiki.ti.com/index.php/OMAP35x_and_AM/DM37x_Initialization#UART.2FUSB_Booting */
+
+	/* Number of subblocks */
+	if ( asic_buffer[0] != 0x05 )
+		ERROR_RETURN("Invalid ASIC ID", -1);
+
+	/* ID Subblock - header */
+	if ( memcmp(asic_buffer+1, "\x01\x05\x01", 3) != 0 )
+		ERROR_RETURN("Invalid ASIC ID", -1);
+
+	/* ID Subblock - OMAP chip version (check for OMAP35x) */
+	if ( memcmp(asic_buffer+4, "\x34\x30\x07", 3) != 0 )
+		ERROR_RETURN("Invalid ASIC ID", -1);
+
+	/* Reserved1 - header */
+	if ( memcmp(asic_buffer+8, "\x13\x02\x01", 3) != 0 )
+		ERROR_RETURN("Invalid ASIC ID", -1);
+
+	/* 2nd ID Subblock - header */
+	if ( memcmp(asic_buffer+12, "\x12\x15\x01", 3) != 0 )
+		ERROR_RETURN("Invalid ASIC ID", -1);
+
+	/* Reserved2 - header */
+	if ( memcmp(asic_buffer+35, "\x14\x15\x01", 3) != 0 )
+		ERROR_RETURN("Invalid ASIC ID", -1);
+
+	/* Checksum subblock - header */
+	if ( memcmp(asic_buffer+58, "\x15\x09\x01", 3) != 0 )
+		ERROR_RETURN("Invalid ASIC ID", -1);
+
+	printf("Detected OMAP35x chip\n");
+
+	return 0;
+
+}
+
+int cold_flash(struct usb_device_info * dev, struct image * x2nd, struct image * secondary) {
 
 	if ( x2nd->type != IMAGE_2ND )
 		ERROR_RETURN("Image type is not 2nd X-Loader", -1);
 
 	if ( secondary->type != IMAGE_SECONDARY )
 		ERROR_RETURN("Image type is not Secondary", -1);
-
-	if ( read_asic(dev->udev) != 0 )
-		ERROR_RETURN("Reading ASIC ID failed", -1);
 
 	if ( send_2nd(dev->udev, x2nd) != 0 )
 		ERROR_RETURN("Sending 2nd X-Loader image failed", -1);
@@ -355,12 +397,6 @@ int cold_flash(struct usb_device_info * dev, struct image * x2nd, struct image *
 int leave_cold_flash(struct usb_device_info * dev) {
 
 	int ret;
-
-	if ( dev->flash_device->protocol != FLASH_COLD )
-		ERROR_RETURN("Device is not in Cold Flash mode", -1);
-
-	if ( read_asic(dev->udev) != 0 )
-		ERROR_RETURN("Reading ASIC ID failed", -1);
 
 	printf("Sending OMAP memory boot message...\n");
 	ret = usb_bulk_write(dev->udev, WRITE_DEV, (char *)&omap_memory_msg, sizeof(omap_memory_msg), WRITE_TIMEOUT);

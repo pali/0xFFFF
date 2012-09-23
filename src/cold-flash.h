@@ -23,6 +23,9 @@
 #include "image.h"
 #include "usb-device.h"
 
+/* Initialize Cold Flash mde */
+int init_cold_flash(struct usb_device_info * dev);
+
 /* Flash 2nd and secondary image in Cold Flash mode. After flashing device will boot secondary image */
 int cold_flash(struct usb_device_info * dev, struct image * x2nd, struct image * secondary);
 
