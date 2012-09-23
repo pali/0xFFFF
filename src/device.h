@@ -20,6 +20,8 @@
 #ifndef DEVICE_H
 #define DEVICE_H
 
+#include <stdint.h>
+
 enum device {
 	DEVICE_UNKNOWN = 0,
 	DEVICE_ANY,   /* Unspecified / Any device */
