@@ -901,6 +901,11 @@ int main(int argc, char **argv) {
 			dev_get_sw_ver(dev, buf, sizeof(buf));
 			printf("Software release version: %s\n", buf[0] ? buf : "(not detected)");
 
+			if ( buf[0] && dev_flash && ! set_sw && fiasco_in && fiasco_in->swver[0] && strcmp(fiasco_in->swver, buf) != 0 ) {
+				set_sw = 1;
+				set_sw_arg = fiasco_in->swver;
+			}
+
 			buf[0] = 0;
 			dev_get_content_ver(dev, buf, sizeof(buf));
 			printf("Content eMMC version: %s\n", buf[0] ? buf : "(not detected)");
