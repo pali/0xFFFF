@@ -415,6 +415,9 @@ int main(int argc, char **argv) {
 
 	struct usb_device_info * usb_dev = NULL;
 
+	enum device detected_device = DEVICE_UNKNOWN;
+	int16_t detected_hwrev = -1;
+
 	int tmp;
 	char buf[512];
 
@@ -953,11 +956,11 @@ int main(int argc, char **argv) {
 				continue;
 			}
 
-			usb_dev->detected_device = nolo_get_device(usb_dev);
-			if ( ! usb_dev->detected_device )
+			detected_device = nolo_get_device(usb_dev);
+			if ( ! detected_device )
 				printf("Device: (not detected)\n");
 			else
-				printf("Device: %s\n", device_to_string(usb_dev->detected_device));
+				printf("Device: %s\n", device_to_string(detected_device));
 
 			tmp = nolo_get_hwrev(usb_dev);
 			if ( tmp <= 0 )
@@ -966,7 +969,7 @@ int main(int argc, char **argv) {
 				printf("HW revision: %d\n", tmp);
 
 			if ( buf[0] )
-				usb_dev->detected_hwrev = atoi(buf);
+				detected_hwrev = atoi(buf);
 
 			buf[0] = 0;
 			nolo_get_nolo_ver(usb_dev, buf, sizeof(buf));
@@ -1036,10 +1039,10 @@ int main(int argc, char **argv) {
 			printf("\n");
 
 			/* filter images by device & hwrev */
-			if ( usb_dev->detected_device )
-				filter_images_by_device(usb_dev->detected_device, &image_first);
-			if ( usb_dev->detected_hwrev )
-				filter_images_by_hwrev(usb_dev->detected_hwrev, &image_first);
+			if ( detected_device )
+				filter_images_by_device(detected_device, &image_first);
+			if ( detected_hwrev )
+				filter_images_by_hwrev(detected_hwrev, &image_first);
 
 			/* set kernel and initfs images for loading */
 			if ( dev_load ) {
