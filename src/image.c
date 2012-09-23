@@ -497,6 +497,8 @@ enum image_type image_type_from_data(struct image * image) {
 		return IMAGE_KERNEL;
 	else if ( memcmp(buf, "UBI#", 4) == 0 ) /* UBI EC header */
 		return IMAGE_ROOTFS;
+	else if ( memcmp(buf+510, "\x55\xaa", 2) == 0 ) /* FAT boot sector signature */
+		return IMAGE_MMC;
 	else if ( memcmp(buf, "\xb0\x00\x01\x03\x9d\x00\x00\x00", 8) == 0 )
 		return IMAGE_CMT_2ND;
 	else if ( memcmp(buf, "\xb1\x00\x00\x00\x82\x00\x00\x00", 8) == 0 )
@@ -568,6 +570,9 @@ void image_print_info(struct image * image) {
 
 	if ( image->version )
 		printf("    Image version: %s\n", image->version);
+
+	if ( image->layout )
+		printf("    Image layout: included\n");
 
 	while ( device ) {
 
