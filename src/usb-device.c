@@ -22,6 +22,7 @@
 #include <stdint.h>
 #include <string.h>
 #include <errno.h>
+#include <ctype.h>
 
 #include <usb.h>
 
@@ -76,14 +77,16 @@ static void usb_descriptor_info_print(usb_dev_handle * udev, struct usb_device *
 	int ret;
 	int i;
 
-	buf[0] = 0;
+	memset(buf, 0, sizeof(buf));
 	usb_get_string_simple(udev, dev->descriptor.iProduct, buf, sizeof(buf));
 	PRINTF_LINE("USB device product string: %s", buf[0] ? buf : "(not detected)");
 	PRINTF_END();
 
-	buf[0] = 0;
+	memset(buf, 0, sizeof(buf));
 	memset(buf2, 0, sizeof(buf2));
 	ret = usb_get_string_simple(udev, dev->descriptor.iSerialNumber, buf, sizeof(buf));
+	if ( ! isalnum(buf[0]) )
+		buf[0] = 0;
 	for ( i = 0; i < ret; i+=2 ) {
 		sscanf(buf+i, "%2x", &x);
 		if ( x > 32 && x < 128 )
@@ -93,6 +96,8 @@ static void usb_descriptor_info_print(usb_dev_handle * udev, struct usb_device *
 			break;
 		}
 	}
+	if ( ! isalnum(buf2[0]) )
+		buf2[0] = 0;
 	PRINTF_LINE("USB device serial number string: %s", buf2[0] ? buf2 : ( buf[0] ? buf : "(not detected)" ));
 	PRINTF_END();
 
