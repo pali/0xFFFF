@@ -159,11 +159,25 @@ static int nolo_get_version_string(struct usb_device_info * dev, const char * st
 int nolo_init(struct usb_device_info * dev) {
 
 	uint32_t val = 1;
+	enum device device;
 
 	printf("Initializing NOLO...\n");
+
 	while ( val != 0 )
 		if ( usb_control_msg(dev->udev, NOLO_QUERY, NOLO_STATUS, 0, 0, (char *)&val, 4, 2000) == -1 )
 			ERROR_RETURN("NOLO_STATUS failed", -1);
+
+	device = nolo_get_device(dev);
+
+	if ( ! dev->device )
+		dev->device = device;
+
+	if ( dev->device && device && dev->device != device ) {
+		ERROR("Device mishmash, expected %s, got %s", device_to_string(dev->device), device_to_string(device));
+		return -1;
+	}
+
+	dev->hwrev = nolo_get_hwrev(dev);
 
 	return 0;
 }
@@ -247,7 +261,7 @@ static int nolo_send_image(struct usb_device_info * dev, struct image * image, i
 		struct device_list * device = image->devices;
 
 		while ( device ) {
-			if ( device->device == dev->detected_device && hwrev_is_valid(device->hwrevs, dev->detected_hwrev) )
+			if ( device->device == dev->device && hwrev_is_valid(device->hwrevs, dev->hwrev) )
 				break;
 			device = device->next;
 		}
@@ -258,7 +272,7 @@ static int nolo_send_image(struct usb_device_info * dev, struct image * image, i
 		if ( bufs ) {
 
 			memset(buf, 0, sizeof(buf));
-			snprintf(buf, 8, "%d", dev->detected_hwrev);
+			snprintf(buf, 8, "%d", dev->hwrev);
 
 			for ( i = 0; bufs[i]; ++i ) {
 				len = ((uint8_t*)bufs[i])[0];
