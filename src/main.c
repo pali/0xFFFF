@@ -33,11 +33,9 @@
 #include "image.h"
 #include "fiasco.h"
 #include "device.h"
-#include "usb-device.h"
-#include "cold-flash.h"
 #include "console.h"
 #include "qmode.h"
-#include "nolo.h"
+#include "operations.h"
 
 static void show_title(void) {
 	printf("0xFFFF v%s  // The Free Fiasco Firmware Flasher\n", VERSION);
@@ -48,28 +46,18 @@ static void show_usage(void) {
 	int i;
 	printf (""
 
-#if defined(WITH_USB) && ! defined(WITH_DEVICE)
-		"Over USB:\n"
+		"Operations:\n"
 		" -b [cmdline]    boot default or loaded kernel (default: no cmdline)\n"
 		" -b update       boot default or loaded kernel to Update mode\n"
 		" -r              reboot device\n"
 		" -l              load kernel and initfs images to RAM\n"
 		" -f              flash all specified images\n"
 		" -c              cold flash 2nd and secondary image\n"
-		"\n"
-#endif
-
-#ifdef WITH_DEVICE
-		"On device:\n"
-		" -r              reboot device\n"
-		" -f              flash all specified images\n"
 		" -x /dev/mtd     check for bad blocks on mtd device\n"
 		" -E file         dump all device images to one fiasco image, see -t\n"
 		" -e [dir]        dump all device images to directory, see -t (default: current)\n"
 		"\n"
-#endif
 
-#if defined(WITH_USB) || defined(WITH_DEVICE)
 		"Device configuration:\n"
 		" -I              identify, show all information about device\n"
 		" -D 0|1|2        change root device: 0 - flash, 1 - mmc, 2 - usb\n"
@@ -82,7 +70,6 @@ static void show_usage(void) {
 		" -S ver          change SW release version string\n"
 		" -C ver          change content eMMC version string\n"
 		"\n"
-#endif
 
 		"Input image specification:\n"
 		" -M file         specify fiasco image\n"
@@ -109,19 +96,14 @@ static void show_usage(void) {
 
 		"Other options:\n"
 		" -i              identify images\n"
-#if defined(WITH_USB) || defined(WITH_DEVICE)
 		" -p              console prompt mode\n"
-#endif
-#if ( defined(WITH_USB) || defined(WITH_DEVICE) ) && defined(WITH_SQUEUES)
 		" -Q              enter shared queues server mode (for gui or remote)\n"
-#endif
 		" -s              simulate, do not flash or write on disk\n"
 		" -n              disable hash, checksum and image type checking\n"
 		" -v              be verbose and noisy\n"
 		" -h              show this help message\n"
 		"\n"
 
-#if defined(WITH_USB) || defined(WITH_DEVICE)
 		"R&D flags:\n"
 		"  no-omap-wd          disable auto reboot by OMAP watchdog\n"
 		"  no-ext-wd           disable auto reboot by external watchdog\n"
@@ -132,7 +114,6 @@ static void show_usage(void) {
 		"  no-charging         disable battery charging\n"
 		"  force-power-key     force omap boot reason to power key\n"
 		"\n"
-#endif
 
 	);
 
@@ -306,49 +287,34 @@ void filter_images_by_hwrev(int16_t hwrev, struct image_list ** image_first) {
 int main(int argc, char **argv) {
 
 	const char * optstring = ":"
-#if defined(WITH_USB) && ! defined(WITH_DEVICE)
-	"b:rlfc"
-#endif
-#ifdef WITH_DEVICE
-	"rfx:E:e:"
-#endif
-#if defined(WITH_USB) || defined(WITH_DEVICE)
+	"b:rlfcx:E:e:"
 	"ID:U:R:F:H:K:N:S:C:"
-#endif
 	"M:m:"
 	"t:d:w:"
 	"u:g:"
 	"i"
-#if defined(WITH_USB) || defined(WITH_DEVICE)
 	"p"
-#endif
-#if ( defined(WITH_USB) || defined(WITH_DEVICE) ) && defined(WITH_SQUEUES)
 	"Q"
-#endif
 	"snvh"
 	"";
 	int c;
 
 	int ret = 0;
 	int do_something = 0;
+	int do_device = 0;
 
-#if defined(WITH_USB) && ! defined(WITH_DEVICE)
 	int dev_boot = 0;
 	char * dev_boot_arg = NULL;
 	int dev_load = 0;
 	int dev_cold_flash = 0;
-#endif
 
-#ifdef WITH_DEVICE
 	int dev_check = 0;
 	char * dev_check_arg = NULL;
 	int dev_dump_fiasco = 0;
 	char * dev_dump_fiasco_arg = NULL;
 	int dev_dump = 0;
 	char * dev_dump_arg = NULL;
-#endif
 
-#if defined(WITH_USB) || defined(WITH_DEVICE)
 	int dev_flash = 0;
 	int dev_reboot = 0;
 	int dev_ident = 0;
@@ -371,7 +337,6 @@ int main(int argc, char **argv) {
 	char * set_sw_arg = NULL;
 	int set_emmc = 0;
 	char * set_emmc_arg = NULL;
-#endif
 
 	int image_fiasco = 0;
 	char * image_fiasco_arg = NULL;
@@ -389,12 +354,8 @@ int main(int argc, char **argv) {
 	char * fiasco_gen_arg = NULL;
 
 	int image_ident = 0;
-#if defined(WITH_USB) || defined(WITH_DEVICE)
 	int console = 0;
-#endif
-#if ( defined(WITH_USB) || defined(WITH_DEVICE) ) && defined(WITH_SQUEUES)
 	int queue = 0;
-#endif
 
 	int help = 0;
 
@@ -413,12 +374,11 @@ int main(int argc, char **argv) {
 	struct fiasco * fiasco_in = NULL;
 	struct fiasco * fiasco_out = NULL;
 
-	struct usb_device_info * usb_dev = NULL;
+	struct device_info * dev = NULL;
 
 	enum device detected_device = DEVICE_UNKNOWN;
 	int16_t detected_hwrev = -1;
 
-	int tmp;
 	char buf[512];
 
 	simulate = 0;
@@ -444,18 +404,14 @@ int main(int argc, char **argv) {
 				goto clean;
 
 			case ':':
-#if defined(WITH_USB) && ! defined(WITH_DEVICE)
 				if ( optopt == 'b' ) {
 					dev_boot = 1;
 					break;
 				}
-#endif
-#ifdef WITH_DEVICE
 				if ( optopt == 'e' ) {
 					dev_dump = 1;
 					break;
 				}
-#endif
 				if ( optopt == 'u' ) {
 					fiasco_un = 1;
 					break;
@@ -464,7 +420,6 @@ int main(int argc, char **argv) {
 				ret = 1;
 				goto clean;
 
-#if defined(WITH_USB) && ! defined(WITH_DEVICE)
 			case 'b':
 				dev_boot = 1;
 				if ( optarg[0] != '-' )
@@ -478,9 +433,7 @@ int main(int argc, char **argv) {
 			case 'c':
 				dev_cold_flash = 1;
 				break;
-#endif
 
-#ifdef WITH_DEVICE
 			case 'x':
 				dev_check = 1;
 				dev_check_arg = optarg;
@@ -496,9 +449,7 @@ int main(int argc, char **argv) {
 				else
 					--optind;
 				break;
-#endif
 
-#if defined(WITH_USB) || defined(WITH_DEVICE)
 			case 'f':
 				dev_flash = 1;
 				break;
@@ -545,7 +496,6 @@ int main(int argc, char **argv) {
 				set_emmc = 1;
 				set_emmc_arg = optarg;
 				break;
-#endif
 
 			case 'M':
 				image_fiasco = 1;
@@ -583,16 +533,12 @@ int main(int argc, char **argv) {
 			case 'i':
 				image_ident = 1;
 				break;
-#if defined(WITH_USB) || defined(WITH_DEVICE)
 			case 'p':
 				console = 1;
 				break;
-#endif
-#if ( defined(WITH_USB) || defined(WITH_DEVICE) ) && defined(WITH_SQUEUES)
 			case 'Q':
 				queue = 1;
 				break;
-#endif
 
 			case 's':
 				simulate = 1;
@@ -618,28 +564,21 @@ int main(int argc, char **argv) {
 		goto clean;
 	}
 
-#if defined(WITH_USB) && ! defined(WITH_DEVICE)
+	if ( dev_boot || dev_reboot || dev_load || dev_flash || dev_cold_flash || dev_ident || set_root || set_usb || set_rd || set_rd_flags || set_hw || set_kernel || set_nolo || set_sw || set_emmc )
+		do_device = 1;
+
 	if ( dev_boot || dev_load || dev_cold_flash )
 		do_something = 1;
-#endif
-#ifdef WITH_DEVICE
 	if ( dev_check || dev_dump_fiasco || dev_dump )
 		do_something = 1;
-#endif
-#if defined(WITH_USB) || defined(WITH_DEVICE)
 	if ( dev_flash || dev_reboot || dev_ident || set_root || set_usb || set_rd || set_rd_flags || set_hw || set_kernel || set_nolo || set_sw || set_emmc )
 		do_something = 1;
-#endif
 	if ( fiasco_un || fiasco_gen || image_ident )
 		do_something = 1;
-#if defined(WITH_USB) || defined(WITH_DEVICE)
 	if ( console )
 		do_something = 1;
-#endif
-#if ( defined(WITH_USB) || defined(WITH_DEVICE) ) && defined(WITH_SQUEUES)
 	if ( queue )
 		do_something = 1;
-#endif
 	if ( help )
 		do_something = 1;
 
@@ -658,23 +597,19 @@ int main(int argc, char **argv) {
 		goto clean;
 	}
 
-#if defined(WITH_USB) || defined(WITH_DEVICE)
 	/* console */
 	if ( console ) {
 		console_prompt();
 		ret = 0;
 		goto clean;
 	}
-#endif
 
-#if ( defined(WITH_USB) || defined(WITH_DEVICE) ) && defined(WITH_SQUEUES)
 	/* share queues */
 	if ( queue ) {
 		queue_mode();
 		ret = 0;
 		goto clean;
 	}
-#endif
 
 
 	/* load images from files */
@@ -853,11 +788,6 @@ int main(int argc, char **argv) {
 		}
 	}
 
-
-#if defined(WITH_USB) && ! defined(WITH_DEVICE)
-
-	/* over usb */
-
 	if ( dev_cold_flash ) {
 		if ( have_2nd == 0 ) {
 			ERROR("2nd image for Cold Flashing was not specified");
@@ -898,7 +828,8 @@ int main(int argc, char **argv) {
 		goto clean;
 	}
 
-	if ( dev_boot || dev_reboot || dev_load || dev_flash || dev_cold_flash || dev_ident || set_root || set_usb || set_rd || set_rd_flags || set_hw || set_kernel || set_nolo || set_sw || set_emmc ) {
+	/* operations */
+	if ( do_device ) {
 
 		int again = 1;
 
@@ -906,14 +837,21 @@ int main(int argc, char **argv) {
 
 			again = 0;
 
-			usb_dev = usb_open_and_wait_for_device();
+			if ( dev )
+				dev_free(dev);
+
+			dev = dev_detect();
+			if ( ! dev ) {
+				ERROR("No device detected");
+				break;
+			}
 
 			/* cold flash */
 			if ( dev_cold_flash ) {
 
-				ret = cold_flash(usb_dev, image_2nd, image_secondary);
-				usb_close_device(usb_dev);
-				usb_dev = NULL;
+				ret = dev_cold_flash_images(dev, image_2nd, image_secondary);
+				dev_free(dev);
+				dev = NULL;
 
 				if ( ret == -EAGAIN ) {
 					again = 1;
@@ -933,61 +871,33 @@ int main(int argc, char **argv) {
 
 			}
 
-			if ( usb_dev->flash_device->protocol == FLASH_COLD ) {
-				leave_cold_flash(usb_dev);
-				usb_close_device(usb_dev);
-				usb_dev = NULL;
-				again = 1;
-				continue;
-			}
-
-			if ( usb_dev->flash_device->protocol != FLASH_NOLO ) {
-				printf("Only NOLO protocol is supported now\n");
-				usb_close_device(usb_dev);
-				usb_dev = NULL;
-				break;
-			}
-
-			if ( nolo_init(usb_dev) < 0 ) {
-				printf("Cannot initialize NOLO\n");
-				usb_close_device(usb_dev);
-				usb_dev = NULL;
-				again = 1;
-				continue;
-			}
-
-			detected_device = nolo_get_device(usb_dev);
-			if ( ! detected_device )
+			if ( ! dev->detected_device )
 				printf("Device: (not detected)\n");
 			else
-				printf("Device: %s\n", device_to_string(detected_device));
+				printf("Device: %s\n", device_to_string(dev->detected_device));
 
-			tmp = nolo_get_hwrev(usb_dev);
-			if ( tmp <= 0 )
+			if ( dev->detected_hwrev <= 0 )
 				printf("HW revision: (not detected)\n");
 			else
-				printf("HW revision: %d\n", tmp);
-
-			if ( buf[0] )
-				detected_hwrev = atoi(buf);
+				printf("HW revision: %d\n", dev->detected_hwrev);
 
 			buf[0] = 0;
-			nolo_get_nolo_ver(usb_dev, buf, sizeof(buf));
+			dev_get_nolo_ver(dev, buf, sizeof(buf));
 			printf("NOLO version: %s\n", buf[0] ? buf : "(not detected)");
 
 			buf[0] = 0;
-			nolo_get_kernel_ver(usb_dev, buf, sizeof(buf));
+			dev_get_kernel_ver(dev, buf, sizeof(buf));
 			printf("Kernel version: %s\n", buf[0] ? buf : "(not detected)");
 
 			buf[0] = 0;
-			nolo_get_sw_ver(usb_dev, buf, sizeof(buf));
+			dev_get_sw_ver(dev, buf, sizeof(buf));
 			printf("Software release version: %s\n", buf[0] ? buf : "(not detected)");
 
 			buf[0] = 0;
-			nolo_get_content_ver(usb_dev, buf, sizeof(buf));
+			dev_get_content_ver(dev, buf, sizeof(buf));
 			printf("Content eMMC version: %s\n", buf[0] ? buf : "(not detected)");
 
-			ret = nolo_get_root_device(usb_dev);
+			ret = dev_get_root_device(dev);
 			printf("Root device: ");
 			if ( ret == 0 )
 				printf("flash");
@@ -999,7 +909,7 @@ int main(int argc, char **argv) {
 				printf("(not detected)");
 			printf("\n");
 
-			ret = nolo_get_usb_host_mode(usb_dev);
+			ret = dev_get_usb_host_mode(dev);
 			printf("USB host mode: ");
 			if ( ret == 0 )
 				printf("disabled");
@@ -1009,7 +919,7 @@ int main(int argc, char **argv) {
 				printf("(not detected)");
 			printf("\n");
 
-			ret = nolo_get_rd_mode(usb_dev);
+			ret = dev_get_rd_mode(dev);
 			printf("R&D mode: ");
 			if ( ret == 0 )
 				printf("disabled");
@@ -1020,7 +930,7 @@ int main(int argc, char **argv) {
 			printf("\n");
 
 			if ( ret == 1 ) {
-				ret = nolo_get_rd_flags(usb_dev, buf, sizeof(buf));
+				ret = dev_get_rd_flags(dev, buf, sizeof(buf));
 				printf("R&D flags: ");
 				if ( ret < 0 )
 					printf("(not detected)");
@@ -1031,8 +941,12 @@ int main(int argc, char **argv) {
 
 			/* device identify */
 			if ( dev_ident ) {
-				usb_close_device(usb_dev);
-				usb_dev = NULL;
+				if ( ! dev->detected_device ) {
+					dev_reboot_device(dev);
+					goto again;
+				}
+				dev_free(dev);
+				dev = NULL;
 				break;
 			}
 
@@ -1040,9 +954,9 @@ int main(int argc, char **argv) {
 
 			/* filter images by device & hwrev */
 			if ( detected_device )
-				filter_images_by_device(detected_device, &image_first);
+				filter_images_by_device(dev->detected_device, &image_first);
 			if ( detected_hwrev )
-				filter_images_by_hwrev(detected_hwrev, &image_first);
+				filter_images_by_hwrev(dev->detected_hwrev, &image_first);
 
 			/* set kernel and initfs images for loading */
 			if ( dev_load ) {
@@ -1097,10 +1011,15 @@ int main(int argc, char **argv) {
 
 			/* load */
 			if ( dev_load ) {
+				ret = 0;
 				if ( image_kernel )
-					nolo_load_image(usb_dev, image_kernel);
+					ret = dev_load_image(dev, image_kernel);
+				if ( ret < 0 )
+					goto again;
 				if ( image_initfs )
-					nolo_load_image(usb_dev, image_initfs);
+					ret = dev_load_image(dev, image_initfs);
+				if ( ret < 0 )
+					goto again;
 			}
 
 			/* flash */
@@ -1108,76 +1027,102 @@ int main(int argc, char **argv) {
 				image_ptr = image_first;
 				while ( image_ptr ) {
 					struct image_list * next = image_ptr->next;
-					nolo_flash_image(usb_dev, image_ptr->image);
+					ret = dev_flash_image(dev, image_ptr->image);
+					if ( ret < 0 )
+						goto again;
+					image_list_unlink(image_ptr);
+					free(image_ptr);
+					if ( image_ptr == image_first )
+						image_first = next;
 					image_ptr = next;
 				}
 			}
 
 			/* configuration */
+			ret = 0;
 			if ( set_rd_flags ) {
 				set_rd = 1;
 				set_rd_arg = "1";
 			}
+
 			if ( set_root )
-				nolo_set_root_device(usb_dev, atoi(set_root_arg));
+				ret = dev_set_root_device(dev, atoi(set_root_arg));
+			if ( ret == -EAGAIN )
+				goto again;
+
 			if ( set_usb )
-				nolo_set_usb_host_mode(usb_dev, atoi(set_usb_arg));
+				ret = dev_set_usb_host_mode(dev, atoi(set_usb_arg));
+			if ( ret == -EAGAIN )
+				goto again;
+
 			if ( set_rd )
-				nolo_set_rd_mode(usb_dev, atoi(set_rd_arg));
+				ret = dev_set_rd_mode(dev, atoi(set_rd_arg));
+			if ( ret == -EAGAIN )
+				goto again;
+
 			if ( set_rd_flags )
-				nolo_set_rd_flags(usb_dev, set_rd_flags_arg);
+				ret = dev_set_rd_flags(dev, set_rd_flags_arg);
+			if ( ret == -EAGAIN )
+				goto again;
+
 			if ( set_hw )
-				nolo_set_hwrev(usb_dev, atoi(set_hw_arg));
+				ret = dev_set_hwrev(dev, atoi(set_hw_arg));
+			if ( ret == -EAGAIN )
+				goto again;
+
 			if ( set_nolo )
-				nolo_set_nolo_ver(usb_dev, set_nolo_arg);
+				ret = dev_set_nolo_ver(dev, set_nolo_arg);
+			if ( ret == -EAGAIN )
+				goto again;
+
 			if ( set_kernel )
-				nolo_set_kernel_ver(usb_dev, set_kernel_arg);
+				ret = dev_set_kernel_ver(dev, set_kernel_arg);
+			if ( ret == -EAGAIN )
+				goto again;
+
 			if ( set_sw )
-				nolo_set_sw_ver(usb_dev, set_sw_arg);
+				ret = dev_set_sw_ver(dev, set_sw_arg);
+			if ( ret == -EAGAIN )
+				goto again;
+
 			if ( set_emmc )
-				nolo_set_content_ver(usb_dev, set_emmc_arg);
+				ret = dev_set_content_ver(dev, set_emmc_arg);
+			if ( ret == -EAGAIN )
+				goto again;
+
+			/* check */
+			if ( dev_check )
+				ret = dev_check_badblocks(dev, dev_check_arg);
+			if ( ret == -EAGAIN )
+				goto again;
+
+			/* dump */
+			/* TODO */
+			(void)dev_dump_arg;
+			(void)dev_dump_fiasco_arg;
 
 			/* boot */
 			if ( dev_boot ) {
-				nolo_boot_device(usb_dev, dev_boot_arg);
-				usb_close_device(usb_dev);
-				usb_dev = NULL;
+				dev_boot_device(dev, dev_boot_arg);
 				break;
 			}
 
 			/* reboot */
 			if ( dev_reboot ) {
-				nolo_reboot_device(usb_dev);
-				usb_close_device(usb_dev);
-				usb_dev = NULL;
+				dev_reboot_device(dev);
 				break;
 			}
+
+			continue;
+
+again:
+			dev_free(dev);
+			dev = NULL;
+			again = 1;
 
 		}
 
 	}
-
-
-#endif
-
-
-#ifdef WITH_DEVICE
-
-	/* on device */
-
-	/* device identify */
-
-	/* check */
-
-	/* dump */
-
-	/* flash */
-
-	/* configuration */
-
-	/* reboot */
-
-#endif
 
 	ret = 0;
 
@@ -1196,8 +1141,8 @@ clean:
 	if ( fiasco_in )
 		fiasco_free(fiasco_in);
 
-	if ( usb_dev )
-		usb_close_device(usb_dev);
+	if ( dev )
+		dev_free(dev);
 
 	return ret;
 }
