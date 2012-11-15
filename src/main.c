@@ -117,16 +117,23 @@ static void show_usage(void) {
 
 	);
 
-	printf( "Devices:\n");
+	printf( "Supported devices:\n");
 	for ( i = 0; i < DEVICE_COUNT; ++i )
 		if ( device_to_string(i) && device_to_long_string(i) )
 			printf("  %-14s %s\n", device_to_string(i), device_to_long_string(i));
 	printf( "\n");
 
-	printf( "Image types:\n");
+	printf( "Supported image types:\n");
 	for ( i = 0; i < IMAGE_COUNT; ++i )
 		if ( image_type_to_string(i) )
 			printf("  %s\n", image_type_to_string(i));
+	printf( "\n");
+
+	printf( "Supported connection protocols:\n");
+	printf( "  Local on device\n");
+	for ( i = 0; i < FLASH_COUNT; ++i )
+		if ( usb_flash_protocol_to_string(i) )
+			printf("  %s via USB\n", usb_flash_protocol_to_string(i));
 	printf( "\n");
 
 }
