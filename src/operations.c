@@ -75,8 +75,6 @@ struct device_info * dev_detect(void) {
 		return dev;
 	}
 
-	/* TODO: NETWORK */
-
 clean:
 	usb_close_device(usb);
 	free(dev);

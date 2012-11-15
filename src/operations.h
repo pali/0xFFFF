@@ -27,14 +27,12 @@ enum connection_method {
 	METHOD_UNKNOWN = 0,
 	METHOD_USB,
 	METHOD_LOCAL,
-	METHOD_NETWORK,
 };
 
 struct device_info {
 	enum connection_method method;
 	enum device detected_device;
 	int16_t detected_hwrev;
-	/* TODO: use union */
 	struct usb_device_info * usb;
 };
 
