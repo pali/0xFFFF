@@ -32,6 +32,7 @@
 #include "printf-utils.h"
 #include "nolo.h"
 #include "cold-flash.h"
+#include "mkii.h"
 
 static struct usb_flash_device usb_devices[] = {
 	{ 0x0421, 0x0105,  2,  1, -1, FLASH_NOLO, { DEVICE_SU_18, DEVICE_RX_44, DEVICE_RX_48, DEVICE_RX_51, 0 } },
@@ -297,7 +298,7 @@ void usb_switch_to_nolo(struct usb_device_info * dev) {
 	if ( dev->flash_device->protocol == FLASH_COLD )
 		leave_cold_flash(dev);
 	else if ( dev->flash_device->protocol == FLASH_MKII )
-		ERROR("Leaving Mk II protocol is not implemented yet");
+		mkii_reboot_device(dev);
 	else if ( dev->flash_device->protocol == FLASH_DISK )
 		printf_and_wait("Unplug USB cable, turn device off, press ENTER and plug USB cable again");
 
@@ -326,6 +327,13 @@ void usb_switch_to_mkii(struct usb_device_info * dev) {
 void usb_switch_to_disk(struct usb_device_info * dev) {
 
 	printf("\nSwitching to RAW disk mode...\n");
-	ERROR("usb_switch_to_disk is not implemented yet");
+
+	if ( dev->flash_device->protocol == FLASH_COLD )
+		leave_cold_flash(dev);
+	else if ( dev->flash_device->protocol == FLASH_NOLO ) {
+		nolo_boot_device(dev, NULL);
+		printf_and_wait("Wait until device start, choose USB Mass Storage Mode and press ENTER");
+	} else if ( dev->flash_device->protocol == FLASH_MKII )
+		mkii_reboot_device(dev);
 
 }
