@@ -30,6 +30,7 @@ enum usb_flash_protocol {
 	FLASH_COLD,
 	FLASH_MKII,
 	FLASH_DISK,
+	FLASH_COUNT,
 };
 
 struct usb_flash_device {
