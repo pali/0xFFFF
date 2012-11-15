@@ -22,6 +22,7 @@
 #include "usb-device.h"
 #include "cold-flash.h"
 #include "nolo.h"
+#include "local.h"
 
 #include "operations.h"
 
@@ -35,7 +36,13 @@ struct device_info * dev_detect(void) {
 	if ( ! dev )
 		goto clean;
 
-	/* TODO: LOCAL */
+	/* LOCAL */
+	if ( local_init() == 0 ) {
+		dev->method = METHOD_LOCAL;
+		dev->detected_device = local_get_device();
+		dev->detected_hwrev = local_get_hwrev();
+		return dev;
+	}
 
 	/* USB */
 	usb = usb_open_and_wait_for_device();
@@ -86,6 +93,9 @@ void dev_free(struct device_info * dev) {
 }
 
 enum device dev_get_device(struct device_info * dev) {
+
+	if ( dev->method == METHOD_LOCAL )
+		return local_get_device();
 
 	if ( dev->method == METHOD_USB ) {
 
@@ -182,6 +192,9 @@ int dev_boot_device(struct device_info * dev, const char * cmdline) {
 
 int dev_reboot_device(struct device_info * dev) {
 
+	if ( dev->method == METHOD_LOCAL )
+		return local_reboot_device();
+
 	if ( dev->method == METHOD_USB ) {
 
 		if ( dev->usb->flash_device->protocol == FLASH_NOLO )
@@ -200,6 +213,9 @@ int dev_reboot_device(struct device_info * dev) {
 
 int dev_get_root_device(struct device_info * dev) {
 
+	if ( dev->method == METHOD_LOCAL )
+		return local_get_root_device();
+
 	if ( dev->method == METHOD_USB ) {
 
 		if ( dev->usb->flash_device->protocol == FLASH_NOLO )
@@ -212,6 +228,9 @@ int dev_get_root_device(struct device_info * dev) {
 }
 
 int dev_set_root_device(struct device_info * dev, int device) {
+
+	if ( dev->method == METHOD_LOCAL )
+		return local_set_root_device(device);
 
 	if ( dev->method == METHOD_USB ) {
 
@@ -231,6 +250,9 @@ int dev_set_root_device(struct device_info * dev, int device) {
 
 int dev_get_usb_host_mode(struct device_info * dev) {
 
+	if ( dev->method == METHOD_LOCAL )
+		return local_get_usb_host_mode();
+
 	if ( dev->method == METHOD_USB ) {
 
 		if ( dev->usb->flash_device->protocol == FLASH_NOLO )
@@ -243,6 +265,9 @@ int dev_get_usb_host_mode(struct device_info * dev) {
 }
 
 int dev_set_usb_host_mode(struct device_info * dev, int enable) {
+
+	if ( dev->method == METHOD_LOCAL )
+		return local_set_usb_host_mode(enable);
 
 	if ( dev->method == METHOD_USB ) {
 
@@ -262,6 +287,9 @@ int dev_set_usb_host_mode(struct device_info * dev, int enable) {
 
 int dev_get_rd_mode(struct device_info * dev) {
 
+	if ( dev->method == METHOD_LOCAL )
+		return local_get_rd_mode();
+
 	if ( dev->method == METHOD_USB ) {
 
 		if ( dev->usb->flash_device->protocol == FLASH_NOLO )
@@ -274,6 +302,9 @@ int dev_get_rd_mode(struct device_info * dev) {
 }
 
 int dev_set_rd_mode(struct device_info * dev, int enable) {
+
+	if ( dev->method == METHOD_LOCAL )
+		return local_set_rd_mode(enable);
 
 	if ( dev->method == METHOD_USB ) {
 
@@ -293,6 +324,9 @@ int dev_set_rd_mode(struct device_info * dev, int enable) {
 
 int dev_get_rd_flags(struct device_info * dev, char * flags, size_t size) {
 
+	if ( dev->method == METHOD_LOCAL )
+		return local_get_rd_flags(flags, size);
+
 	if ( dev->method == METHOD_USB ) {
 
 		if ( dev->usb->flash_device->protocol == FLASH_NOLO )
@@ -305,6 +339,9 @@ int dev_get_rd_flags(struct device_info * dev, char * flags, size_t size) {
 }
 
 int dev_set_rd_flags(struct device_info * dev, const char * flags) {
+
+	if ( dev->method == METHOD_LOCAL )
+		return local_set_rd_flags(flags);
 
 	if ( dev->method == METHOD_USB ) {
 
@@ -324,6 +361,9 @@ int dev_set_rd_flags(struct device_info * dev, const char * flags) {
 
 int16_t dev_get_hwrev(struct device_info * dev) {
 
+	if ( dev->method == METHOD_LOCAL )
+		return local_get_hwrev();
+
 	if ( dev->method == METHOD_USB ) {
 
 		if ( dev->usb->flash_device->protocol == FLASH_NOLO )
@@ -336,6 +376,9 @@ int16_t dev_get_hwrev(struct device_info * dev) {
 }
 
 int dev_set_hwrev(struct device_info * dev, int16_t hwrev) {
+
+	if ( dev->method == METHOD_LOCAL )
+		return local_set_hwrev(hwrev);
 
 	if ( dev->method == METHOD_USB ) {
 
@@ -355,6 +398,9 @@ int dev_set_hwrev(struct device_info * dev, int16_t hwrev) {
 
 int dev_get_kernel_ver(struct device_info * dev, char * ver, size_t size) {
 
+	if ( dev->method == METHOD_LOCAL )
+		return local_get_kernel_ver(ver, size);
+
 	if ( dev->method == METHOD_USB ) {
 
 		if ( dev->usb->flash_device->protocol == FLASH_NOLO )
@@ -367,6 +413,9 @@ int dev_get_kernel_ver(struct device_info * dev, char * ver, size_t size) {
 }
 
 int dev_set_kernel_ver(struct device_info * dev, const char * ver) {
+
+	if ( dev->method == METHOD_LOCAL )
+		return local_set_kernel_ver(ver);
 
 	if ( dev->method == METHOD_USB ) {
 
@@ -386,6 +435,9 @@ int dev_set_kernel_ver(struct device_info * dev, const char * ver) {
 
 int dev_get_nolo_ver(struct device_info * dev, char * ver, size_t size) {
 
+	if ( dev->method == METHOD_LOCAL )
+		return local_get_nolo_ver(ver, size);
+
 	if ( dev->method == METHOD_USB ) {
 
 		if ( dev->usb->flash_device->protocol == FLASH_NOLO )
@@ -398,6 +450,9 @@ int dev_get_nolo_ver(struct device_info * dev, char * ver, size_t size) {
 }
 
 int dev_set_nolo_ver(struct device_info * dev, const char * ver) {
+
+	if ( dev->method == METHOD_LOCAL )
+		return local_set_nolo_ver(ver);
 
 	if ( dev->method == METHOD_USB ) {
 
@@ -417,6 +472,9 @@ int dev_set_nolo_ver(struct device_info * dev, const char * ver) {
 
 int dev_get_sw_ver(struct device_info * dev, char * ver, size_t size) {
 
+	if ( dev->method == METHOD_LOCAL )
+		return local_get_sw_ver(ver, size);
+
 	if ( dev->method == METHOD_USB ) {
 
 		if ( dev->usb->flash_device->protocol == FLASH_NOLO )
@@ -429,6 +487,9 @@ int dev_get_sw_ver(struct device_info * dev, char * ver, size_t size) {
 }
 
 int dev_set_sw_ver(struct device_info * dev, const char * ver) {
+
+	if ( dev->method == METHOD_LOCAL )
+		return local_set_sw_ver(ver);
 
 	if ( dev->method == METHOD_USB ) {
 
@@ -448,6 +509,9 @@ int dev_set_sw_ver(struct device_info * dev, const char * ver) {
 
 int dev_get_content_ver(struct device_info * dev, char * ver, size_t size) {
 
+	if ( dev->method == METHOD_LOCAL )
+		return local_get_content_ver(ver, size);
+
 	if ( dev->method == METHOD_USB ) {
 
 		if ( dev->usb->flash_device->protocol == FLASH_NOLO )
@@ -460,6 +524,9 @@ int dev_get_content_ver(struct device_info * dev, char * ver, size_t size) {
 }
 
 int dev_set_content_ver(struct device_info * dev, const char * ver) {
+
+	if ( dev->method == METHOD_LOCAL )
+		return local_set_content_ver(ver);
 
 	if ( dev->method == METHOD_USB ) {
 
