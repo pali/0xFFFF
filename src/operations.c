@@ -22,6 +22,8 @@
 #include "usb-device.h"
 #include "cold-flash.h"
 #include "nolo.h"
+#include "mkii.h"
+#include "disk.h"
 #include "local.h"
 
 #include "operations.h"
@@ -54,18 +56,20 @@ struct device_info * dev_detect(void) {
 			ret = nolo_init(dev->usb);
 		else if ( dev->usb->flash_device->protocol == FLASH_COLD )
 			ret = init_cold_flash(dev->usb);
+		else if ( dev->usb->flash_device->protocol == FLASH_MKII )
+			ret = mkii_init(dev->usb);
+		else if ( dev->usb->flash_device->protocol == FLASH_DISK )
+			ret = disk_init(dev->usb);
 		else {
-			ERROR("%s mode is not supported yet", usb_flash_protocol_to_string(dev->usb->flash_device->protocol));
+			ERROR("Unknown USB mode");
 			goto clean;
 		}
 
 		if ( ret < 0 )
 			goto clean;
 
-		if ( dev->usb->flash_device->protocol == FLASH_NOLO ) {
-			dev->detected_device = nolo_get_device(dev->usb);
-			dev->detected_hwrev = nolo_get_hwrev(dev->usb);
-		}
+		dev->detected_device = dev_get_device(dev);
+		dev->detected_hwrev = dev_get_hwrev(dev);
 
 		if ( dev->detected_device && dev->usb->device && dev->detected_device != dev->usb->device ) {
 			ERROR("Bad device, expected %s, got %s", device_to_string(dev->usb->device), device_to_string(dev->detected_device));
@@ -97,8 +101,16 @@ enum device dev_get_device(struct device_info * dev) {
 
 	if ( dev->method == METHOD_USB ) {
 
-		if ( dev->usb->flash_device->protocol == FLASH_NOLO )
+		enum usb_flash_protocol protocol = dev->usb->flash_device->protocol;
+
+		if ( protocol == FLASH_COLD )
+			return DEVICE_UNKNOWN;
+		else if ( protocol == FLASH_NOLO )
 			return nolo_get_device(dev->usb);
+		else if ( protocol == FLASH_MKII )
+			return mkii_get_device(dev->usb);
+/*		else if ( protocol == FLASH_DISK )
+			return disk_get_device(dev->usb);*/
 
 	}
 
@@ -108,9 +120,16 @@ enum device dev_get_device(struct device_info * dev) {
 
 int dev_load_image(struct device_info * dev, struct image * image) {
 
+	if ( dev->method == METHOD_LOCAL ) {
+		ERROR("Loading image on local device is not supported");
+		return -1;
+	}
+
 	if ( dev->method == METHOD_USB ) {
 
-		if ( dev->usb->flash_device->protocol == FLASH_NOLO )
+		enum usb_flash_protocol protocol = dev->usb->flash_device->protocol;
+
+		if ( protocol == FLASH_NOLO )
 			return nolo_load_image(dev->usb, image);
 
 		usb_switch_to_nolo(dev->usb);
@@ -124,9 +143,16 @@ int dev_load_image(struct device_info * dev, struct image * image) {
 
 int dev_cold_flash_images(struct device_info * dev, struct image * x2nd, struct image * secondary) {
 
+	if ( dev->method == METHOD_LOCAL ) {
+		ERROR("Cold Flashing on local device is not supported");
+		return -1;
+	}
+
 	if ( dev->method == METHOD_USB ) {
 
-		if ( dev->usb->flash_device->protocol == FLASH_COLD )
+		enum usb_flash_protocol protocol = dev->usb->flash_device->protocol;
+
+		if ( protocol == FLASH_COLD )
 			return cold_flash(dev->usb, x2nd, secondary);
 
 		usb_switch_to_cold(dev->usb);
@@ -140,12 +166,18 @@ int dev_cold_flash_images(struct device_info * dev, struct image * x2nd, struct 
 
 int dev_flash_image(struct device_info * dev, struct image * image) {
 
+	if ( dev->method == METHOD_LOCAL )
+		return local_flash_image(image);
+
 	if ( dev->method == METHOD_USB ) {
 
-		if ( dev->usb->flash_device->protocol == FLASH_NOLO )
-			return nolo_flash_image(dev->usb, image);
+		enum usb_flash_protocol protocol = dev->usb->flash_device->protocol;
 
-		if ( dev->usb->flash_device->protocol == FLASH_COLD ) {
+		if ( protocol == FLASH_NOLO )
+			return nolo_flash_image(dev->usb, image);
+		else if ( protocol == FLASH_MKII )
+			return mkii_flash_image(dev->usb, image);
+		else {
 			usb_switch_to_nolo(dev->usb);
 			return -EAGAIN;
 		}
@@ -158,26 +190,46 @@ int dev_flash_image(struct device_info * dev, struct image * image) {
 
 struct image * dev_dump_image(struct device_info * dev, enum image_type image) {
 
-	ERROR("%s is not supported yet", __func__);
+	if ( dev->method == METHOD_LOCAL )
+		return local_dump_image(image);
+
+	if ( dev->method == METHOD_USB ) {
+		ERROR("Dump image via USB is not supported");
+		return NULL;
+	}
+
 	return NULL;
 
 }
 
 int dev_check_badblocks(struct device_info * dev, const char * device) {
 
-	ERROR("%s is not supported yet", __func__);
+	if ( dev->method == METHOD_LOCAL )
+		return local_check_badblocks(device);
+
+	if ( dev->method == METHOD_USB ) {
+		ERROR("Check for badblocks via USB is not supported");
+		return -1;
+	}
+
 	return -1;
 
 }
 
 int dev_boot_device(struct device_info * dev, const char * cmdline) {
 
+	if ( dev->method == METHOD_LOCAL ) {
+		ERROR("Booting device on local device does not make sense");
+		return -1;
+	}
+
 	if ( dev->method == METHOD_USB ) {
 
-		if ( dev->usb->flash_device->protocol == FLASH_NOLO )
-			return nolo_boot_device(dev->usb, cmdline);
+		enum usb_flash_protocol protocol = dev->usb->flash_device->protocol;
 
-		if ( dev->usb->flash_device->protocol == FLASH_COLD ) {
+		if ( protocol == FLASH_NOLO )
+			return nolo_boot_device(dev->usb, cmdline);
+		else {
 			usb_switch_to_nolo(dev->usb);
 			return 0;
 		}
@@ -195,12 +247,15 @@ int dev_reboot_device(struct device_info * dev) {
 
 	if ( dev->method == METHOD_USB ) {
 
-		if ( dev->usb->flash_device->protocol == FLASH_NOLO )
-			return nolo_reboot_device(dev->usb);
+		enum usb_flash_protocol protocol = dev->usb->flash_device->protocol;
 
-		if ( dev->usb->flash_device->protocol == FLASH_COLD ) {
-			usb_switch_to_nolo(dev->usb);
-			return 0;
+		if ( protocol == FLASH_NOLO )
+			return nolo_reboot_device(dev->usb);
+		else if ( protocol == FLASH_MKII )
+			return mkii_reboot_device(dev->usb);
+		else {
+			ERROR("Rebooting device in Cold Flash or RAW disk mode is not supported");
+			return -1;
 		}
 
 	}
@@ -216,7 +271,9 @@ int dev_get_root_device(struct device_info * dev) {
 
 	if ( dev->method == METHOD_USB ) {
 
-		if ( dev->usb->flash_device->protocol == FLASH_NOLO )
+		enum usb_flash_protocol protocol = dev->usb->flash_device->protocol;
+
+		if ( protocol == FLASH_NOLO )
 			return nolo_get_root_device(dev->usb);
 
 	}
