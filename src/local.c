@@ -165,7 +165,7 @@ int local_dump_image(enum image_type image, const char * file) {
 
 	if ( device == DEVICE_RX_51 ) {
 
-		if ( image < sizeof(nanddump_n900)/sizeof(nanddump_n900[0]) || ! nanddump_n900[image].valid ) {
+		if ( image >= sizeof(nanddump_n900)/sizeof(nanddump_n900[0]) || ! nanddump_n900[image].valid ) {
 			ERROR("Unsuported image type: %s", image_type_to_string(image));
 			return -1;
 		}
@@ -174,7 +174,7 @@ int local_dump_image(enum image_type image, const char * file) {
 
 	} else {
 
-		if ( image < sizeof(nanddump)/sizeof(nanddump[0]) || ! nanddump[image].valid ) {
+		if ( image >= sizeof(nanddump)/sizeof(nanddump[0]) || ! nanddump[image].valid ) {
 			ERROR("Unsuported image type: %s", image_type_to_string(image));
 			return -1;
 		}
