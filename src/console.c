@@ -23,19 +23,15 @@
 #include <getopt.h>
 #include <unistd.h>
 
-#include <global.h>
-
+#include "global.h"
 #include "console.h"
-#include "nolo.h"
-#include "dump.h"
 
-static void cmd_exit(char *line)
-{
+static void cmd_exit(char *line) {
 	exit(0);
+	(void)line;
 }
 
-static void cmd_help(char *line)
-{
+static void cmd_help(char *line) {
 	printf("connect           connects via usb to nolo\n");
 	printf("reboot            reboots remote host\n");
 	printf("info              shows info of the remote system\n");
@@ -47,25 +43,16 @@ static void cmd_help(char *line)
 	printf("                  f.ex: nanddump /dev/mtd0 0x0 0x4000 xloader.bin 1 1\n");
 	printf("exit              exits the shell\n");
 	fflush(stdout);
+	(void)line;
 }
 
-static void cmd_info(char *line)
-{
-	char *p, str[128];
-//	get_sw_version();
-//	get_hw_revision(str, 128); // get hardware revision:
-	p = strstr(str, "hw_rev:");
-	if (p) // TODO: delimit string by comma
-		printf("SubVersionString autodetected: '%s'\n", p+7);
-	else printf("SubVersionString autodetected: (error)\n");
-//	get_root_device(); // only for flashing
-//	get_usb_mode();
-//	get_rd_mode();
-//	get_rd_flags();
+static void cmd_info(char *line) {
+	/* TODO */
+	(void)line;
 }
 
-static void cmd_nanddump(char *line)
-{
+static void cmd_nanddump(char *line) {
+
 	char dev[128];
 	int from;
 	int length;
@@ -77,58 +64,54 @@ static void cmd_nanddump(char *line)
 		(char *)&dev, (unsigned int*)&from, (unsigned int *)&length,
 		(char *)&out, (int*)&ignbb, (int *)&ignoob);
 
-	if (ignoob == -1) {
-		fprintf(stderr, "Invalid arguments.\n");
-		fprintf(stderr, "nanddump [dev] [start] [len] [out] [ignore-badblocks] [ignore-oob]\n");
-		fprintf(stderr, "                  f.ex: nanddump /dev/mtd0 0x0 0x4000 xloader.bin 1 1\n");
-	} else
-		nanddump(dev, from, length, out, ignbb, ignoob);
+	/* TODO */
 }
 
-static void cmd_dump(char *line)
-{
-	if (!line[0]) {
+static void cmd_dump(char *line) {
+
+	if ( ! line[0] ) {
 		printf("Usage: dump [path]\n");
 		return;
 	}
-	while(line[0]==' ') line = line +1;
-	reverse_extract_pieces(line);
+
+	while ( line[0] == ' ' )
+		++line;
+
+	/* TODO */
 }
 
-static void cmd_badblocks(char *line)
-{
-	if (!line[0]) {
-		printf("Usage: dump [path]\n");
+static void cmd_badblocks(char *line) {
+
+	if ( ! line[0] ) {
+		printf("Usage: badblocks [path]\n");
 		return;
 	}
-	while(line[0]==' ') line = line +1;
-	check_badblocks(line);
+
+	while ( line[0] == ' ' )
+		++line;
+
+	/* TODO */
 }
 
-static void cmd_connect(char *line)
-{
-//	connect_via_usb();
+static void cmd_connect(char *line) {
+	/* TODO */
+	(void)line;
 }
 
-static void cmd_reboot(char *line)
-{
-//	reboot_board();
+static void cmd_reboot(char *line) {
+	/* TODO */
+	(void)line;
 }
 
-static void cmd_shell(char *line)
-{
+static void cmd_shell(char *line) {
 	system("/bin/sh");
+	(void)line;
 }
-
-#define CMDS 11
-#define IS_CMD(x) !strcmp(console_commands[i].name, x)
-#define CALL_CMD(x) console_commands[x].callback((char *)line)
-#define FOREACH_CMD(x) for(x=0;x<CMDS;x++)
 
 static struct cmd_t {
 	char *name;
 	void (*callback)(char *);
-} console_commands[CMDS] = {
+} console_commands[] = {
 	{ .name = "exit",      .callback = &cmd_exit },
 	{ .name = "q",         .callback = &cmd_exit },
 	{ .name = "connect",   .callback = &cmd_connect },
@@ -142,37 +125,42 @@ static struct cmd_t {
 	{ .name = "shell",     .callback = &cmd_shell }
 };
 
-static int console_command(const char *line)
-{
-	int i;
+static int console_command(char *line) {
+
+	size_t i;
 	char command[11];
 
 	command[0] = '\0';
 	sscanf(line, "%10s", command);
 	line = line + strlen(command);
 
-	FOREACH_CMD(i)
-		if (IS_CMD(command))
-			CALL_CMD(i);
-	//
+	for ( i = 0; i < (sizeof(console_commands)/sizeof(console_commands[0])); ++i )
+		if ( strcmp(console_commands[i].name, command) == 0 )
+			console_commands[i].callback(line);
+
 	return 1;
+
 }
 
-int console_prompt(void)
-{
+int console_prompt(void) {
+
 	char line[1024];
 
 	do {
 		write(1, "0xFFFF> ", 8);
 		line[0] = '\0';
 		fgets(line, 1024, stdin);
-		if (feof(stdin)) {
+
+		if ( feof(stdin) ) {
 			write(1, "\n", 1);
 			break;
 		}
-		if (line[0]) line[strlen(line)-1] = '\0';
+
+		if ( line[0] )
+			line[strlen(line)-1] = '\0';
 		line[1023] = '\0';
-	} while(console_command(line));
+	} while ( console_command(line) );
 
 	return 0;
+
 }
