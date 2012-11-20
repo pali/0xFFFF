@@ -25,6 +25,7 @@
 int disk_init(struct usb_device_info * dev) {
 
 	ERROR("RAW mode is not implemented yet");
+	(void)dev;
 	return -1;
 
 }
@@ -32,6 +33,7 @@ int disk_init(struct usb_device_info * dev) {
 enum device disk_get_device(struct usb_device_info * dev) {
 
 	ERROR("Not implemented yet");
+	(void)dev;
 	return DEVICE_UNKNOWN;
 
 }
@@ -39,6 +41,8 @@ enum device disk_get_device(struct usb_device_info * dev) {
 int disk_flash_image(struct usb_device_info * dev, struct image * image) {
 
 	ERROR("Not implemented yet");
+	(void)dev;
+	(void)image;
 	return -1;
 
 }
@@ -46,6 +50,9 @@ int disk_flash_image(struct usb_device_info * dev, struct image * image) {
 int disk_dump_image(struct usb_device_info * dev, enum image_type image, const char * file) {
 
 	ERROR("Not implemented yet");
+	(void)dev;
+	(void)image;
+	(void)file;
 	return -1;
 
 }
@@ -53,6 +60,8 @@ int disk_dump_image(struct usb_device_info * dev, enum image_type image, const c
 int disk_check_badblocks(struct usb_device_info * dev, const char * device) {
 
 	ERROR("Not implemented yet");
+	(void)dev;
+	(void)device;
 	return -1;
 
 }
