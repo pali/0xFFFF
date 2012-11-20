@@ -33,6 +33,7 @@
 #define IMAGE_STORE_CUR(image) do { if ( image->is_shared_fd ) { image->cur = lseek(image->fd, 0, SEEK_CUR) - image->offset; if ( image->cur > image->size ) image->cur = image->size; } } while (0)
 #define IMAGE_RESTORE_CUR(image) do { if ( image->is_shared_fd ) { if ( image->cur <= image->size ) lseek(image->fd, image->offset + image->cur, SEEK_SET); else lseek(image->fd, image->offset + image->size, SEEK_SET); } } while (0)
 
+/* format: type-device:hwrevs_version */
 static void image_missing_values_from_name(struct image * image, const char * name) {
 
 	char * str;
@@ -67,6 +68,8 @@ static void image_missing_values_from_name(struct image * image, const char * na
 			hwrevs = strdup(ptr2);
 		}
 		device = strdup(ptr);
+	} else {
+		type = strdup(str);
 	}
 
 	if ( ! image->type )
