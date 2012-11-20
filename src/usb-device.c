@@ -307,7 +307,9 @@ void usb_switch_to_nolo(struct usb_device_info * dev) {
 void usb_switch_to_cold(struct usb_device_info * dev) {
 
 	printf("\nSwitching to Cold Flash mode...\n");
-	printf_and_wait("Unplug USB cable, turn device off, press ENTER and plug USB cable again");
+
+	if ( dev->flash_device->protocol != FLASH_COLD )
+		printf_and_wait("Unplug USB cable, turn device off, press ENTER and plug USB cable again");
 
 }
 
