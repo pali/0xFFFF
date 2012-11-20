@@ -115,6 +115,7 @@ enum device local_get_device(void) {
 int local_flash_image(struct image * image) {
 
 	ERROR("Not implemented yet");
+	(void)image;
 	return -1;
 
 }
@@ -193,6 +194,7 @@ int local_dump_image(enum image_type image, const char * file) {
 int local_check_badblocks(const char * device) {
 
 	ERROR("Not implemented yet");
+	(void)device;
 	return -1;
 
 }
@@ -230,6 +232,9 @@ static int local_read_cal(const char * str, void * buf, size_t size) {
 	cal_finish(cal);
 	return len;
 #else
+	(void)str;
+	(void)buf;
+	(void)size;
 	return -1;
 #endif
 
@@ -237,6 +242,9 @@ static int local_read_cal(const char * str, void * buf, size_t size) {
 
 static int local_write_cal(const char * str, const void * buf, size_t len) {
 
+	(void)str;
+	(void)buf;
+	(void)len;
 	return -1;
 
 }
@@ -251,6 +259,7 @@ int local_get_root_device(void) {
 int local_set_root_device(int device) {
 
 	ERROR("Not implemented yet");
+	(void)device;
 	return -1;
 
 }
@@ -265,6 +274,7 @@ int local_get_usb_host_mode(void) {
 int local_set_usb_host_mode(int enable) {
 
 	ERROR("Not implemented yet");
+	(void)enable;
 	return -1;
 
 }
@@ -286,6 +296,7 @@ int local_get_rd_mode(void) {
 int local_set_rd_mode(int enable) {
 
 	ERROR("Not implemented yet");
+	(void)enable;
 	return -1;
 
 }
@@ -353,6 +364,7 @@ int16_t local_get_hwrev(void) {
 int local_set_hwrev(int16_t hwrev) {
 
 	ERROR("Not implemented yet");
+	(void)hwrev;
 	return -1;
 
 }
