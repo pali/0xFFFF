@@ -188,17 +188,17 @@ int dev_flash_image(struct device_info * dev, struct image * image) {
 
 }
 
-struct image * dev_dump_image(struct device_info * dev, enum image_type image) {
+int dev_dump_image(struct device_info * dev, enum image_type image, const char * file) {
 
 	if ( dev->method == METHOD_LOCAL )
-		return local_dump_image(image);
+		return local_dump_image(image, file);
 
 	if ( dev->method == METHOD_USB ) {
 		ERROR("Dump image via USB is not supported");
-		return NULL;
+		return -1;
 	}
 
-	return NULL;
+	return -1;
 
 }
 

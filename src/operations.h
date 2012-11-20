@@ -44,7 +44,7 @@ enum device dev_get_device(struct device_info * dev);
 int dev_cold_flash_images(struct device_info * dev, struct image * x2nd, struct image * secondary);
 int dev_load_image(struct device_info * dev, struct image * image);
 int dev_flash_image(struct device_info * dev, struct image * image);
-struct image * dev_dump_image(struct device_info * dev, enum image_type image);
+int dev_dump_image(struct device_info * dev, enum image_type image, const char * file);
 int dev_check_badblocks(struct device_info * dev, const char * device);
 
 int dev_boot_device(struct device_info * dev, const char * cmdline);

@@ -115,7 +115,7 @@ int local_flash_image(struct image * image) {
 
 }
 
-struct image * local_dump_image(enum image_type image) {
+int local_dump_image(enum image_type image, const char * file) {
 
 	/* kernel on n900:
 	system("nanddump -s 0x000800 -f /var/tmp/zImage /dev/mtd3");

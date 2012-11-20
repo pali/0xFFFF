@@ -27,7 +27,7 @@ int local_init(void);
 enum device local_get_device(void);
 
 int local_flash_image(struct image * image);
-struct image * local_dump_image(enum image_type image);
+int local_dump_image(enum image_type image, const char * file);
 int local_check_badblocks(const char * device);
 
 int local_reboot_device(void);
