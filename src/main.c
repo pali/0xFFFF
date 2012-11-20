@@ -27,6 +27,7 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <unistd.h>
+#include <libgen.h>
 
 #include "global.h"
 
@@ -386,6 +387,7 @@ int main(int argc, char **argv) {
 	enum device detected_device = DEVICE_UNKNOWN;
 	int16_t detected_hwrev = -1;
 
+	int i;
 	char buf[512];
 
 	simulate = 0;
@@ -1117,9 +1119,68 @@ int main(int argc, char **argv) {
 				goto again;
 
 			/* dump */
-			/* TODO */
-			(void)dev_dump_arg;
-			(void)dev_dump_fiasco_arg;
+
+			if ( dev_dump_fiasco ) {
+				dev_dump = 1;
+				dev_dump_arg = strdup(dev_dump_fiasco_arg);
+				dev_dump_arg = dirname(dev_dump_arg);
+			}
+
+			if ( dev_dump ) {
+
+				buf[0] = 0;
+
+				if ( dev_dump_arg ) {
+					if ( ! getcwd(buf, sizeof(buf)) )
+						buf[0] = 0;
+					if ( chdir(dev_dump_arg) < 0 )
+						buf[0] = 0;
+				}
+
+				for ( i = 0; i < IMAGE_COUNT; ++i )
+					if ( image_type_to_string(i) )
+						dev_dump_image(dev, i, image_type_to_string(i));
+
+				if ( buf[0] )
+					chdir(buf);
+
+			}
+
+			/* dump fiasco */
+			if ( dev_dump_fiasco ) {
+
+				struct image_list * image_dump_first = NULL;
+				struct image * image_dump = NULL;
+
+				for ( i = 0; i < IMAGE_COUNT; ++i ) {
+
+					if ( ! image_type_to_string(i) )
+						continue;
+
+					image_dump = image_alloc_from_file(image_type_to_string(i), image_type_to_string(i), NULL, NULL, NULL, NULL);
+					if ( ! image_dump ) {
+						ERROR("Cannot load image file %s", image_type_to_string(i));
+						continue;
+					}
+
+					image_list_add(&image_dump_first, image_dump);
+
+				}
+
+				fiasco_out = fiasco_alloc_empty();
+				if ( ! fiasco_out ) {
+					ERROR("Cannot write images to fiasco file %s", dev_dump_fiasco_arg);
+				} else {
+					/* TODO: Add swver */
+					fiasco_out->first = image_first;
+					fiasco_write_to_file(fiasco_out, dev_dump_fiasco_arg);
+					fiasco_free(fiasco_out); /* this will also free list image_dump_first */
+				}
+
+				free(dev_dump_arg);
+				dev_dump_arg = NULL;
+
+			}
 
 			/* boot */
 			if ( dev_boot ) {
