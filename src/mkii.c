@@ -32,84 +32,147 @@ int mkii_init(struct usb_device_info * dev) {
 
 enum device mkii_get_device(struct usb_device_info * dev) {
 
+	ERROR("Not implemented yet");
+	return DEVICE_UNKNOWN;
+
 }
 
 int mkii_flash_image(struct usb_device_info * dev, struct image * image) {
+
+	ERROR("Not implemented yet");
+	return -1;
 
 }
 
 int mkii_reboot_device(struct usb_device_info * dev) {
 
+	ERROR("Not implemented yet");
+	return -1;
+
 }
 
 int mkii_get_root_device(struct usb_device_info * dev) {
+
+	ERROR("Not implemented yet");
+	return -1;
 
 }
 
 int mkii_set_root_device(struct usb_device_info * dev, int device) {
 
+	ERROR("Not implemented yet");
+	return -1;
+
 }
 
 int mkii_get_usb_host_mode(struct usb_device_info * dev) {
+
+	ERROR("Not implemented yet");
+	return -1;
 
 }
 
 int mkii_set_usb_host_mode(struct usb_device_info * dev, int enable) {
 
+	ERROR("Not implemented yet");
+	return -1;
+
 }
 
 int mkii_get_rd_mode(struct usb_device_info * dev) {
+
+	ERROR("Not implemented yet");
+	return -1;
 
 }
 
 int mkii_set_rd_mode(struct usb_device_info * dev, int enable) {
 
+	ERROR("Not implemented yet");
+	return -1;
+
 }
 
 int mkii_get_rd_flags(struct usb_device_info * dev, char * flags, size_t size) {
+
+	ERROR("Not implemented yet");
+	return -1;
 
 }
 
 int mkii_set_rd_flags(struct usb_device_info * dev, const char * flags) {
 
+	ERROR("Not implemented yet");
+	return -1;
+
 }
 
 int16_t mkii_get_hwrev(struct usb_device_info * dev) {
+
+	ERROR("Not implemented yet");
+	return -1;
 
 }
 
 int mkii_set_hwrev(struct usb_device_info * dev, int16_t hwrev) {
 
+	ERROR("Not implemented yet");
+	return -1;
+
 }
 
 int mkii_get_kernel_ver(struct usb_device_info * dev, char * ver, size_t size) {
+
+	ERROR("Not implemented yet");
+	return -1;
 
 }
 
 int mkii_set_kernel_ver(struct usb_device_info * dev, const char * ver) {
 
+	ERROR("Not implemented yet");
+	return -1;
+
 }
 
 int mkii_get_nolo_ver(struct usb_device_info * dev, char * ver, size_t size) {
+
+	ERROR("Not implemented yet");
+	return -1;
 
 }
 
 int mkii_set_nolo_ver(struct usb_device_info * dev, const char * ver) {
 
+	ERROR("Not implemented yet");
+	return -1;
+
 }
 
 int mkii_get_sw_ver(struct usb_device_info * dev, char * ver, size_t size) {
+
+	ERROR("Not implemented yet");
+	return -1;
 
 }
 
 int mkii_set_sw_ver(struct usb_device_info * dev, const char * ver) {
 
+	ERROR("Not implemented yet");
+	return -1;
+
 }
 
 int mkii_get_content_ver(struct usb_device_info * dev, char * ver, size_t size) {
 
+	ERROR("Not implemented yet");
+	return -1;
+
 }
 
 int mkii_set_content_ver(struct usb_device_info * dev, const char * ver) {
+
+	ERROR("Not implemented yet");
+	return -1;
 
 }
