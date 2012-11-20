@@ -114,6 +114,9 @@ enum device local_get_device(void) {
 
 int local_flash_image(struct image * image) {
 
+	ERROR("Not implemented yet");
+	return -1;
+
 }
 
 static int local_nanddump(const char * file, int mtd, int offset) {
@@ -189,6 +192,9 @@ int local_dump_image(enum image_type image, const char * file) {
 
 int local_check_badblocks(const char * device) {
 
+	ERROR("Not implemented yet");
+	return -1;
+
 }
 
 int local_reboot_device(void) {
@@ -237,17 +243,29 @@ static int local_write_cal(const char * str, const void * buf, size_t len) {
 
 int local_get_root_device(void) {
 
+	ERROR("Not implemented yet");
+	return -1;
+
 }
 
 int local_set_root_device(int device) {
+
+	ERROR("Not implemented yet");
+	return -1;
 
 }
 
 int local_get_usb_host_mode(void) {
 
+	ERROR("Not implemented yet");
+	return -1;
+
 }
 
 int local_set_usb_host_mode(int enable) {
+
+	ERROR("Not implemented yet");
+	return -1;
 
 }
 
@@ -266,6 +284,9 @@ int local_get_rd_mode(void) {
 }
 
 int local_set_rd_mode(int enable) {
+
+	ERROR("Not implemented yet");
+	return -1;
 
 }
 
@@ -292,6 +313,7 @@ int local_get_rd_flags(char * flags, size_t size) {
 
 	strncpy(flags, ptr, size);
 	flags[size-1] = 0;
+	return 0;
 
 }
 
@@ -329,6 +351,9 @@ int16_t local_get_hwrev(void) {
 }
 
 int local_set_hwrev(int16_t hwrev) {
+
+	ERROR("Not implemented yet");
+	return -1;
 
 }
 
