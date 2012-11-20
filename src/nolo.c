@@ -725,6 +725,8 @@ int nolo_get_kernel_ver(struct usb_device_info * dev, char * ver, size_t size) {
 int nolo_set_kernel_ver(struct usb_device_info * dev, const char * ver) {
 
 	printf("nolo_set_kernel_ver is not implemented yet\n");
+	(void)dev;
+	(void)ver;
 	return -1;
 
 }
@@ -746,6 +748,8 @@ int nolo_get_nolo_ver(struct usb_device_info * dev, char * ver, size_t size) {
 int nolo_set_nolo_ver(struct usb_device_info * dev, const char * ver) {
 
 	printf("nolo_set_nolo_ver is not implemented yet\n");
+	(void)dev;
+	(void)ver;
 	return -1;
 
 }
@@ -806,6 +810,8 @@ int nolo_get_content_ver(struct usb_device_info * dev, char * ver, size_t size) 
 int nolo_set_content_ver(struct usb_device_info * dev, const char * ver) {
 
 	printf("nolo_set_content_ver is not implemented yet\n");
+	(void)dev;
+	(void)ver;
 	return -1;
 
 }
