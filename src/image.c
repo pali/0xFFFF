@@ -96,6 +96,8 @@ static void image_missing_values_from_name(struct image * image, const char * na
 	else
 		free(version);
 
+	free(str);
+
 }
 
 /* format: type-device:hwrevs_version */
