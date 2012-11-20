@@ -145,7 +145,7 @@ char * hwrevs_alloc_to_string(const int16_t * hwrevs) {
 	for ( i = 0; hwrevs[i] != -1; ++i )
 		len += log10(hwrevs[i])+2;
 
-	ret = calloc(1, len);
+	ret = calloc(1, len+1);
 	if ( ! ret )
 		return NULL;
 
