@@ -30,6 +30,7 @@
 #include "image.h"
 
 static enum device device = DEVICE_UNKNOWN;
+static int failed;
 
 int local_init(void) {
 
@@ -38,9 +39,14 @@ int local_init(void) {
 	char * ptr2;
 	FILE * file;
 
-	file = fopen("/proc/cpuinfo", "r");
-	if (!file)
+	if ( failed )
 		return -1;
+
+	file = fopen("/proc/cpuinfo", "r");
+	if ( ! file ) {
+		failed = 1;
+		return -1;
+	}
 
 	while ( fgets(buf, sizeof(buf), file) ) {
 
@@ -100,6 +106,7 @@ int local_init(void) {
 
 	}
 
+	failed = 1;
 	printf("Not a local device\n");
 	fclose(file);
 	return -1;
