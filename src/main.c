@@ -389,6 +389,7 @@ int main(int argc, char **argv) {
 
 	int i;
 	char buf[512];
+	char * tmp = NULL;
 
 	simulate = 0;
 	noverify = 0;
@@ -1122,8 +1123,8 @@ int main(int argc, char **argv) {
 
 			if ( dev_dump_fiasco ) {
 				dev_dump = 1;
-				dev_dump_arg = strdup(dev_dump_fiasco_arg);
-				dev_dump_arg = dirname(dev_dump_arg);
+				tmp = strdup(dev_dump_fiasco_arg);
+				dev_dump_arg = dirname(tmp);
 			}
 
 			if ( dev_dump ) {
@@ -1177,7 +1178,8 @@ int main(int argc, char **argv) {
 					fiasco_free(fiasco_out); /* this will also free list image_dump_first */
 				}
 
-				free(dev_dump_arg);
+				free(tmp);
+				tmp = NULL;
 				dev_dump_arg = NULL;
 
 			}
