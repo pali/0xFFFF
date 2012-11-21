@@ -249,12 +249,14 @@ int dev_reboot_device(struct device_info * dev) {
 
 		enum usb_flash_protocol protocol = dev->usb->flash_device->protocol;
 
-		if ( protocol == FLASH_NOLO )
+		if ( protocol == FLASH_COLD )
+			return leave_cold_flash(dev->usb);
+		else if ( protocol == FLASH_NOLO )
 			return nolo_reboot_device(dev->usb);
 		else if ( protocol == FLASH_MKII )
 			return mkii_reboot_device(dev->usb);
 		else {
-			ERROR("Rebooting device in Cold Flash or RAW disk mode is not supported");
+			ERROR("Rebooting device in RAW disk mode is not supported");
 			return -1;
 		}
 
