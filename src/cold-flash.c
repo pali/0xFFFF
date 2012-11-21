@@ -404,7 +404,7 @@ int leave_cold_flash(struct usb_device_info * dev) {
 	if ( ret != sizeof(omap_memory_msg) )
 		ERROR_RETURN("Sending OMAP memory boot message failed", -1);
 
-	usleep(500000);
+	usleep(250000);
 	return 0;
 
 }
