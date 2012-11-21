@@ -129,6 +129,7 @@ static struct usb_device_info * usb_device_is_valid(struct usb_device * dev) {
 			usb_dev_handle * udev = usb_open(dev);
 			if ( ! udev ) {
 				PRINTF_ERROR("usb_open failed");
+				fprintf(stderr, "\n");
 				return NULL;
 			}
 
@@ -142,8 +143,8 @@ static struct usb_device_info * usb_device_is_valid(struct usb_device * dev) {
 			PRINTF_LINE("Claiming USB interface...");
 			if ( usb_claim_interface(udev, usb_devices[i].interface) < 0 ) {
 				PRINTF_ERROR("usb_claim_interface failed");
+				fprintf(stderr, "\n");
 				usb_close(udev);
-				exit(1);
 				return NULL;
 			}
 
@@ -151,6 +152,7 @@ static struct usb_device_info * usb_device_is_valid(struct usb_device * dev) {
 				PRINTF_LINE("Setting alternate USB interface...");
 				if ( usb_set_altinterface(udev, usb_devices[i].alternate) < 0 ) {
 					PRINTF_ERROR("usb_claim_interface failed");
+					fprintf(stderr, "\n");
 					usb_close(udev);
 					return NULL;
 				}
@@ -160,6 +162,7 @@ static struct usb_device_info * usb_device_is_valid(struct usb_device * dev) {
 				PRINTF_LINE("Setting USB configuration...");
 				if ( usb_set_configuration(udev, usb_devices[i].configuration) < 0 ) {
 					PRINTF_ERROR("usb_set_configuration failed");
+					fprintf(stderr, "\n");
 					usb_close(udev);
 					return NULL;
 				}
@@ -192,6 +195,7 @@ static struct usb_device_info * usb_device_is_valid(struct usb_device * dev) {
 						break;
 				if ( ! *device ) {
 					ERROR("Device mishmash");
+					fprintf(stderr, "\n");
 					usb_close(udev);
 					return NULL;
 				}
@@ -308,7 +312,11 @@ void usb_switch_to_cold(struct usb_device_info * dev) {
 
 	printf("\nSwitching to Cold Flash mode...\n");
 
-	if ( dev->flash_device->protocol != FLASH_COLD )
+	if ( dev->flash_device->protocol == FLASH_NOLO )
+		nolo_reboot_device(dev);
+	else if ( dev->flash_device->protocol == FLASH_MKII )
+		mkii_reboot_device(dev);
+	else if ( dev->flash_device->protocol == FLASH_DISK )
 		printf_and_wait("Unplug USB cable, turn device off, press ENTER and plug USB cable again");
 
 }
