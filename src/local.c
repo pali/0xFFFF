@@ -20,6 +20,14 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include <sys/statvfs.h>
+#include <sys/types.h>
+#include <sys/mman.h>
+
+#include <libgen.h>
+#include <unistd.h>
+#include <fcntl.h>
+
 #ifdef WITH_CAL
 #include <cal.h>
 #endif
@@ -117,19 +125,34 @@ int local_flash_image(struct image * image) {
 
 }
 
-static int local_nanddump(const char * file, int mtd, int offset) {
+static int local_nanddump(const char * file, int mtd, int offset, int length) {
 
+	struct statvfs buf;
 	char * command;
+	char * path;
 	size_t size;
 	int ret;
 
-	size = snprintf(NULL, 0, "nanddump -s %d -f %s /dev/mtd%dro", offset, file, mtd);
+	path = strdup(file);
+	if ( ! path )
+		return 1;
 
-	command = malloc(size);
+	ret = statvfs(dirname(path), &buf);
+
+	free(path);
+
+	if ( ret == 0 && buf.f_bsize * buf.f_bfree < (long unsigned int)length ) {
+		ERROR("Not enought free space (have: %lu, need: %d)", buf.f_bsize * buf.f_bfree, length);
+		return 1;
+	}
+
+	size = snprintf(NULL, 0, "nanddump -i -o -b -s %d -l %d -f %s /dev/mtd%dro", offset, length, file, mtd);
+
+	command = malloc(size+1);
 	if ( ! command )
 		return 1;
 
-	snprintf(command, size, "nanddump -s %d -f %s /dev/mtd%dro", offset, file, mtd);
+	snprintf(command, size+1, "nanddump -i -o -b -s %d -l %d -f %s /dev/mtd%dro", offset, length, file, mtd);
 
 	ret = system(command);
 
@@ -143,48 +166,98 @@ struct nanddump_args {
 	int valid;
 	int mtd;
 	int offset;
+	int length;
 };
 
 static struct nanddump_args nanddump_n900[] = {
-	[IMAGE_XLOADER]   = { 1, 0, 0x00000000 },
-	[IMAGE_SECONDARY] = { 1, 0, 0x00004200 },
-	[IMAGE_KERNEL]    = { 1, 3, 0x00000800 },
-	[IMAGE_INITFS]    = { 1, 4, 0x00000800 },
-	[IMAGE_ROOTFS]    = { 1, 5, 0x00000000 },
+	[IMAGE_XLOADER]   = { 1, 0, 0x00000000, 0x00004000 },
+	[IMAGE_SECONDARY] = { 1, 0, 0x00004000, 0x0001C000 },
+	[IMAGE_KERNEL]    = { 1, 3, 0x00000800, 0x001FF800 },
+	[IMAGE_INITFS]    = { 1, 4, 0x00000800, 0x001FF800 },
+	[IMAGE_ROOTFS]    = { 1, 5, 0x00000000, 0x0fb40000 },
 };
 
 /* FIXME: Is this table correct? */
 static struct nanddump_args nanddump[] = {
-	[IMAGE_XLOADER]   = { 1, 0, 0x00000200 },
-	[IMAGE_SECONDARY] = { 1, 0, 0x00004000 },
-	[IMAGE_KERNEL]    = { 1, 2, 0x00000800 },
-	[IMAGE_INITFS]    = { 1, 3, 0x00000800 },
-	[IMAGE_ROOTFS]    = { 1, 4, 0x00000000 },
+	[IMAGE_XLOADER]   = { 1, 0, 0x00000200, 0x00003E00 },
+	[IMAGE_SECONDARY] = { 1, 0, 0x00004000, 0x0001C000 },
+	[IMAGE_KERNEL]    = { 1, 2, 0x00000800, 0x001FF800 },
+	[IMAGE_INITFS]    = { 1, 3, 0x00000800, 0x001FF800 },
+	[IMAGE_ROOTFS]    = { 1, 4, 0x00000000, 0x0fb80000 },
 };
 
 int local_dump_image(enum image_type image, const char * file) {
+
+	int ret = -1;
+	int fd = -1;
+	unsigned char * addr = NULL;
+	off_t nlen, len;
+
+	if ( image == IMAGE_ROOTFS )
+		return -1;
+
+	printf("Dumping %s image to file %s...\n", image_type_to_string(image), file);
 
 	if ( device == DEVICE_RX_51 ) {
 
 		if ( image >= sizeof(nanddump_n900)/sizeof(nanddump_n900[0]) || ! nanddump_n900[image].valid ) {
 			ERROR("Unsuported image type: %s", image_type_to_string(image));
-			return -1;
+			goto clean;
 		}
 
-		return local_nanddump(file, nanddump_n900[image].mtd, nanddump_n900[image].offset);
+		ret = local_nanddump(file, nanddump_n900[image].mtd, nanddump_n900[image].offset, nanddump_n900[image].length);
 
 	} else {
 
 		if ( image >= sizeof(nanddump)/sizeof(nanddump[0]) || ! nanddump[image].valid ) {
 			ERROR("Unsuported image type: %s", image_type_to_string(image));
-			return -1;
+			goto clean;
 		}
 
-		return local_nanddump(file, nanddump[image].mtd, nanddump[image].offset);
+		ret = local_nanddump(file, nanddump[image].mtd, nanddump[image].offset, nanddump[image].length);
 
 	}
 
-	return -1;
+	if ( ret != 0 )
+		goto clean;
+
+	fd = open(file, O_RDWR);
+	if ( fd < 0 )
+		goto clean;
+
+	len = lseek(fd, 0, SEEK_END);
+	if ( len == (off_t)-1 || len == 0 )
+		goto clean;
+
+	addr = mmap(NULL, len, PROT_READ, MAP_PRIVATE, fd, 0);
+
+	if ( addr == MAP_FAILED )
+		addr = NULL;
+
+	if ( ! addr )
+		goto clean;
+
+	for ( nlen = len; nlen > 0; --nlen )
+		if ( addr[nlen-1] != 0xFF )
+			break;
+
+	if ( ( nlen & ( ( 1ULL << 7 ) - 1 ) ) != 0 )
+		nlen = ((nlen >> 7) + 1) << 7;
+
+	if ( nlen != len ) {
+		printf("Truncating file %s to %d bytes...\n", file, (int)nlen);
+		ftruncate(fd, nlen);
+	}
+
+clean:
+	if ( addr )
+		munmap(addr, len);
+
+	if ( fd >= 0 )
+		close(fd);
+
+	printf("\n");
+	return ret;
 
 }
 
