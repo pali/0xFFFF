@@ -75,28 +75,18 @@ int local_init(void) {
 				--ptr2;
 			}
 
-			if ( strcmp(ptr, "Nokia 770") == 0 ) {
+			if ( strcmp(ptr, "Nokia 770") == 0 )
 				device = DEVICE_SU_18;
-				printf("Found local device: %s\n", device_to_long_string(device));
-				fclose(file);
-				return 0;
-			} else if ( strcmp(ptr, "Nokia N800") == 0 ) {
+			else if ( strcmp(ptr, "Nokia N800") == 0 )
 				device = DEVICE_RX_34;
-				printf("Found local device: %s\n", device_to_long_string(device));
-				fclose(file);
-				return 0;
-			} else if ( strcmp(ptr, "Nokia N810") == 0 ) {
+			else if ( strcmp(ptr, "Nokia N810") == 0 )
 				device = DEVICE_RX_44;
-				printf("Found local device: %s\n", device_to_long_string(device));
-				fclose(file);
-				return 0;
-			} else if ( strcmp(ptr, "Nokia N810 WiMAX") == 0 ) {
+			else if ( strcmp(ptr, "Nokia N810 WiMAX") == 0 )
 				device = DEVICE_RX_48;
-				printf("Found local device: %s\n", device_to_long_string(device));
-				fclose(file);
-				return 0;
-			} else if ( strcmp(ptr, "Nokia RX-51 board") == 0) {
+			else if ( strcmp(ptr, "Nokia RX-51 board") == 0 )
 				device = DEVICE_RX_51;
+
+			if ( device ) {
 				printf("Found local device: %s\n", device_to_long_string(device));
 				fclose(file);
 				return 0;
