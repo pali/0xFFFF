@@ -215,10 +215,10 @@ static void image_align(struct image * image) {
 
 	size_t align = 0;
 
-	if ( image->type == IMAGE_KERNEL)
-		align = 7;
-	else if ( image->type == IMAGE_MMC )
+	if ( image->type == IMAGE_MMC )
 		align = 8;
+	else
+		align = 7;
 
 	if ( align == 0 )
 		return;
