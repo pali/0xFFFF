@@ -490,6 +490,43 @@ int dev_set_kernel_ver(struct device_info * dev, const char * ver) {
 
 }
 
+int dev_get_initfs_ver(struct device_info * dev, char * ver, size_t size) {
+
+	if ( dev->method == METHOD_LOCAL )
+		return local_get_initfs_ver(ver, size);
+
+	if ( dev->method == METHOD_USB ) {
+
+		if ( dev->usb->flash_device->protocol == FLASH_NOLO )
+			return nolo_get_initfs_ver(dev->usb, ver, size);
+
+	}
+
+	return -1;
+
+}
+
+int dev_set_initfs_ver(struct device_info * dev, const char * ver) {
+
+	if ( dev->method == METHOD_LOCAL )
+		return local_set_initfs_ver(ver);
+
+	if ( dev->method == METHOD_USB ) {
+
+		if ( dev->usb->flash_device->protocol == FLASH_NOLO )
+			return nolo_set_initfs_ver(dev->usb, ver);
+
+		if ( dev->usb->flash_device->protocol == FLASH_COLD ) {
+			usb_switch_to_nolo(dev->usb);
+			return -EAGAIN;
+		}
+
+	}
+
+	return -1;
+
+}
+
 int dev_get_nolo_ver(struct device_info * dev, char * ver, size_t size) {
 
 	if ( dev->method == METHOD_LOCAL )

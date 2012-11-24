@@ -68,6 +68,9 @@ int dev_set_hwrev(struct device_info * dev, int16_t hwrev);
 int dev_get_kernel_ver(struct device_info * dev, char * ver, size_t size);
 int dev_set_kernel_ver(struct device_info * dev, const char * ver);
 
+int dev_get_initfs_ver(struct device_info * dev, char * ver, size_t size);
+int dev_set_initfs_ver(struct device_info * dev, const char * ver);
+
 int dev_get_nolo_ver(struct device_info * dev, char * ver, size_t size);
 int dev_set_nolo_ver(struct device_info * dev, const char * ver);
 
