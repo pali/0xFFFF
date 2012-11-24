@@ -50,6 +50,9 @@ int local_set_hwrev(int16_t hwrev);
 int local_get_kernel_ver(char * ver, size_t size);
 int local_set_kernel_ver(const char * ver);
 
+int local_get_initfs_ver(char * ver, size_t size);
+int local_set_initfs_ver(const char * ver);
+
 int local_get_nolo_ver(char * ver, size_t size);
 int local_set_nolo_ver(const char * ver);
 

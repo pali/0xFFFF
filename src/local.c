@@ -28,17 +28,69 @@
 #include <unistd.h>
 #include <fcntl.h>
 
-#ifdef WITH_CAL
-#include <cal.h>
-#endif
-
 #include "local.h"
 #include "global.h"
 #include "device.h"
 #include "image.h"
+#include "cal.h"
+
+static int failed;
 
 static enum device device = DEVICE_UNKNOWN;
-static int failed;
+static int16_t hwrev = -1;
+static char kernel_ver[256];
+static char initfs_ver[256];
+static char nolo_ver[256];
+static char sw_ver[256];
+static char content_ver[256];
+static char rd_mode[256];
+static int usb_host_mode;
+static int root_device;
+
+#define min(a, b) (a < b ? a : b)
+#define local_cal_copy(dest, from, len) strncpy(dest, from, min(len, sizeof(dest)-1))
+#define local_cal_read(cal, str, ptr, len) ( cal_read_block(cal, str, &ptr, &len, 0) == 0 && ptr )
+#define local_cal_store(cal, str, dest) do { void * ptr; unsigned long int len; if ( local_cal_read(cal, str, ptr, len) ) local_cal_copy(dest, ptr, len); } while ( 0 )
+
+static void local_cal_parse(void) {
+
+	struct cal * cal = NULL;
+	char buf[128];
+
+	if ( cal_init(&cal) < 0 || ! cal )
+		return;
+
+	local_cal_store(cal, "kernel-ver", kernel_ver);
+	local_cal_store(cal, "initfs-ver", kernel_ver);
+	local_cal_store(cal, "nolo-ver", nolo_ver);
+	local_cal_store(cal, "sw-release-ver", sw_ver);
+	local_cal_store(cal, "content-ver", content_ver);
+	local_cal_store(cal, "r&d_mode", rd_mode);
+
+	memset(buf, 0, sizeof(buf));
+	local_cal_store(cal, "phone-info", buf);
+	buf[4] = 0;
+
+	if ( sscanf(buf, "%hd", &hwrev) != 1 )
+		hwrev = -1;
+
+	buf[0] = 0;
+	local_cal_store(cal, "usb_host_mode", buf);
+	usb_host_mode = buf[0];
+
+	memset(buf, 0, sizeof(buf));
+	local_cal_store(cal, "root_device", buf);
+
+	if ( strcmp(buf, "mmc") == 0 )
+		root_device = 1;
+	else if ( strcmp(buf, "usb") == 0 )
+		root_device = 2;
+	else
+		root_device = 0;
+
+	cal_finish(cal);
+
+}
 
 int local_init(void) {
 
@@ -97,6 +149,7 @@ int local_init(void) {
 			if ( device ) {
 				printf("Found local device: %s\n", device_to_long_string(device));
 				fclose(file);
+				local_cal_parse();
 				return 0;
 			}
 
@@ -277,52 +330,9 @@ int local_reboot_device(void) {
 
 }
 
-static int local_read_cal(const char * str, void * buf, size_t size) {
-
-#ifdef WITH_CAL
-	unsigned long int len;
-	struct cal * cal;
-	void * ptr;
-	int ret;
-
-	if ( cal_init(&cal) < 0 )
-		return -1;
-
-	ret = cal_read_block(cal, "r&d_mode", &ptr, &len, CAL_FLAG_USER);
-
-	if ( ret < 0 || ! ptr ) {
-		cal_finish(cal);
-		return -1;
-	}
-
-	if ( len > size )
-		len = size;
-
-	memcpy(str, ptr, len);
-	cal_finish(cal);
-	return len;
-#else
-	(void)str;
-	(void)buf;
-	(void)size;
-	return -1;
-#endif
-
-}
-
-static int local_write_cal(const char * str, const void * buf, size_t len) {
-
-	(void)str;
-	(void)buf;
-	(void)len;
-	return -1;
-
-}
-
 int local_get_root_device(void) {
 
-	ERROR("Not implemented yet");
-	return -1;
+	return root_device;
 
 }
 
@@ -336,8 +346,7 @@ int local_set_root_device(int device) {
 
 int local_get_usb_host_mode(void) {
 
-	ERROR("Not implemented yet");
-	return -1;
+	return usb_host_mode;
 
 }
 
@@ -351,12 +360,7 @@ int local_set_usb_host_mode(int enable) {
 
 int local_get_rd_mode(void) {
 
-	char buf[10];
-
-	if ( local_read_cal("r&d_mode", buf, sizeof(buf)) < 0 )
-		return -1;
-
-	if ( strncmp(buf, "master", strlen("master")) == 0 )
+	if ( strncmp(rd_mode, "master", strlen("master")) == 0 )
 		return 1;
 	else
 		return 0;
@@ -373,16 +377,12 @@ int local_set_rd_mode(int enable) {
 
 int local_get_rd_flags(char * flags, size_t size) {
 
-	char buf[512];
-	char * ptr;
+	const char * ptr;
 
-	if ( local_read_cal("r&d_mode", buf, sizeof(buf)) < 0 )
-		return -1;
-
-	if ( strncmp(buf, "master", strlen("master")) == 0 )
-		ptr = buf + strlen("master");
+	if ( strncmp(rd_mode, "master", strlen("master")) == 0 )
+		ptr = rd_mode + strlen("master");
 	else
-		ptr = buf;
+		ptr = rd_mode;
 
 	if ( *ptr == ',' )
 		++ptr;
@@ -400,32 +400,13 @@ int local_get_rd_flags(char * flags, size_t size) {
 
 int local_set_rd_flags(const char * flags) {
 
-	char buf[512];
-
-	if ( strlen(flags) > sizeof(buf) + strlen("master,") )
-		return -1;
-
-	if ( flags[0] == 0 )
-		return local_write_cal("r&d_mode", "master", strlen("master") + 1);
-
-	strcpy(buf, "master,");
-	strcpy(buf+strlen("master,"), flags);
-	return local_write_cal("r&d_mode", buf, strlen(buf) + 1);
+	ERROR("Not implemented yet");
+	(void)flags;
+	return -1;
 
 }
 
 int16_t local_get_hwrev(void) {
-
-	char buf[5];
-	int16_t hwrev;
-
-	if ( local_read_cal("phone-info", buf, sizeof(buf)) < 0 )
-		return 0;
-
-	buf[4] = 0;
-
-	if ( sscanf(buf, "%hd", &hwrev) != 1 )
-		return -1;
 
 	return hwrev;
 
@@ -441,48 +422,80 @@ int local_set_hwrev(int16_t hwrev) {
 
 int local_get_kernel_ver(char * ver, size_t size) {
 
-	return local_read_cal("kernel-ver", ver, size);
+	strncpy(ver, kernel_ver, size);
+	ver[size-1] = 0;
+	return 0;
 
 }
 
 int local_set_kernel_ver(const char * ver) {
 
-	return local_write_cal("kernel-ver", ver, strlen(ver));
+	ERROR("Not implemented yet");
+	(void)ver;
+	return -1;
+
+}
+
+int local_get_initfs_ver(char * ver, size_t size) {
+
+	strncpy(ver, initfs_ver, size);
+	ver[size-1] = 0;
+	return 0;
+
+}
+
+int local_set_initfs_ver(const char * ver) {
+
+	ERROR("Not implemented yet");
+	(void)ver;
+	return -1;
 
 }
 
 int local_get_nolo_ver(char * ver, size_t size) {
 
-	return local_read_cal("nolo-ver", ver, size);
+	strncpy(ver, nolo_ver, size);
+	ver[size-1] = 0;
+	return 0;
 
 }
 
 int local_set_nolo_ver(const char * ver) {
 
-	return local_write_cal("nolo-ver", ver, strlen(ver));
+	ERROR("Not implemented yet");
+	(void)ver;
+	return -1;
 
 }
 
 int local_get_sw_ver(char * ver, size_t size) {
 
-	return local_read_cal("sw-release-ver", ver, size);
+	strncpy(ver, sw_ver, size);
+	ver[size-1] = 0;
+	return 0;
 
 }
 
 int local_set_sw_ver(const char * ver) {
 
-	return local_write_cal("sw-release-ver", ver, strlen(ver));
+	ERROR("Not implemented yet");
+	(void)ver;
+	return -1;
 
 }
 
 int local_get_content_ver(char * ver, size_t size) {
 
-	return local_read_cal("content-ver", ver, size);
+	strncpy(ver, content_ver, size);
+	ver[size-1] = 0;
+	return 0;
 
 }
 
 int local_set_content_ver(const char * ver) {
 
-	return local_write_cal("content-ver", ver, strlen(ver));
+	ERROR("Not implemented yet");
+	(void)ver;
+	return -1;
 
 }
