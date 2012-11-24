@@ -68,6 +68,7 @@ static void show_usage(void) {
 		" -H rev          change HW revision\n"
 		" -N ver          change NOLO version string\n"
 		" -K ver          change kernel version string\n"
+		" -T ver          change initfs version string\n"
 		" -S ver          change SW release version string\n"
 		" -C ver          change content eMMC version string\n"
 		"\n"
@@ -296,7 +297,7 @@ int main(int argc, char **argv) {
 
 	const char * optstring = ":"
 	"b:rlfcx:E:e:"
-	"ID:U:R:F:H:K:N:S:C:"
+	"ID:U:R:F:H:K:T:N:S:C:"
 	"M:m:"
 	"t:d:w:"
 	"u:g:"
@@ -339,6 +340,8 @@ int main(int argc, char **argv) {
 	char * set_hw_arg = NULL;
 	int set_kernel = 0;
 	char * set_kernel_arg = NULL;
+	int set_initfs = 0;
+	char * set_initfs_arg = NULL;
 	int set_nolo = 0;
 	char * set_nolo_arg = NULL;
 	int set_sw = 0;
@@ -501,6 +504,10 @@ int main(int argc, char **argv) {
 				set_kernel = 1;
 				set_kernel_arg = optarg;
 				break;
+			case 'T':
+				set_initfs = 1;
+				set_initfs_arg = optarg;
+				break;
 			case 'N':
 				set_nolo = 1;
 				set_nolo_arg = optarg;
@@ -582,14 +589,14 @@ int main(int argc, char **argv) {
 	}
 
 	if ( dev_boot || dev_reboot || dev_load || dev_flash || dev_cold_flash || dev_ident || dev_check || dev_dump_fiasco || dev_dump
-		|| set_root || set_usb || set_rd || set_rd_flags || set_hw || set_kernel || set_nolo || set_sw || set_emmc )
+		|| set_root || set_usb || set_rd || set_rd_flags || set_hw || set_kernel || set_initfs || set_nolo || set_sw || set_emmc )
 		do_device = 1;
 
 	if ( dev_boot || dev_load || dev_cold_flash )
 		do_something = 1;
 	if ( dev_check || dev_dump_fiasco || dev_dump )
 		do_something = 1;
-	if ( dev_flash || dev_reboot || dev_ident || set_root || set_usb || set_rd || set_rd_flags || set_hw || set_kernel || set_nolo || set_sw || set_emmc )
+	if ( dev_flash || dev_reboot || dev_ident || set_root || set_usb || set_rd || set_rd_flags || set_hw || set_kernel || set_initfs || set_nolo || set_sw || set_emmc )
 		do_something = 1;
 	if ( fiasco_un || fiasco_gen || image_ident )
 		do_something = 1;
@@ -908,6 +915,10 @@ int main(int argc, char **argv) {
 			printf("Kernel version: %s\n", buf[0] ? buf : "(not detected)");
 
 			buf[0] = 0;
+			dev_get_initfs_ver(dev, buf, sizeof(buf));
+			printf("Initfs version: %s\n", buf[0] ? buf : "(not detected)");
+
+			buf[0] = 0;
 			dev_get_sw_ver(dev, buf, sizeof(buf));
 			printf("Software release version: %s\n", buf[0] ? buf : "(not detected)");
 
@@ -1100,6 +1111,11 @@ int main(int argc, char **argv) {
 
 			if ( set_kernel )
 				ret = dev_set_kernel_ver(dev, set_kernel_arg);
+			if ( ret == -EAGAIN )
+				goto again;
+
+			if ( set_initfs )
+				ret = dev_set_initfs_ver(dev, set_initfs_arg);
 			if ( ret == -EAGAIN )
 				goto again;
 
