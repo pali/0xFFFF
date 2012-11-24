@@ -293,6 +293,27 @@ void filter_images_by_hwrev(int16_t hwrev, struct image_list ** image_first) {
 
 }
 
+static const char * image_tmp[] = {
+	[IMAGE_XLOADER] = "xloader_tmp",
+	[IMAGE_SECONDARY] = "secondary_tmp",
+	[IMAGE_KERNEL] = "kernel_tmp",
+	[IMAGE_INITFS] = "initfs_tmp",
+	[IMAGE_ROOTFS] = "rootfs_tmp",
+	[IMAGE_MMC] = "mmc_tmp",
+};
+
+static const char * image_tmp_name(enum image_type type) {
+
+	if ( type > sizeof(image_tmp)/sizeof(image_tmp[0]) )
+		return NULL;
+
+	if ( ! image_tmp[type] || ! image_tmp[type][0] )
+		return NULL;
+
+	return image_tmp[type];
+
+}
+
 int main(int argc, char **argv) {
 
 	const char * optstring = ":"
@@ -1162,8 +1183,8 @@ int main(int argc, char **argv) {
 				}
 
 				for ( i = 0; i < IMAGE_COUNT; ++i )
-					if ( image_type_to_string(i) )
-						dev_dump_image(dev, i, image_type_to_string(i));
+					if ( image_tmp_name(i) )
+						dev_dump_image(dev, i, image_tmp_name(i));
 
 				if ( buf[0] )
 					chdir(buf);
@@ -1178,7 +1199,7 @@ int main(int argc, char **argv) {
 
 				for ( i = 0; i < IMAGE_COUNT; ++i ) {
 
-					if ( ! image_type_to_string(i) )
+					if ( ! image_tmp_name(i) )
 						continue;
 
 					sprintf(buf, "%hd", dev->detected_hwrev);
@@ -1211,7 +1232,7 @@ int main(int argc, char **argv) {
 							break;
 					}
 
-					image_dump = image_alloc_from_file(image_type_to_string(i), image_type_to_string(i), device_to_string(dev->detected_device), buf, ptr, NULL);
+					image_dump = image_alloc_from_file(image_tmp_name(i), image_type_to_string(i), device_to_string(dev->detected_device), buf, ptr, NULL);
 
 					if ( ! image_dump )
 						continue;
@@ -1234,12 +1255,72 @@ int main(int argc, char **argv) {
 				}
 
 				for ( i = 0; i < IMAGE_COUNT; ++i )
-					if ( image_type_to_string(i) )
-						unlink(image_type_to_string(i));
+					if ( image_tmp_name(i) )
+						unlink(image_tmp_name(i));
 
 				free(tmp);
 				tmp = NULL;
 				dev_dump_arg = NULL;
+
+			}
+
+			if ( ! dev_dump_fiasco ) {
+
+				for ( i = 0; i < IMAGE_COUNT; ++i ) {
+
+					struct stat st;
+
+					if ( ! image_tmp_name(i) )
+						continue;
+
+					if ( stat(image_tmp_name(i), &st) != 0 )
+						continue;
+
+					switch ( i ) {
+						case IMAGE_2ND:
+						case IMAGE_XLOADER:
+						case IMAGE_SECONDARY:
+							ptr = nolo_ver;
+							break;
+
+						case IMAGE_KERNEL:
+							ptr = kernel_ver;
+							break;
+
+						case IMAGE_INITFS:
+							ptr = initfs_ver;
+							break;
+
+						case IMAGE_ROOTFS:
+							ptr = sw_ver;
+							break;
+
+						case IMAGE_MMC:
+							ptr = content_ver;
+							break;
+
+						default:
+							ptr = NULL;
+							break;
+					}
+
+					sprintf(buf, "%s-%s:%hd_%s", image_type_to_string(i), device_to_string(dev->detected_device), dev->detected_hwrev, ptr);
+					printf("Renaming %s image file to %s...\n", image_type_to_string(i), buf);
+
+					if ( rename(image_tmp_name(i), buf) < 0 ) {
+
+						ERROR_INFO("Renaming failed");
+
+						sprintf(buf, "%s-%s_%s", image_type_to_string(i), device_to_string(dev->detected_device), ptr);
+						printf("Trying to rename %s image file to %s...\n", image_type_to_string(i), buf);
+
+						if ( rename(image_tmp_name(i), buf) < 0 )
+							ERROR_INFO("Renaming failed");
+
+					}
+
+
+				}
 
 			}
 
