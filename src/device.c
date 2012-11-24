@@ -215,7 +215,7 @@ char ** device_list_alloc_to_bufs(const struct device_list * device_list) {
 		while ( device_first->hwrevs[i+1] != -1 ) {
 
 			uint8_t len = 0;
-			ret[j] = last_ptr;
+			ret[j] = ++last_ptr;
 
 			strncpy(ret[j]+1, device, 16);
 			last_ptr += 16;
