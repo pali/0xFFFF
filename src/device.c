@@ -158,6 +158,8 @@ char * hwrevs_alloc_to_string(const int16_t * hwrevs) {
 
 }
 
+#define MAX_HWREVS 29
+
 char ** device_list_alloc_to_bufs(const struct device_list * device_list) {
 
 	int count = 0;
@@ -183,9 +185,9 @@ char ** device_list_alloc_to_bufs(const struct device_list * device_list) {
 			if ( device_first->hwrevs[i] >= 0 && device_first->hwrevs[i] <= 9999 )
 				++local;
 
-		size += 1+16+local*8;
-		count += local/30;
-		if ( local%30 != 0 || local == 0 )
+		size += (1+16+(MAX_HWREVS+1)*8)*(local/MAX_HWREVS+1);
+		count += local/MAX_HWREVS;
+		if ( local%MAX_HWREVS != 0 || local == 0 )
 			++count;
 
 		device_first = device_first->next;
@@ -221,7 +223,7 @@ char ** device_list_alloc_to_bufs(const struct device_list * device_list) {
 
 			k = 0;
 
-			for ( k = 0; k < 30; ++k ) {
+			for ( k = 0; k < MAX_HWREVS; ++k ) {
 
 				if ( device_first->hwrevs[i+1] == -1 )
 					break;
