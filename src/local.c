@@ -71,12 +71,24 @@ static void local_cal_parse(void) {
 	local_cal_store(cal, "content-ver", content_ver);
 	local_cal_store(cal, "r&d_mode", rd_mode);
 
+	/* overwritten hw revision */
 	memset(buf, 0, sizeof(buf));
-	local_cal_store(cal, "phone-info", buf);
-	buf[4] = 0;
+	local_cal_store(cal, "hw-ver", buf);
 
-	if ( sscanf(buf, "%hd", &hwrev) != 1 )
+	if ( buf[0] && sscanf(buf, "%hd", &hwrev) != 1 )
 		hwrev = -1;
+
+	if ( hwrev == -1 ) {
+
+		/* original hw revision */
+		memset(buf, 0, sizeof(buf));
+		local_cal_store(cal, "phone-info", buf);
+		buf[4] = 0;
+
+		if ( buf[0] && sscanf(buf, "%hd", &hwrev) != 1 )
+			hwrev = -1;
+
+	}
 
 	buf[0] = 0;
 	local_cal_store(cal, "usb_host_mode", buf);
