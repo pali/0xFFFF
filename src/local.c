@@ -27,12 +27,14 @@
 #include <libgen.h>
 #include <unistd.h>
 #include <fcntl.h>
+#include <dirent.h>
 
 #include "local.h"
 #include "global.h"
 #include "device.h"
 #include "image.h"
 #include "cal.h"
+#include "disk.h"
 
 static int failed;
 
@@ -247,34 +249,124 @@ int local_dump_image(enum image_type image, const char * file) {
 	int fd = -1;
 	unsigned char * addr = NULL;
 	off_t nlen, len;
+	int align;
+	DIR * dir;
+	DIR * dir2;
+	struct dirent * dirent;
+	struct dirent * dirent2;
+	char * ptr;
+	int i;
+	char buf[1024];
+	char blk[1024];
 
-	if ( image == IMAGE_ROOTFS )
-		return -1;
+	printf("Dump %s image to file %s...\n", image_type_to_string(image), file);
 
-	printf("Dumping %s image to file %s...\n", image_type_to_string(image), file);
+	if ( image == IMAGE_MMC ) {
 
-	if ( device == DEVICE_RX_51 ) {
+		/* Find block device in /dev/ for MyDocs (mmc device, partition 1) */
 
-		if ( image >= sizeof(nanddump_n900)/sizeof(nanddump_n900[0]) || ! nanddump_n900[image].valid ) {
-			ERROR("Unsuported image type: %s", image_type_to_string(image));
+		dir = opendir("/sys/class/mmc_host/");
+		if ( ! dir ) {
+			ERROR("Cannot find MyDocs mmc device");
 			goto clean;
 		}
 
-		ret = local_nanddump(file, nanddump_n900[image].mtd, nanddump_n900[image].offset, nanddump_n900[image].length);
+		blk[0] = 0;
+
+		while ( ( dirent = readdir(dir) ) ) {
+
+			snprintf(buf, sizeof(buf), "/sys/class/mmc_host/%s/slot_name", dirent->d_name);
+
+			fd = open(buf, O_RDONLY);
+			if ( fd < 0 )
+				continue;
+
+			buf[0] = 0;
+			read(fd, buf, sizeof(buf));
+			close(fd);
+
+			if ( strncmp(buf, "internal", strlen("internal")) != 0 )
+				continue;
+
+			snprintf(buf, sizeof(buf), "/sys/class/mmc_host/%s/%s:0001", dirent->d_name, dirent->d_name);
+
+			dir2 = opendir(buf);
+			if ( ! dir2 )
+				continue;
+
+			while ( ( dirent2 = readdir(dir2) ) ) {
+
+				if ( strncmp(dirent2->d_name, "block:mmcblk", strlen("block:mmcblk")) != 0 )
+					continue;
+
+				snprintf(buf, sizeof(buf), "/sys/class/mmc_host/%s/%s:0001/%s", dirent->d_name, dirent->d_name, dirent2->d_name);
+
+				blk[0] = 0;
+				if ( readlink(buf, blk, sizeof(blk)) < 0 )
+					continue;
+
+				ptr = strrchr(blk, '/');
+				if ( ! ptr ) {
+					blk[0] = 0;
+					continue;
+				}
+
+				strcpy(blk, "/dev/");
+				i = strlen("/dev/");
+				++ptr;
+
+				while ( *ptr )
+					blk[i++] = *(ptr++);
+
+				strcpy(blk+i, "p1");
+				break;
+
+			}
+
+			closedir(dir2);
+
+			if ( blk[0] )
+				break;
+
+		}
+
+		closedir(dir);
+
+		if ( ! blk[0] ) {
+			ERROR("Cannot find MyDocs mmc device");
+			goto clean;
+		}
+
+		ret = disk_dump_raw(blk, image_type_to_string(image));
 
 	} else {
 
-		if ( image >= sizeof(nanddump)/sizeof(nanddump[0]) || ! nanddump[image].valid ) {
-			ERROR("Unsuported image type: %s", image_type_to_string(image));
-			goto clean;
-		}
+		if ( device == DEVICE_RX_51 ) {
 
-		ret = local_nanddump(file, nanddump[image].mtd, nanddump[image].offset, nanddump[image].length);
+			if ( image >= sizeof(nanddump_n900)/sizeof(nanddump_n900[0]) || ! nanddump_n900[image].valid ) {
+				ERROR("Unsuported image type: %s", image_type_to_string(image));
+				goto clean;
+			}
+
+			ret = local_nanddump(file, nanddump_n900[image].mtd, nanddump_n900[image].offset, nanddump_n900[image].length);
+
+		} else {
+
+			if ( image >= sizeof(nanddump)/sizeof(nanddump[0]) || ! nanddump[image].valid ) {
+				ERROR("Unsuported image type: %s", image_type_to_string(image));
+				goto clean;
+			}
+
+			ret = local_nanddump(file, nanddump[image].mtd, nanddump[image].offset, nanddump[image].length);
+
+		}
 
 	}
 
-	if ( ret != 0 )
+	if ( ret != 0 ) {
+		ret = -1;
 		goto clean;
+	}
 
 	fd = open(file, O_RDWR);
 	if ( fd < 0 )
