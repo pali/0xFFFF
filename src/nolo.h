@@ -50,6 +50,9 @@ int nolo_set_hwrev(struct usb_device_info * dev, int16_t hwrev);
 int nolo_get_kernel_ver(struct usb_device_info * dev, char * ver, size_t size);
 int nolo_set_kernel_ver(struct usb_device_info * dev, const char * ver);
 
+int nolo_get_initfs_ver(struct usb_device_info * dev, char * ver, size_t size);
+int nolo_set_initfs_ver(struct usb_device_info * dev, const char * ver);
+
 int nolo_get_nolo_ver(struct usb_device_info * dev, char * ver, size_t size);
 int nolo_set_nolo_ver(struct usb_device_info * dev, const char * ver);
 

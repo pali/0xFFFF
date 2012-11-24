@@ -731,6 +731,21 @@ int nolo_set_kernel_ver(struct usb_device_info * dev, const char * ver) {
 
 }
 
+int nolo_get_initfs_ver(struct usb_device_info * dev, char * ver, size_t size) {
+
+	return nolo_get_version_string(dev, "initfs", ver, size);
+
+}
+
+int nolo_set_initfs_ver(struct usb_device_info * dev, const char * ver) {
+
+	printf("nolo_set_initfs_ver is not implemented yet\n");
+	(void)dev;
+	(void)ver;
+	return -1;
+
+}
+
 int nolo_get_nolo_ver(struct usb_device_info * dev, char * ver, size_t size) {
 
 	uint32_t version;
