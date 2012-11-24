@@ -49,6 +49,9 @@ int mkii_set_hwrev(struct usb_device_info * dev, int16_t hwrev);
 int mkii_get_kernel_ver(struct usb_device_info * dev, char * ver, size_t size);
 int mkii_set_kernel_ver(struct usb_device_info * dev, const char * ver);
 
+int mkii_get_initfs_ver(struct usb_device_info * dev, char * ver, size_t size);
+int mkii_set_initfs_ver(struct usb_device_info * dev, const char * ver);
+
 int mkii_get_nolo_ver(struct usb_device_info * dev, char * ver, size_t size);
 int mkii_set_nolo_ver(struct usb_device_info * dev, const char * ver);
 

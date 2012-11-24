@@ -162,6 +162,25 @@ int mkii_set_kernel_ver(struct usb_device_info * dev, const char * ver) {
 
 }
 
+int mkii_get_initfs_ver(struct usb_device_info * dev, char * ver, size_t size) {
+
+	ERROR("Not implemented yet");
+	(void)dev;
+	(void)ver;
+	(void)size;
+	return -1;
+
+}
+
+int mkii_set_initfs_ver(struct usb_device_info * dev, const char * ver) {
+
+	ERROR("Not implemented yet");
+	(void)dev;
+	(void)ver;
+	return -1;
+
+}
+
 int mkii_get_nolo_ver(struct usb_device_info * dev, char * ver, size_t size) {
 
 	ERROR("Not implemented yet");
