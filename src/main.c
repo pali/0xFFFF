@@ -392,7 +392,14 @@ int main(int argc, char **argv) {
 
 	int i;
 	char buf[512];
+	char * ptr = NULL;
 	char * tmp = NULL;
+
+	char nolo_ver[512];
+	char kernel_ver[512];
+	char initfs_ver[512];
+	char sw_ver[512];
+	char content_ver[512];
 
 	simulate = 0;
 	noverify = 0;
@@ -906,30 +913,25 @@ int main(int argc, char **argv) {
 			else
 				printf("HW revision: %d\n", dev->detected_hwrev);
 
-			buf[0] = 0;
-			dev_get_nolo_ver(dev, buf, sizeof(buf));
-			printf("NOLO version: %s\n", buf[0] ? buf : "(not detected)");
+			nolo_ver[0] = 0;
+			dev_get_nolo_ver(dev, nolo_ver, sizeof(nolo_ver));
+			printf("NOLO version: %s\n", nolo_ver[0] ? nolo_ver : "(not detected)");
 
-			buf[0] = 0;
-			dev_get_kernel_ver(dev, buf, sizeof(buf));
-			printf("Kernel version: %s\n", buf[0] ? buf : "(not detected)");
+			kernel_ver[0] = 0;
+			dev_get_kernel_ver(dev, kernel_ver, sizeof(kernel_ver));
+			printf("Kernel version: %s\n", kernel_ver[0] ? kernel_ver : "(not detected)");
 
-			buf[0] = 0;
-			dev_get_initfs_ver(dev, buf, sizeof(buf));
-			printf("Initfs version: %s\n", buf[0] ? buf : "(not detected)");
+			initfs_ver[0] = 0;
+			dev_get_initfs_ver(dev, initfs_ver, sizeof(initfs_ver));
+			printf("Initfs version: %s\n", initfs_ver[0] ? initfs_ver : "(not detected)");
 
-			buf[0] = 0;
-			dev_get_sw_ver(dev, buf, sizeof(buf));
-			printf("Software release version: %s\n", buf[0] ? buf : "(not detected)");
+			sw_ver[0] = 0;
+			dev_get_sw_ver(dev, sw_ver, sizeof(sw_ver));
+			printf("Software release version: %s\n", sw_ver[0] ? sw_ver : "(not detected)");
 
-			if ( buf[0] && dev_flash && ! set_sw && fiasco_in && fiasco_in->swver[0] && strcmp(fiasco_in->swver, buf) != 0 ) {
-				set_sw = 1;
-				set_sw_arg = fiasco_in->swver;
-			}
-
-			buf[0] = 0;
-			dev_get_content_ver(dev, buf, sizeof(buf));
-			printf("Content eMMC version: %s\n", buf[0] ? buf : "(not detected)");
+			content_ver[0] = 0;
+			dev_get_content_ver(dev, content_ver, sizeof(content_ver));
+			printf("Content eMMC version: %s\n", content_ver[0] ? content_ver : "(not detected)");
 
 			ret = dev_get_root_device(dev);
 			printf("Root device: ");
@@ -1079,6 +1081,11 @@ int main(int argc, char **argv) {
 				set_rd_arg = "1";
 			}
 
+			if ( sw_ver[0] && dev_flash && ! set_sw && fiasco_in && fiasco_in->swver[0] && strcmp(fiasco_in->swver, sw_ver) != 0 ) {
+				set_sw = 1;
+				set_sw_arg = fiasco_in->swver;
+			}
+
 			if ( set_root )
 				ret = dev_set_root_device(dev, atoi(set_root_arg));
 			if ( ret == -EAGAIN )
@@ -1174,25 +1181,61 @@ int main(int argc, char **argv) {
 					if ( ! image_type_to_string(i) )
 						continue;
 
-					image_dump = image_alloc_from_file(image_type_to_string(i), image_type_to_string(i), NULL, NULL, NULL, NULL);
-					if ( ! image_dump ) {
-						ERROR("Cannot load image file %s", image_type_to_string(i));
-						continue;
+					sprintf(buf, "%hd", dev->detected_hwrev);
+
+					switch ( i ) {
+						case IMAGE_2ND:
+						case IMAGE_XLOADER:
+						case IMAGE_SECONDARY:
+							ptr = nolo_ver;
+							break;
+
+						case IMAGE_KERNEL:
+							ptr = kernel_ver;
+							break;
+
+						case IMAGE_INITFS:
+							ptr = initfs_ver;
+							break;
+
+						case IMAGE_ROOTFS:
+							ptr = sw_ver;
+							break;
+
+						case IMAGE_MMC:
+							ptr = content_ver;
+							break;
+
+						default:
+							ptr = NULL;
+							break;
 					}
+
+					image_dump = image_alloc_from_file(image_type_to_string(i), image_type_to_string(i), device_to_string(dev->detected_device), buf, ptr, NULL);
+
+					if ( ! image_dump )
+						continue;
 
 					image_list_add(&image_dump_first, image_dump);
 
 				}
 
+				printf("\n");
+
 				fiasco_out = fiasco_alloc_empty();
 				if ( ! fiasco_out ) {
 					ERROR("Cannot write images to fiasco file %s", dev_dump_fiasco_arg);
 				} else {
-					/* TODO: Add swver */
-					fiasco_out->first = image_first;
+					strncpy(fiasco_out->swver, sw_ver, sizeof(fiasco_out->swver));
+					fiasco_out->swver[sizeof(fiasco_out->swver)-1] = 0;
+					fiasco_out->first = image_dump_first;
 					fiasco_write_to_file(fiasco_out, dev_dump_fiasco_arg);
 					fiasco_free(fiasco_out); /* this will also free list image_dump_first */
 				}
+
+				for ( i = 0; i < IMAGE_COUNT; ++i )
+					if ( image_type_to_string(i) )
+						unlink(image_type_to_string(i));
 
 				free(tmp);
 				tmp = NULL;
