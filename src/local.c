@@ -44,8 +44,8 @@ static char nolo_ver[256];
 static char sw_ver[256];
 static char content_ver[256];
 static char rd_mode[256];
-static int usb_host_mode;
-static int root_device;
+static int usb_host_mode = -1;
+static int root_device = -1;
 
 #define min(a, b) (a < b ? a : b)
 #define local_cal_copy(dest, from, len) strncpy(dest, from, min(len, sizeof(dest)-1))
@@ -56,6 +56,8 @@ static void local_cal_parse(void) {
 
 	struct cal * cal = NULL;
 	char buf[128];
+
+	printf("Reading CAL...\n");
 
 	if ( cal_init(&cal) < 0 || ! cal )
 		return;
@@ -294,10 +296,18 @@ int local_dump_image(enum image_type image, const char * file) {
 		if ( addr[nlen-1] != 0xFF )
 			break;
 
-	if ( ( nlen & ( ( 1ULL << 7 ) - 1 ) ) != 0 )
-		nlen = ((nlen >> 7) + 1) << 7;
+	if ( image == IMAGE_MMC )
+		align = 8;
+	else
+		align = 7;
 
-	if ( nlen != len ) {
+	if ( ( nlen & ( ( 1ULL << align ) - 1 ) ) != 0 )
+		nlen = ((nlen >> align) + 1) << align;
+
+	if ( nlen == 0 ) {
+		printf("File %s is empty, removing it...\n", file);
+		unlink(file);
+	} else if ( nlen != len ) {
 		printf("Truncating file %s to %d bytes...\n", file, (int)nlen);
 		ftruncate(fd, nlen);
 	}
