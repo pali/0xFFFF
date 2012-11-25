@@ -10,7 +10,7 @@
                _/ ___|_.|__|
                 '`
 
-The 'Free Fiasco Firmware Flasher' aka 0xFFFF utility implements a free
+The 'Open Free Fiasco Firmware Flasher' aka 0xFFFF utility implements a free
 (under the GPLv3 license) userspace handler for the NOLO bootloader and
 extended features for flashing, dumping and getting information for the
 Nokia Internet Tablets.
@@ -39,3 +39,4 @@ To install: (by default is /usr/local)
 
 Have phun!
                                                          --pancake
+                                                         --Pali
