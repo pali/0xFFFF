@@ -1,7 +1,7 @@
 include ../config.mk
 
-DESTDIR ?= /
 PREFIX ?= /usr/local
+INSTALL ?= install
 
 CPPFLAGS += -DVERSION=\"$(VERSION)\" -D_GNU_SOURCE
 CFLAGS += -W -Wall -O2 -pedantic -std=c99
@@ -18,7 +18,7 @@ $(BIN): $(OBJS) Makefile ../config.mk
 %.o: %.c Makefile ../config.mk
 	$(CC) $(CFLAGS) $(CPPFLAGS) -c -o $@ $<
 
-install:
+install: $(BIN)
 	$(INSTALL) -m 755 $(BIN) $(DESTDIR)$(PREFIX)/bin/
 
 uninstall:
