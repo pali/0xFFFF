@@ -9,12 +9,10 @@ frontend:
 	-cd src/gui && ${MAKE} all
 
 static: logot
-	cd libusb && ${MAKE} all
 	cd src && ${MAKE} static
 	cd logotool && ${MAKE} static
 
 allusb: logot
-	cd libusb && ${MAKE} all
 	cd src && ${MAKE} allusb
 
 logot:
@@ -22,7 +20,6 @@ logot:
 
 clean:
 	cd src && ${MAKE} clean
-	cd libusb && ${MAKE} clean
 	cd logotool && ${MAKE} clean
 
 install:
