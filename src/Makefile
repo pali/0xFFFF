@@ -1,6 +1,9 @@
 include ../config.mk
 
-CPPFLAGS += -DVERSION=\"$(VERSION)\" -D_GNU_SOURCE -I.
+DESTDIR ?= /
+PREFIX ?= /usr/local
+
+CPPFLAGS += -DVERSION=\"$(VERSION)\" -D_GNU_SOURCE
 CFLAGS += -W -Wall -O2 -pedantic -std=c99
 LIBS += -lm -lusb
 
@@ -15,5 +18,11 @@ $(BIN): $(OBJS) Makefile ../config.mk
 %.o: %.c Makefile ../config.mk
 	$(CC) $(CFLAGS) $(CPPFLAGS) -c -o $@ $<
 
+install:
+	$(INSTALL) -m 755 $(BIN) $(DESTDIR)$(PREFIX)/bin/
+
+uninstall:
+	$(RM) $(DESTDIR)$(PREFIX)/bin/$(BIN)
+
 clean:
-	-rm -f $(OBJS) $(BIN)
+	-$(RM) $(OBJS) $(BIN)
