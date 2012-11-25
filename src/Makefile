@@ -4,7 +4,7 @@ CPPFLAGS += -DVERSION=\"$(VERSION)\" -D_GNU_SOURCE -I.
 CFLAGS += -W -Wall -O2 -pedantic -std=c99
 LIBS += -lm -lusb
 
-OBJS = main.o nolo.o printf-utils.o image.o fiasco.o device.o usb-device.o cold-flash.o console.o operations.o local.o mkii.o disk.o cal.o
+OBJS = main.o nolo.o printf-utils.o image.o fiasco.o device.o usb-device.o cold-flash.o operations.o local.o mkii.o disk.o cal.o
 BIN = 0xFFFF
 
 all: $(BIN)
