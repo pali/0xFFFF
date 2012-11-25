@@ -34,8 +34,6 @@
 #include "image.h"
 #include "fiasco.h"
 #include "device.h"
-#include "console.h"
-#include "qmode.h"
 #include "operations.h"
 
 static void show_title(void) {
@@ -98,8 +96,6 @@ static void show_usage(void) {
 
 		"Other options:\n"
 		" -i              identify images\n"
-		" -p              console prompt mode\n"
-		" -Q              enter shared queues server mode (for gui or remote)\n"
 		" -s              simulate, do not flash or write on disk\n"
 		" -n              disable hash, checksum and image type checking\n"
 		" -v              be verbose and noisy\n"
@@ -386,8 +382,6 @@ int main(int argc, char **argv) {
 	char * fiasco_gen_arg = NULL;
 
 	int image_ident = 0;
-	int console = 0;
-	int queue = 0;
 
 	int help = 0;
 
@@ -585,12 +579,6 @@ int main(int argc, char **argv) {
 			case 'i':
 				image_ident = 1;
 				break;
-			case 'p':
-				console = 1;
-				break;
-			case 'Q':
-				queue = 1;
-				break;
 
 			case 's':
 				simulate = 1;
@@ -628,10 +616,6 @@ int main(int argc, char **argv) {
 		do_something = 1;
 	if ( fiasco_un || fiasco_gen || image_ident )
 		do_something = 1;
-	if ( console )
-		do_something = 1;
-	if ( queue )
-		do_something = 1;
 	if ( help )
 		do_something = 1;
 
@@ -649,21 +633,6 @@ int main(int argc, char **argv) {
 		ret = 0;
 		goto clean;
 	}
-
-	/* console */
-	if ( console ) {
-		console_prompt();
-		ret = 0;
-		goto clean;
-	}
-
-	/* share queues */
-	if ( queue ) {
-		queue_mode();
-		ret = 0;
-		goto clean;
-	}
-
 
 	/* load images from files */
 	if ( image_first && image_fiasco ) {
