@@ -1,68 +1,88 @@
-<b>Usage guide</b>
+0xFFFF v0.6  // The Free Fiasco Firmware Flasher
 
-0xFFFF is a free software implementation of the flasher for the Nokia Internet
-Tablets (770 and n800).
- <pre>
-  - flash separated pieces of the firmware.
-  - retrieve information about the device
-  - reboot de mother board
-  - extract the current firmware pieces from the device (dump)
-  - set the USB host/slave mode
-  - pack/unpack fiasco firmwares
-  - fine grained R&D flags support
-  - identify firmware pieces
-  - dump mtd partitions (embedded mtd-utils source code)
-  - reconstruct initfs from a dump
-  - dump config partition
-  - automatic piece identifier
-  - console mode (shell like)
-  </pre>
-This is the help message of the tool:
-<pre>
-<b>~$ 0xFFFF -h</b>
-0xFFFF v0.3  // The Free Fiasco Firmware Flasher
- -b [arg]       boots the kernel with arguments
- -c             console prompt mode
- -C [/dev/mtd]  check bad blocks on mtd
- -d [vid:pid]   injects a usb device into the supported list
- -D [0|1|2]     sets the root device to flash (0), mmc (1) or usb (2)
- -e [path]      dump and extract pieces to path
- -f <flags>     set the given RD flags (see '-f help')
- -F [fiasco]    flash a fiasco firmware image
- -h             show this help message
- -H [file]      calculate hash for file
- -i             show device information (let standby mode)
- -I [piece]     identify a firmware piece
- -l, -L         list supported usb device ids
- -p [[p%]file]  piece-of-firmware % file-where-this-piece-is
- -r [0|1]       disable/enable R&D mode
- -R             reboot the omap board
- -s [serial]    serial port console (minicom like terminal)
- -u [fiasco]    unpack target fiasco image
- -U [0|1]       disable/enable the usb host mode
- -v             be verbose and noisy
- -V             show 0xFFFF version information
- -x             extract configuration entries from /dev/mtd1
-Pieces are: xloader secondary kernel initfs rootfs omap-nand 
-</pre>
+Operations:
+ -b [cmdline]    boot default or loaded kernel (default: no cmdline)
+ -b update       boot default or loaded kernel to Update mode
+ -r              reboot device
+ -l              load kernel and initfs images to RAM
+ -f              flash all specified images
+ -c              cold flash 2nd and secondary image
+ -x [/dev/mtd]   check for bad blocks on mtd device (default: all)
+ -E file         dump all device images to one fiasco image, see -t
+ -e [dir]        dump all device images to directory, see -t (default: current)
 
-Before anything we can execute failsafe queries like getting device information:
-<pre> <b>~$ 0xFFFF -i</b></pre>
-This command will put the bootloader in standby mode, so you can now send other
-commands without having to reboot the tablet manually. To reboot the mother
-board via USB type:
-<pre> <b>~$ 0xFFFF -R</b></pre>
-You can run 'offline' commands to identify the type of the firmware pieces:
-<pre> <b>~$ 0xFFFF -I zImage -I xloader.bin -I initfs.jffs2.orig</b>
- kernel: zImage
- xloader: xloader.bin
- initfs: initfs.jffs2.orig</pre>
-If you want to backup your device firmware you can crosscompile the 0xFFFF
-utility and type this on the terminal:
-<pre> <b>~$ sudo gainroot</b>
- ~# mkdir /media/mmc1/firmware
- ~# ./0xFFFF -e /media/mmc1/firmware</pre>
-Now is time to flash something :) By default the flasher identifies the type
-of the piece automatically, but you can force't prefixing the filename with
-the piece-type name. To do this is just as simple as typing:
-<pre> <b>~$ 0xFFFF -p zImage</b></pre>
+Device configuration:
+ -I              identify, show all information about device
+ -D 0|1|2        change root device: 0 - flash, 1 - mmc, 2 - usb
+ -U 0|1          disable/enable USB host mode
+ -R 0|1          disable/enable R&D mode
+ -F flags        change R&D flags, flags are comma separated list, can be empty
+ -H rev          change HW revision
+ -N ver          change NOLO version string
+ -K ver          change kernel version string
+ -T ver          change initfs version string
+ -S ver          change SW release version string
+ -C ver          change content eMMC version string
+
+Input image specification:
+ -M file         specify fiasco image
+ -m arg          specify normal image
+                 arg is [[[dev:[hw:]]ver:]type:]file[%lay]
+                   dev is device name string (default: emtpy)
+                   hw are comma separated list of HW revisions (default: empty)
+                   ver is image version string (default: empty)
+                   type is image type (default: autodetect)
+                   file is image file name
+                   lay is layout file name (default: none)
+
+Image filters:
+ -t types        filter images by type
+ -d dev          filter images by device
+ -w hw           filter images by HW revision
+
+Fiasco image:
+ -u [dir]        unpack fiasco image to directory (default: current)
+ -g file[%sw]    generate fiasco image with SW rel version (default: no version)
+
+Other options:
+ -i              identify images
+ -s              simulate, do not flash or write on disk
+ -n              disable hash, checksum and image type checking
+ -v              be verbose and noisy
+ -h              show this help message
+
+R&D flags:
+  no-omap-wd          disable auto reboot by OMAP watchdog
+  no-ext-wd           disable auto reboot by external watchdog
+  no-lifeguard-reset  disable auto reboot by software lifeguard
+  serial-console      enable serial console
+  no-usb-timeout      disable usb timeout for flashing
+  sti-console         enable sti console
+  no-charging         disable battery charging
+  force-power-key     force omap boot reason to power key
+
+Supported devices:
+  SU-18          Nokia 770
+  RX-34          Nokia N800
+  RX-44          Nokia N810
+  RX-48          Nokia N810 Wimax
+  RX-51          Nokia N900
+
+Supported image types:
+  xloader
+  2nd
+  secondary
+  kernel
+  initfs
+  rootfs
+  mmc
+  cmt-2nd
+  cmt-algo
+  cmt-mcusw
+
+Supported connection protocols:
+  Local on device
+  NOLO via USB
+  Cold flashing via USB
+  Mk II protocol via USB
+  RAW disk via USB

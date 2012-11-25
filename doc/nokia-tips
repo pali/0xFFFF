@@ -1,4 +1,4 @@
-<b>Nokia tips</b>
+Nokia tips:
 
 When developing this tool I've found some bugs and misfeatures that
 should be fixed to make flashing safer and cleaner.
@@ -9,7 +9,7 @@ it's really hard to break the device and it works pretty nice. BTW I
 think that there are some things that should be fixed.
 
 
-<b>*) Flashing at low battery level</b>
+*) Flashing at low battery level
 
   When the device is under a certain limit of battery it will not start,
   this is done by initfs, without any warning message or so, this really
@@ -20,7 +20,7 @@ think that there are some things that should be fixed.
   This is *really* dangerous and not very user friendly.
 
 
-<b>*) Internal nolo state not reset'd</b>
+*) Internal nolo state not reset'd
 
   It's possible to get nolo on a strange state that always returns error
   when flashing pieces, it's mandatory to reboot the device to recover
@@ -29,7 +29,7 @@ think that there are some things that should be fixed.
   This is an strange and not very clear to me.
 
 
-<b>*) Buffer overflows</b>
+*) Buffer overflows
 
   The original nokia flasher has some buffer overflow bugs that should
   be fixed. They're safe for 99.9% of cases, but bofs on critical programs
@@ -40,14 +40,7 @@ think that there are some things that should be fixed.
   than this one.
 
 
-<b>*) Missing stuff</b>
-
-  There are some flashing options that are not working like passing arguments
-  to the kernel, set the hw revision or do a cold flash (the most critical
-  part is undocumented).
-
-
-<b>*) Weird firmware format</b>
+*) Weird firmware format
 
   The (new and old) FIASCO firmware format is not a very clean format, it
   doesn't provide any checksumming facility to ensure that the contents of
@@ -64,7 +57,7 @@ think that there are some things that should be fixed.
   code could be revised and enhaced by zillions of eyes.
 
 
-<b>*) Poor checksumming</b>
+*) Poor checksumming
 
   The only checksum is a 16 bit xor of the whole firmware piece and it's only
   checked after sending the piece to the device.
@@ -73,7 +66,7 @@ think that there are some things that should be fixed.
   algorithm. It currently performs a unique check at the end, it could be
   better to check each data block to avoid errors or invalid flashing, isn't it ?
 
-<b>*) No validation of pieces before flashing</b>
+*) No validation of pieces before flashing
 
   I've implemented a minimal check of the pieces to avoid flashing invalid
   pieces on the wrong place. This is done in fpid.c (firmware piece identifier).
@@ -82,7 +75,7 @@ think that there are some things that should be fixed.
   that can (pseudo)brick the device.
 
 
-<b>*) Reverse flashing</b>
+*) Reverse flashing
 
   If you want to test a new firmware, but you don't want to loose all the
   contents of your device. The only way to do that (afaik) is from the
@@ -94,7 +87,7 @@ think that there are some things that should be fixed.
   case of a wrong checksumming (for example)
 
 
-<b>*) Documentation</b>
+*) Documentation
 
   The nokia flasher comes as is, without documentation. This is not good
   to anybody, because the lack of information is always the root of problems,

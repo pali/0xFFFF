@@ -1,38 +1,28 @@
-<h2>FAQ</h2>
+FAQ:
 
-<b>*) How can I set my Internet Tablet into RD mode with 0xFFFF?</b>
+*) How can I set my Internet Tablet into RD mode with 0xFFFF?
 
-  Just type '0xFFFF -r 1' as root
-
-
-<b>*) How can I unpack a FIASCO firmware?
-
-  Just type '0xFFFF -r 1' as root
+  Just type '0xFFFF -R 1' as root
 
 
-<b>*) How can I unpack a FIASCO firmware?</b>
+*) How can I unpack a FIASCO firmware?
 
-  Just type '0xFFFF -u FiascoFirmware.bin -e /tmp' as root
-
-
-<b>*) How can I flash a new rootfs?
-
-  Unpack the pieces from the fiasco firmware (the one distributed by Nokia for example) and then type:
-
-  # 0xFFFF -R -p rootfs.jffs 
+  Just type '0xFFFF -M FiascoFirmware.bin -u'
 
 
-<b>*) How can I flash a full FIASCO image?</b>
+*) How can I flash a new rootfs?
 
-  It is not recommended to use, it needs more testing, and is more secure to unpack them first manually
-  and flash the pieces manually with multiple '-p' flags. If you are brave try:
-
-  # 0xFFFF -F FiascoFirmware.fiasco
+  # 0xFFFF -m rootfs.jffs2 -f
 
 
-<h2>Advanced commands</h2>
+*) How can I flash a full FIASCO image?
 
-<b>*) How to extract the firmware pieces from a running device?</b>
+  # 0xFFFF -M FiascoFirmware.fiasco -f
+
+
+Advanced commands:
+
+*) How to extract the firmware pieces from a running device?
 
   It is possible to dump the firmware pieces from the internal MTD to reconstruct a FIASCO image.
   To do this recompile the flasher for ARM and run this command in the device:
@@ -40,10 +30,6 @@
   # mkdir /media/mmc1/backup
   # 0xFFFF -e /media/mmc1/backup
 
+  To dump directly into FIASCO image run:
 
-<b>*) Dumping configuration region</b>
-
-  There's a hidden mtd partition containing undocumented configuration information. This one can be
-  dumped from the device using the following command:
-
-  # 0xFFFF -x
+  # 0xFFFF -E /media/mmc1/backup.fiasco

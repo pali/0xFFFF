@@ -8,7 +8,7 @@ defined by NOLO on the internal flash memory.
 Nokia provides a blob packed with a proprietary format called 'FIASCO'. This
 blob contains the following pieces:
 
- - omap-nand   -  only flashable via serial jtag
+ - 2nd         -  for Cold Flashing
  - xloader     -  first part of nolo
  - secondary   -  second part of nolo (usb support and launches kernel)
  - kernel      -  the kernel
@@ -18,21 +18,15 @@ blob contains the following pieces:
 Some of these pieces are versioned to match board specific features
 (mostly xloader and secondary ones).
 
-This format is not supported by 0xFFFF at this moment, but there are no
-plans for doing it in short term. This is because we only need to flash
-separated pieces. We can just distribute tarballs containing the pieces
-and meta information with a whole Free OS for the internet tablets.
-
 To flash an initfs partition and reboot:
 
-  $ 0xFFFF -p initfs%initfs.jffs2 -R
+  $ 0xFFFF -m initfs:initfs.jffs2 -f -r
 
-The format of the argument is [piece-type] % [file-name] (% [version-string]).
+The format of the argument is [[[device:[hw-revision:]]verion:]piece-type:]file-name[%layout-file-name]
 
-Pieces can be automatically identified by using the '-I' flag:
+Pieces can be automatically identified by using the '-i' flag:
 
-  $ 0xFFFF -I initfs.jffs2
-  initfs.jffs2: initfs
+  $ 0xFFFF -m initfs.jffs2 -i
 
 You can dump these pieces from the internal memory of the internet
 tablet by using the mtd-utils over /dev/mtd* or just running:

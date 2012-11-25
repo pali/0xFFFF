@@ -1,9 +1,9 @@
-<b>FAQ</b>
+FAQ2:
 
 This file tries to collect a bunch of common questions/answers about flashing
 
 
-<b>*) Why implement a free software flasher?</b>
+*) Why implement a free software flasher?
 
   The Nokia Internet Tablets are based on Free Software (software libre), but
   not everything included *is* free software, for instance, the firmware flasher
@@ -18,7 +18,7 @@ This file tries to collect a bunch of common questions/answers about flashing
   powerpc, x86, mips, etc...
 
 
-<b>*) Can I brick my device?</b>
+*) Can I brick my device?
 
   Of course! You're free to do what you want with your device :)
 
@@ -30,20 +30,24 @@ This file tries to collect a bunch of common questions/answers about flashing
   use the flasher provided by Nokia, it's better for your heart's health.
 
 
-<b>*) What can I do with 0xFFFF?</b>
+*) What can I do with 0xFFFF?
 
   Actually 0xFFFF allows you to:
-  
-  - flash separated pieces of the firmware.
+
+  - flash separated pieces of the firmware
+  - flash full FIASCO image
+  - load kernel & initfs without flashing
+  - cold-flash bricked device (without NOLO)
   - retrieve information about the device
   - reboot de mother board
-  - extract the current firmware pieces from the device (reverse flash)
+  - extract the current firmware pieces from the device (dump)
   - set the USB host/slave mode
-  - set the R&R mode
-  - identify firmware pieces
+  - set the R&R mode and flags
+  - pack/unpack FIASCO firmwares
+  - automatic piece identifier
 
 
-<b>*) What is NOLO?</b>
+*) What is NOLO?
 
   NOLO is the 'server-side' part of the flasher from Nokia. NOLO means
   NOkia LOader and it's composed by two pieces of the firmware that are
@@ -59,10 +63,10 @@ This file tries to collect a bunch of common questions/answers about flashing
   actions on the device.
 
 
-<b>*) How can I identify my device?</b>
+*) How can I identify my device?
 
   Theorically 770 and n800 have different USB device ID, but this is not
-  true at all. The first series of the n800 comes with the same usb-id 
+  true at all. The first series of the n800 comes with the same usb-id
   than 770. That's weird!
 
   So, the only way to identify the device is by asking nolo for the version
@@ -71,10 +75,6 @@ This file tries to collect a bunch of common questions/answers about flashing
   because it wouldn't work :)
 
 
-<b>*) Can I unpack fiasco blobs?</b>
+*) Can I unpack FIASCO blobs?
 
-  Actually the fiasco format is not yet supported and not planned in
-  short term. There is no real need for supporting a proprietary
-  format image containing a proprietary system.
-
-  We can just use tarballs containing the desired pieces.
+  Yes, last version of 0xFFFF has full support of FIASCO images.

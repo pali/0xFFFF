@@ -1,16 +1,14 @@
-<b>Dumping the firmware</b>
+Dumping the firmware:
 
 This technique consists on reconstructing a firmware image dumping
 pieces at certains offsets of the device internal memory.
 
-<b></b>
-
-<b>Technical details:</b>
+Technical details:
 
  * The internal flash memory is exposed to the system as MTD devices.
  * Is possible to dump the individual sections of a flashed firmware.
  *
- * READ src/dump.c for detailed information.
+ * READ src/local.c for detailed information.
 
    mtd0 - contains xloader and sencodary pieces of the bootloaders
           0x00000 - xloader.bin    (size is 0x03600)
