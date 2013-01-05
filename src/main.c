@@ -300,7 +300,7 @@ static const char * image_tmp[] = {
 
 static const char * image_tmp_name(enum image_type type) {
 
-	if ( type > sizeof(image_tmp)/sizeof(image_tmp[0]) )
+	if ( type >= sizeof(image_tmp)/sizeof(image_tmp[0]) )
 		return NULL;
 
 	if ( ! image_tmp[type] || ! image_tmp[type][0] )
@@ -1287,7 +1287,6 @@ int main(int argc, char **argv) {
 							ERROR_INFO("Renaming failed");
 
 					}
-
 
 				}
 

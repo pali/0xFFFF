@@ -540,7 +540,7 @@ enum image_type image_type_from_string(const char * type) {
 
 const char * image_type_to_string(enum image_type type) {
 
-	if ( type > sizeof(image_types)/sizeof(image_types[0]) )
+	if ( type >= sizeof(image_types)/sizeof(image_types[0]) )
 		return NULL;
 
 	return image_types[type];
