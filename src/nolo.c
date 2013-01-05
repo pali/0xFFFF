@@ -121,7 +121,7 @@ static int nolo_set_string(struct usb_device_info * dev, char * str, char * arg)
 
 static int nolo_get_string(struct usb_device_info * dev, char * str, char * out, size_t size) {
 
-	int ret;
+	int ret = 0;
 
 	if ( usb_control_msg(dev->udev, NOLO_WRITE, NOLO_STRING, 0, 0, str, strlen(str), 2000) < 0 )
 		ERROR_RETURN("NOLO_STRING failed", -1);
@@ -522,7 +522,7 @@ int nolo_reboot_device(struct usb_device_info * dev) {
 
 int nolo_get_root_device(struct usb_device_info * dev) {
 
-	uint8_t device;
+	uint8_t device = 0;
 	if ( usb_control_msg(dev->udev, NOLO_QUERY, NOLO_GET, 0, NOLO_ROOT_DEVICE, (char *)&device, 1, 2000) < 0 )
 		ERROR_RETURN("Cannot get root device", -1);
 	return device;
@@ -542,7 +542,7 @@ int nolo_set_root_device(struct usb_device_info * dev, int device) {
 
 int nolo_get_usb_host_mode(struct usb_device_info * dev) {
 
-	uint32_t enabled;
+	uint32_t enabled = 0;
 	if ( usb_control_msg(dev->udev, NOLO_QUERY, NOLO_GET, 0, NOLO_USB_HOST_MODE, (void *)&enabled, 4, 2000) < 0 )
 		ERROR_RETURN("Cannot get USB host mode status", -1);
 	return enabled ? 1 : 0;
@@ -562,7 +562,7 @@ int nolo_set_usb_host_mode(struct usb_device_info * dev, int enable) {
 
 int nolo_get_rd_mode(struct usb_device_info * dev) {
 
-	uint8_t enabled;
+	uint8_t enabled = 0;
 	if ( usb_control_msg(dev->udev, NOLO_QUERY, NOLO_GET, 0, NOLO_RD_MODE, (char *)&enabled, 1, 2000) < 0 )
 		ERROR_RETURN("Cannot get R&D mode status", -1);
 	return enabled ? 1 : 0;
@@ -584,7 +584,7 @@ int nolo_set_rd_mode(struct usb_device_info * dev, int enable) {
 
 int nolo_get_rd_flags(struct usb_device_info * dev, char * flags, size_t size) {
 
-	uint16_t add_flags;
+	uint16_t add_flags = 0;
 	char * ptr = flags;
 
 	if ( usb_control_msg(dev->udev, NOLO_QUERY, NOLO_GET, 0, NOLO_ADD_RD_FLAGS, (char *)&add_flags, 2, 2000) < 0 )
@@ -748,7 +748,7 @@ int nolo_set_initfs_ver(struct usb_device_info * dev, const char * ver) {
 
 int nolo_get_nolo_ver(struct usb_device_info * dev, char * ver, size_t size) {
 
-	uint32_t version;
+	uint32_t version = 0;
 
 	if ( usb_control_msg(dev->udev, NOLO_QUERY, NOLO_GET_NOLO_VERSION, 0, 0, (char *)&version, 4, 2000) < 0 )
 		ERROR_RETURN("Cannot get NOLO version", -1);
