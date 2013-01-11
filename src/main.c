@@ -394,8 +394,8 @@ int main(int argc, char **argv) {
 	int have_initfs = 0;
 	struct image * image_2nd = NULL;
 	struct image * image_secondary = NULL;
-	struct image * image_kernel = NULL;
-	struct image * image_initfs = NULL;
+	struct image_list * image_kernel = NULL;
+	struct image_list * image_initfs = NULL;
 
 	struct fiasco * fiasco_in = NULL;
 	struct fiasco * fiasco_out = NULL;
@@ -991,9 +991,9 @@ int main(int argc, char **argv) {
 					struct image_list * next = image_ptr->next;
 					if ( image_ptr->image->type == IMAGE_KERNEL ) {
 						if ( have_kernel == 0 ) {
-							image_kernel = image_ptr->image;
+							image_kernel = image_ptr;
 							have_kernel = 1;
-						} else if ( have_kernel == 1 && image_kernel != image_ptr->image ) {
+						} else if ( have_kernel == 1 && image_kernel != image_ptr ) {
 							image_kernel = NULL;
 							have_kernel = 2;
 						}
@@ -1006,9 +1006,9 @@ int main(int argc, char **argv) {
 					struct image_list * next = image_ptr->next;
 					if ( image_ptr->image->type == IMAGE_INITFS ) {
 						if ( have_initfs == 0 ) {
-							image_initfs = image_ptr->image;
+							image_initfs = image_ptr;
 							have_initfs = 1;
-						} else if ( have_initfs == 1 && image_initfs != image_ptr->image ) {
+						} else if ( have_initfs == 1 && image_initfs != image_ptr ) {
 							image_initfs = NULL;
 							have_initfs = 2;
 						}
@@ -1038,14 +1038,28 @@ int main(int argc, char **argv) {
 			/* load */
 			if ( dev_load ) {
 				ret = 0;
+
 				if ( image_kernel )
-					ret = dev_load_image(dev, image_kernel);
+					ret = dev_load_image(dev, image_kernel->image);
 				if ( ret < 0 )
 					goto again;
+
+				if ( image_kernel == image_first )
+					image_first = image_first->next;
+				image_list_unlink(image_kernel);
+				free(image_kernel);
+				image_kernel = NULL;
+
 				if ( image_initfs )
-					ret = dev_load_image(dev, image_initfs);
+					ret = dev_load_image(dev, image_initfs->image);
 				if ( ret < 0 )
 					goto again;
+
+				if ( image_initfs == image_first )
+					image_first = image_first->next;
+				image_list_unlink(image_initfs);
+				free(image_initfs);
+				image_initfs = NULL;
 			}
 
 			/* flash */
