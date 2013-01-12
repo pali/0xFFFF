@@ -1037,29 +1037,29 @@ int main(int argc, char **argv) {
 
 			/* load */
 			if ( dev_load ) {
-				ret = 0;
-
-				if ( image_kernel )
+				if ( image_kernel ) {
 					ret = dev_load_image(dev, image_kernel->image);
-				if ( ret < 0 )
-					goto again;
+					if ( ret < 0 )
+						goto again;
 
-				if ( image_kernel == image_first )
-					image_first = image_first->next;
-				image_list_unlink(image_kernel);
-				free(image_kernel);
-				image_kernel = NULL;
+					if ( image_kernel == image_first )
+						image_first = image_first->next;
+					image_list_unlink(image_kernel);
+					free(image_kernel);
+					image_kernel = NULL;
+				}
 
-				if ( image_initfs )
+				if ( image_initfs ) {
 					ret = dev_load_image(dev, image_initfs->image);
-				if ( ret < 0 )
-					goto again;
+					if ( ret < 0 )
+						goto again;
 
-				if ( image_initfs == image_first )
-					image_first = image_first->next;
-				image_list_unlink(image_initfs);
-				free(image_initfs);
-				image_initfs = NULL;
+					if ( image_initfs == image_first )
+						image_first = image_first->next;
+					image_list_unlink(image_initfs);
+					free(image_initfs);
+					image_initfs = NULL;
+				}
 			}
 
 			/* flash */
