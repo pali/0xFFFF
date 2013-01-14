@@ -7,3 +7,7 @@ LDFLAGS+=-L/usr/pkg/lib -Wl,-R/usr/pkg/lib
 
 HAVE_USB=1
 HAVE_GUI=1
+
+# For linking against this copy of libusb
+#CFLAGS+=-I../libusb
+
