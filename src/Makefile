@@ -19,7 +19,7 @@ $(BIN): $(OBJS) Makefile ../config.mk
 	$(CC) $(CFLAGS) $(CPPFLAGS) -c -o $@ $<
 
 install: $(BIN)
-	$(INSTALL) -D -m 755 $(BIN) $(DESTDIR)$(PREFIX)/bin/
+	$(INSTALL) -D -m 755 $(BIN) $(DESTDIR)$(PREFIX)/bin/$(BIN)
 
 uninstall:
 	$(RM) $(DESTDIR)$(PREFIX)/bin/$(BIN)
