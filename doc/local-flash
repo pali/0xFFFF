@@ -22,3 +22,15 @@ that it is dangerous and you can brick your device.
 
 But feel free to send feedback to provide a full support for local
 flashing on 770 and n800.
+
+
+Nokia N900 using ubi layout on top of /dev/mtd5 rootfs partition. Therefor
+formatting rootfs should be done via ubiformat tool which preserve erase counters.
+
+Erasing N900 rootfs:
+
+ $ ubiformat /dev/mtd5
+
+Flashing new ubi image to N900 rootfs:
+
+ $ ubiformat /dev/mtd5 -s 512 -O 512 -f image.ubi
