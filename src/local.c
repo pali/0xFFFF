@@ -238,11 +238,11 @@ struct nanddump_args {
 	int length;
 };
 
-static struct nanddump_args nanddump_n900[] = {
+static struct nanddump_args nanddump_rx51[] = {
 	[IMAGE_XLOADER]   = { 1, 0, 0x00000000, 0x00004000 },
 	[IMAGE_SECONDARY] = { 1, 0, 0x00004000, 0x0001C000 },
 	[IMAGE_KERNEL]    = { 1, 3, 0x00000800, 0x001FF800 },
-	[IMAGE_INITFS]    = { 1, 4, 0x00000800, 0x001FF800 },
+	[IMAGE_INITFS]    = { 1, 4, 0x00000000, 0x00200000 },
 	[IMAGE_ROOTFS]    = { 1, 5, 0x00000000, 0x0fb40000 },
 };
 
@@ -251,7 +251,7 @@ static struct nanddump_args nanddump[] = {
 	[IMAGE_XLOADER]   = { 1, 0, 0x00000200, 0x00003E00 },
 	[IMAGE_SECONDARY] = { 1, 0, 0x00004000, 0x0001C000 },
 	[IMAGE_KERNEL]    = { 1, 2, 0x00000800, 0x001FF800 },
-	[IMAGE_INITFS]    = { 1, 3, 0x00000800, 0x001FF800 },
+	[IMAGE_INITFS]    = { 1, 3, 0x00000000, 0x00200000 },
 	[IMAGE_ROOTFS]    = { 1, 4, 0x00000000, 0x0fb80000 },
 };
 
@@ -355,12 +355,12 @@ int local_dump_image(enum image_type image, const char * file) {
 
 		if ( device == DEVICE_RX_51 ) {
 
-			if ( image >= sizeof(nanddump_n900)/sizeof(nanddump_n900[0]) || ! nanddump_n900[image].valid ) {
+			if ( image >= sizeof(nanddump_rx51)/sizeof(nanddump_rx51[0]) || ! nanddump_rx51[image].valid ) {
 				ERROR("Unsuported image type: %s", image_type_to_string(image));
 				goto clean;
 			}
 
-			ret = local_nanddump(file, nanddump_n900[image].mtd, nanddump_n900[image].offset, nanddump_n900[image].length);
+			ret = local_nanddump(file, nanddump_rx51[image].mtd, nanddump_rx51[image].offset, nanddump_rx51[image].length);
 
 		} else {
 
