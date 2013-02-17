@@ -346,7 +346,7 @@ int init_cold_flash(struct usb_device_info * dev) {
 	if ( memcmp(asic_buffer+1, "\x01\x05\x01", 3) != 0 )
 		ERROR_RETURN("Invalid ASIC ID", -1);
 
-	/* ID Subblock - OMAP chip version (check for OMAP35x) */
+	/* ID Subblock - OMAP chip version (check for OMAP3430) */
 	if ( memcmp(asic_buffer+4, "\x34\x30\x07", 3) != 0 )
 		ERROR_RETURN("Invalid ASIC ID", -1);
 
@@ -366,7 +366,7 @@ int init_cold_flash(struct usb_device_info * dev) {
 	if ( memcmp(asic_buffer+58, "\x15\x09\x01", 3) != 0 )
 		ERROR_RETURN("Invalid ASIC ID", -1);
 
-	printf("Detected OMAP35x chip\n");
+	printf("Detected OMAP3430 chip\n");
 
 	return 0;
 
