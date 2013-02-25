@@ -83,9 +83,9 @@
 static void nolo_error_log(struct usb_device_info * dev, int only_clear) {
 
 	char buf[2048];
-	size_t i;
+	size_t i, count;
 
-	while ( 1 ) {
+	for ( count = 0; count < 20; ++count ) {
 
 		memset(buf, 0, sizeof(buf));
 
