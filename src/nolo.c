@@ -139,6 +139,9 @@ static int nolo_identify_string(struct usb_device_info * dev, const char * str, 
 
 static int nolo_set_string(struct usb_device_info * dev, char * str, char * arg) {
 
+	if ( simulate )
+		return 0;
+
 	if ( usb_control_msg(dev->udev, NOLO_WRITE, NOLO_STRING, 0, 0, str, strlen(str), 2000) < 0 )
 		NOLO_ERROR_RETURN("NOLO_STRING failed", -1);
 
@@ -354,8 +357,11 @@ static int nolo_send_image(struct usb_device_info * dev, struct image * image, i
 		request = NOLO_SEND_IMAGE;
 
 	printf("Sending image header...\n");
-	if ( usb_control_msg(dev->udev, NOLO_WRITE, request, 0, 0, buf, ptr-buf, 2000) < 0 )
-		NOLO_ERROR_RETURN("Sending image header failed", -1);
+
+	if ( ! simulate ) {
+		if ( usb_control_msg(dev->udev, NOLO_WRITE, request, 0, 0, buf, ptr-buf, 2000) < 0 )
+			NOLO_ERROR_RETURN("Sending image header failed", -1);
+	}
 
 	if ( flash )
 		printf("Sending and flashing image...\n");
@@ -371,9 +377,11 @@ static int nolo_send_image(struct usb_device_info * dev, struct image * image, i
 		ret = image_read(image, buf, need);
 		if ( ret == 0 )
 			break;
-		if ( usb_bulk_write(dev->udev, 2, buf, ret, 5000) != ret ) {
-			PRINTF_END();
-			NOLO_ERROR_RETURN("Sending image failed", -1);
+		if ( ! simulate ) {
+			if ( usb_bulk_write(dev->udev, 2, buf, ret, 5000) != ret ) {
+				PRINTF_END();
+				NOLO_ERROR_RETURN("Sending image failed", -1);
+			}
 		}
 		readed += ret;
 		printf_progressbar(readed, image->size);
@@ -381,8 +389,10 @@ static int nolo_send_image(struct usb_device_info * dev, struct image * image, i
 
 	if ( flash ) {
 		printf("Finishing flashing...\n");
-		if ( usb_control_msg(dev->udev, NOLO_WRITE, NOLO_SEND_FLASH_FINISH, 0, 0, NULL, 0, 30000) < 0 )
-			NOLO_ERROR_RETURN("Finishing failed", -1);
+		if ( ! simulate ) {
+			if ( usb_control_msg(dev->udev, NOLO_WRITE, NOLO_SEND_FLASH_FINISH, 0, 0, NULL, 0, 30000) < 0 )
+				NOLO_ERROR_RETURN("Finishing failed", -1);
+		}
 	}
 
 	printf("Done\n");
@@ -435,8 +445,11 @@ int nolo_flash_image(struct usb_device_info * dev, struct image * image) {
 	if ( ! flash && index >= 0 ) {
 
 		printf("Flashing image...\n");
-		if ( usb_control_msg(dev->udev, NOLO_WRITE, NOLO_FLASH_IMAGE, 0, index, NULL, 0, 10000) )
-			NOLO_ERROR_RETURN("Flashing failed", -1);
+
+		if ( ! simulate ) {
+			if ( usb_control_msg(dev->udev, NOLO_WRITE, NOLO_FLASH_IMAGE, 0, index, NULL, 0, 10000) )
+				NOLO_ERROR_RETURN("Flashing failed", -1);
+		}
 
 		printf("Done\n");
 
