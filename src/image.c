@@ -305,6 +305,9 @@ struct image * image_alloc_from_shared_fd(int fd, size_t size, size_t offset, ui
 
 void image_free(struct image * image) {
 
+	if ( ! image )
+		return;
+
 	if ( ! image->is_shared_fd ) {
 		close(image->fd);
 		image->fd = -1;
