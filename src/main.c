@@ -241,9 +241,9 @@ void filter_images_by_type(enum image_type type, struct image_list ** image_firs
 	while ( image_ptr ) {
 		struct image_list * next = image_ptr->next;
 		if ( image_ptr->image->type != type ) {
-			image_list_del(image_ptr);
 			if ( image_ptr == *image_first )
 				*image_first = next;
+			image_list_del(image_ptr);
 		}
 		image_ptr = next;
 	}
@@ -265,9 +265,9 @@ void filter_images_by_device(enum device device, struct image_list ** image_firs
 			device_ptr = device_ptr->next;
 		}
 		if ( ! match ) {
-			image_list_del(image_ptr);
 			if ( image_ptr == *image_first )
 				*image_first = next;
+			image_list_del(image_ptr);
 		}
 		image_ptr = next;
 	}
@@ -280,9 +280,9 @@ void filter_images_by_hwrev(int16_t hwrev, struct image_list ** image_first) {
 	while ( image_ptr ) {
 		struct image_list * next = image_ptr->next;
 		if ( ! image_hwrev_is_valid(image_ptr->image, hwrev) ) {
-			image_list_del(image_ptr);
 			if ( image_ptr == *image_first )
 				*image_first = next;
+			image_list_del(image_ptr);
 		}
 		image_ptr = next;
 	}
@@ -691,11 +691,11 @@ int main(int argc, char **argv) {
 		while ( image_ptr ) {
 			struct image_list * next = image_ptr->next;
 			if ( image_ptr->image->type == IMAGE_XLOADER ) {
+				if ( image_ptr == image_unorder_first )
+					image_unorder_first = next;
 				image_list_add(&image_first, image_ptr->image);
 				image_list_unlink(image_ptr);
 				free(image_ptr);
-				if ( image_ptr == image_unorder_first )
-					image_unorder_first = next;
 			}
 			image_ptr = next;
 		}
@@ -711,11 +711,11 @@ int main(int argc, char **argv) {
 					image_secondary = NULL;
 					have_secondary = 2;
 				}
+				if ( image_ptr == image_unorder_first )
+					image_unorder_first = next;
 				image_list_add(&image_first, image_ptr->image);
 				image_list_unlink(image_ptr);
 				free(image_ptr);
-				if ( image_ptr == image_unorder_first )
-					image_unorder_first = next;
 			}
 			image_ptr = next;
 		}
@@ -732,11 +732,11 @@ int main(int argc, char **argv) {
 					have_2nd = 2;
 				}
 			}
+			if ( image_ptr == image_unorder_first )
+				image_unorder_first = next;
 			image_list_add(&image_first, image_ptr->image);
 			image_list_unlink(image_ptr);
 			free(image_ptr);
-			if ( image_ptr == image_unorder_first )
-				image_unorder_first = next;
 			image_ptr = next;
 		}
 
@@ -780,10 +780,10 @@ int main(int argc, char **argv) {
 		struct image_list * next = image_ptr->next;
 		if ( image_ptr->image->type == IMAGE_UNKNOWN ) {
 			WARNING("Removing unknown image (specified by %s %s)", image_ptr->image->orig_filename ? "file" : "fiasco", image_ptr->image->orig_filename ? image_ptr->image->orig_filename : "image");
-			image_list_unlink(image_ptr);
-			free(image_ptr);
 			if ( image_ptr == image_first )
 				image_first = next;
+			image_list_unlink(image_ptr);
+			free(image_ptr);
 		}
 		image_ptr = next;
 	}
@@ -1044,6 +1044,9 @@ int main(int argc, char **argv) {
 
 					if ( image_kernel == image_first )
 						image_first = image_first->next;
+					if ( fiasco_in && image_kernel == fiasco_in->first )
+						fiasco_in->first = fiasco_in->first->next;
+
 					image_list_unlink(image_kernel);
 					free(image_kernel);
 					image_kernel = NULL;
@@ -1056,6 +1059,9 @@ int main(int argc, char **argv) {
 
 					if ( image_initfs == image_first )
 						image_first = image_first->next;
+					if ( fiasco_in && image_kernel == fiasco_in->first )
+						fiasco_in->first = fiasco_in->first->next;
+
 					image_list_unlink(image_initfs);
 					free(image_initfs);
 					image_initfs = NULL;
@@ -1070,10 +1076,14 @@ int main(int argc, char **argv) {
 					ret = dev_flash_image(dev, image_ptr->image);
 					if ( ret < 0 )
 						goto again;
+
+					if ( image_ptr == image_first )
+						image_first = image_first->next;
+					if ( fiasco_in && image_kernel == fiasco_in->first )
+						fiasco_in->first = fiasco_in->first->next;
+
 					image_list_unlink(image_ptr);
 					free(image_ptr);
-					if ( image_ptr == image_first )
-						image_first = next;
 					image_ptr = next;
 				}
 			}
