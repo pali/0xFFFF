@@ -10,10 +10,17 @@
                _/ ___|_.|__|
                 '`
 
-The 'Open Free Fiasco Firmware Flasher' aka 0xFFFF utility implements a free
-(under the GPLv3 license) userspace handler for the NOLO bootloader and
-extended features for flashing, dumping and getting information for the
-Nokia Internet Tablets.
+0xFFFF is Open Free Fiasco Firmware Flasher for Maemo devices. It support
+generating and unpacking FIASCO images on local computer. Useful for editing
+Maemo firmware package for future flash. It support via USB flashing any image
+type to Maemo device and also \"cold\" flashing which means flashing dead device
+with erased bootloader. There is support for booting kernel via USB without
+flashing to NAND and also changing configuration of Maemo device (enable/disable
+R&D mode, changing HW revision strings, ...).
+
+0xFFFF is alternative tool to proprietary Nokia flasher-3.5 and fiasco-gen.
+0xFFFF generate compatible FIASCO images and also accept FIASCO images generated
+by Nokia fiasco-gen.
 
 Use it with CARE. This is an experimental tool and it can brick your device.
 It's not suposed to be stable, so nokia will probably release incompatible
