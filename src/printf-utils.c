@@ -77,7 +77,8 @@ void printf_and_wait(const char * format, ...) {
 	FD_SET(0, &rfds);
 
 	while ( select(1, &rfds, NULL, NULL, &tv) == 1 )
-		read(0, &c, 1);
+		if ( read(0, &c, 1) < 0 )
+			break;
 
 	va_start(ap, format);
 	vprintf(format, ap);
@@ -88,8 +89,7 @@ void printf_and_wait(const char * format, ...) {
 	FD_SET(0, &rfds);
 
 	while ( select(1, &rfds, NULL, NULL, NULL) == 1 ) {
-		read(0, &c, 1);
-		if ( c == '\n' )
+		if ( read(0, &c, 1) < 0 || c == '\n' )
 			break;
 	}
 
