@@ -37,7 +37,7 @@
 #include "operations.h"
 
 static void show_title(void) {
-	printf("0xFFFF v%s  // The Free Fiasco Firmware Flasher\n", VERSION);
+	printf("0xFFFF v%s  // Open Free Fiasco Firmware Flasher\n", VERSION);
 }
 
 static void show_usage(void) {
