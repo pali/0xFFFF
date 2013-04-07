@@ -294,7 +294,8 @@ int local_dump_image(enum image_type image, const char * file) {
 				continue;
 
 			buf[0] = 0;
-			read(fd, buf, sizeof(buf));
+			if ( read(fd, buf, sizeof(buf)) < 0 )
+				buf[0] = 0;
 			close(fd);
 
 			if ( strncmp(buf, "internal", strlen("internal")) != 0 )
@@ -413,7 +414,8 @@ int local_dump_image(enum image_type image, const char * file) {
 		unlink(file);
 	} else if ( nlen != len ) {
 		printf("Truncating file %s to %d bytes...\n", file, (int)nlen);
-		ftruncate(fd, nlen);
+		if ( ftruncate(fd, nlen) < 0 )
+			ERROR_INFO("Cannot truncate file %s", file);
 	}
 
 clean:
