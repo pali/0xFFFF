@@ -1180,7 +1180,8 @@ int main(int argc, char **argv) {
 						dev_dump_image(dev, i, image_tmp_name(i));
 
 				if ( buf[0] )
-					chdir(buf);
+					if ( chdir(buf) < 0 )
+						ERROR_INFO("Cannot chdir back to %s", buf);
 
 			}
 
