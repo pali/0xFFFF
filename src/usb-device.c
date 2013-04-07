@@ -52,7 +52,7 @@ static const char * usb_flash_protocols[] = {
 
 const char * usb_flash_protocol_to_string(enum usb_flash_protocol protocol) {
 
-	if ( protocol > sizeof(usb_flash_protocols) )
+	if ( protocol >= sizeof(usb_flash_protocols)/sizeof(usb_flash_protocols[0]) )
 		return NULL;
 
 	return usb_flash_protocols[protocol];
