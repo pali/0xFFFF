@@ -20,7 +20,6 @@
 #include <stdlib.h>
 #include <stdint.h>
 #include <string.h>
-#include <math.h>
 
 #include "global.h"
 
@@ -143,7 +142,7 @@ char * hwrevs_alloc_to_string(const int16_t * hwrevs) {
 	int len = 0;
 
 	for ( i = 0; hwrevs[i] != -1; ++i )
-		len += log10(hwrevs[i]+1)+2;
+		len += 7;
 
 	ret = calloc(1, len+1);
 	if ( ! ret )
