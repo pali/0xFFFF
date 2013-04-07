@@ -46,8 +46,8 @@ static struct usb_flash_device usb_devices[] = {
 static const char * usb_flash_protocols[] = {
 	[FLASH_NOLO] = "NOLO",
 	[FLASH_COLD] = "Cold flashing",
-	[FLASH_MKII] = "Mk II protocol",
-	[FLASH_DISK] = "RAW disk",
+/*	[FLASH_MKII] = "Mk II protocol", */
+/*	[FLASH_DISK] = "RAW disk", */
 };
 
 const char * usb_flash_protocol_to_string(enum usb_flash_protocol protocol) {
