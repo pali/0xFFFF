@@ -256,13 +256,30 @@ static struct nanddump_args nanddump_rx4x[] = {
 };
 
 /* FIXME: Is this table correct? */
-static struct nanddump_args nanddump[] = {
+static struct nanddump_args nanddump_old[] = {
 	[IMAGE_XLOADER]   = { 1, 0, 0x00000200, 0x00003E00 },
 	[IMAGE_SECONDARY] = { 1, 0, 0x00004000, 0x0001C000 },
 	[IMAGE_KERNEL]    = { 1, 2, 0x00000800, 0x001FF800 },
 	[IMAGE_INITFS]    = { 1, 3, 0x00000000, 0x00200000 },
 	[IMAGE_ROOTFS]    = { 1, 4, 0x00000000, 0x0fb80000 },
 };
+
+struct nanddump_device {
+	size_t count;
+	struct nanddump_args * args;
+};
+
+#define NANDDUMP(device, array) [device] = { .count = sizeof(array)/sizeof(array[0]), .args = array }
+
+static struct nanddump_device nanddump[] = {
+	NANDDUMP(DEVICE_SU_18, nanddump_old),
+	NANDDUMP(DEVICE_RX_34, nanddump_old),
+	NANDDUMP(DEVICE_RX_44, nanddump_rx4x),
+	NANDDUMP(DEVICE_RX_48, nanddump_rx4x),
+	NANDDUMP(DEVICE_RX_51, nanddump_rx51),
+};
+
+#undef NANDDUMP
 
 int local_dump_image(enum image_type image, const char * file) {
 
@@ -363,25 +380,17 @@ int local_dump_image(enum image_type image, const char * file) {
 
 	} else {
 
-		if ( device == DEVICE_RX_51 ) {
-
-			if ( image >= sizeof(nanddump_rx51)/sizeof(nanddump_rx51[0]) || ! nanddump_rx51[image].valid ) {
-				ERROR("Unsuported image type: %s", image_type_to_string(image));
-				goto clean;
-			}
-
-			ret = local_nanddump(file, nanddump_rx51[image].mtd, nanddump_rx51[image].offset, nanddump_rx51[image].length);
-
-		} else {
-
-			if ( image >= sizeof(nanddump)/sizeof(nanddump[0]) || ! nanddump[image].valid ) {
-				ERROR("Unsuported image type: %s", image_type_to_string(image));
-				goto clean;
-			}
-
-			ret = local_nanddump(file, nanddump[image].mtd, nanddump[image].offset, nanddump[image].length);
-
+		if ( device >= sizeof(nanddump)/sizeof(nanddump[0]) ) {
+			ERROR("Unsupported device");
+			goto clean;
 		}
+
+		if ( image >= nanddump[device].count ) {
+			ERROR("Unsuported image type: %s", image_type_to_string(image));
+			goto clean;
+		}
+
+		ret = local_nanddump(file, nanddump[device].args[image].mtd, nanddump[device].args[image].offset, nanddump[device].args[image].length);
 
 	}
 
