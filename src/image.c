@@ -368,7 +368,7 @@ size_t image_read(struct image * image, void * buf, size_t count) {
 		IMAGE_STORE_CUR(image);
 
 		if ( ret < 0 )
-			return ret;
+			return 0;
 
 	}
 
