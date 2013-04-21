@@ -3,6 +3,10 @@ include ../config.mk
 PREFIX ?= /usr/local
 INSTALL ?= install
 
+CC = gcc
+CROSS_CC = $(CROSS_COMPILE)$(CC)
+HOST_CC = $(HOST_COMPILE)$(CC)
+
 CPPFLAGS += -DVERSION=\"$(VERSION)\" -D_GNU_SOURCE
 CFLAGS += -W -Wall -O2 -pedantic -std=c99
 LIBS += -lusb
@@ -16,13 +20,13 @@ MANGEN = mangen
 all: $(BIN) $(BIN).1
 
 $(BIN): $(OBJS) $(DEPENDS)
-	$(CC) $(CFLAGS) $(LDFLAGS) -o $(BIN) $(OBJS) $(LIBS)
+	$(CROSS_CC) $(CFLAGS) $(LDFLAGS) -o $(BIN) $(OBJS) $(LIBS)
 
-$(MANGEN): $(MANGEN).o $(DEPENDS)
-	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $<
+$(MANGEN): $(MANGEN).c $(DEPENDS)
+	$(HOST_CC) $(CFLAGS) $(CPPFLAGS) $(LDFLAGS) -o $@ $<
 
 $(BIN).1: $(BIN) $(MANGEN) $(DEPENDS)
-	./$(MANGEN) > $@
+	./$(MANGEN) > $@ || ( $(RM) $@; exit 1 )
 
 libusb-sniff-32.so: libusb-sniff.c $(DEPENDS)
 	$(CC) $(CFLAGS) $(LDFLAGS) -fPIC -ldl -shared -m32 -o $@ $<
@@ -31,7 +35,7 @@ libusb-sniff-64.so: libusb-sniff.c $(DEPENDS)
 	$(CC) $(CFLAGS) $(LDFLAGS) -fPIC -ldl -shared -m64 -o $@ $<
 
 %.o: %.c $(DEPENDS)
-	$(CC) $(CFLAGS) $(CPPFLAGS) -c -o $@ $<
+	$(CROSS_CC) $(CFLAGS) $(CPPFLAGS) -c -o $@ $<
 
 install: $(BIN) $(BIN).1
 	$(INSTALL) -D -m 755 $(BIN) $(DESTDIR)$(PREFIX)/bin/$(BIN)
@@ -42,4 +46,4 @@ uninstall:
 	$(RM) $(DESTDIR)$(PREFIX)/share/man/man1/$(BIN).1
 
 clean:
-	-$(RM) $(OBJS) $(BIN) $(MANGEN) $(MANGEN).o $(BIN).1 libusb-sniff-32.so libusb-sniff-64.so
+	-$(RM) $(OBJS) $(BIN) $(MANGEN) $(BIN).1 libusb-sniff-32.so libusb-sniff-64.so
