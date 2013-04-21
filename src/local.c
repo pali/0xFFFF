@@ -376,7 +376,7 @@ int local_dump_image(enum image_type image, const char * file) {
 			goto clean;
 		}
 
-		ret = disk_dump_raw(blk, image_type_to_string(image));
+		ret = disk_dump_raw(blk, file);
 
 	} else {
 
