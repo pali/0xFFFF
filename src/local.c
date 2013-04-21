@@ -247,6 +247,15 @@ static struct nanddump_args nanddump_rx51[] = {
 };
 
 /* FIXME: Is this table correct? */
+static struct nanddump_args nanddump_rx4x[] = {
+	[IMAGE_XLOADER]   = { 1, 0, 0x00000200, 0x00003E00 },
+	[IMAGE_SECONDARY] = { 1, 0, 0x00004000, 0x0001C000 },
+	[IMAGE_KERNEL]    = { 1, 2, 0x00000800, 0x0021F800 },
+	[IMAGE_INITFS]    = { 1, 3, 0x00000000, 0x00400000 },
+	[IMAGE_ROOTFS]    = { 1, 4, 0x00000000, 0x0f960000 },
+};
+
+/* FIXME: Is this table correct? */
 static struct nanddump_args nanddump[] = {
 	[IMAGE_XLOADER]   = { 1, 0, 0x00000200, 0x00003E00 },
 	[IMAGE_SECONDARY] = { 1, 0, 0x00004000, 0x0001C000 },
