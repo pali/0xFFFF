@@ -442,7 +442,7 @@ void image_list_unlink(struct image_list * list) {
 
 }
 
-static uint16_t do_hash(uint16_t * b, int len) {
+static uint16_t do_hash(uint16_t * b, size_t len) {
 
 	uint16_t result = 0;
 
@@ -457,11 +457,11 @@ uint16_t image_hash_from_data(struct image * image) {
 
 	unsigned char buf[0x20000];
 	uint16_t hash = 0;
-	int ret;
+	size_t ret;
 
 	image_seek(image, 0);
-	while ( ( ret = image_read(image, &buf, sizeof(buf)) ) )
-		hash ^= do_hash((uint16_t *)&buf, ret);
+	while ( ( ret = image_read(image, buf, sizeof(buf)) ) )
+		hash ^= do_hash((uint16_t *)buf, ret);
 
 	return hash;
 }
