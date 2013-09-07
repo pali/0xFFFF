@@ -23,6 +23,7 @@
 #include <string.h>
 #include <errno.h>
 #include <ctype.h>
+#include <signal.h>
 
 #include <usb.h>
 
@@ -234,11 +235,21 @@ static struct usb_device_info * usb_search_device(struct usb_device * dev, int l
 
 }
 
+static volatile sig_atomic_t signal_quit;
+
+static void signal_handler(int signum) {
+
+	signal_quit = 1;
+	(void)signum;
+
+}
+
 struct usb_device_info * usb_open_and_wait_for_device(void) {
 
 	struct usb_bus * bus;
 	struct usb_device_info * ret = NULL;
 	int i = 0;
+	sighandler_t prev;
 	static char progress[] = {'/','-','\\', '|'};
 
 	usb_init();
@@ -247,7 +258,11 @@ struct usb_device_info * usb_open_and_wait_for_device(void) {
 	PRINTF_BACK();
 	printf("\n");
 
-	while ( 1 ) {
+	signal_quit = 0;
+
+	prev = signal(SIGINT, signal_handler);
+
+	while ( ! signal_quit ) {
 
 		PRINTF_LINE("Waiting for USB device... %c", progress[++i%sizeof(progress)]);
 
@@ -277,6 +292,9 @@ struct usb_device_info * usb_open_and_wait_for_device(void) {
 		usleep(0xc350); // 0.5s
 
 	}
+
+	if ( prev != SIG_ERR )
+		signal(SIGINT, prev);
 
 	PRINTF_BACK();
 	printf("\n");
