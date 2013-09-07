@@ -12,7 +12,7 @@ Description: Open Free Fiasco Firmware Flasher
  0xFFFF is Open Free Fiasco Firmware Flasher for Maemo devices. It support
  generating and unpacking FIASCO images on local computer. Useful for editing
  Maemo firmware package for future flash. It support via USB flashing any image
- type to Maemo device and also \"cold\" flashing which means flashing dead
+ type to Maemo device and also "cold" flashing which means flashing dead
  device with erased bootloader. There is support for booting kernel via USB
  without flashing to NAND and also changing configuration of Maemo device
  (enable/disable R&D mode, changing HW revision strings, ...).
