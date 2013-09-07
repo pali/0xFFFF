@@ -38,28 +38,18 @@ void printf_progressbar(unsigned long long part, unsigned long long total) {
 	pc = (int)(part*100/total);
 	(pc<0)?pc=0:(pc>100)?pc=100:0;
 
-#if HAVE_SQUEUE
-	if (qmode) {
-		char msg[128];
-		sprintf(msg, "%d%%", pc);
-		squeue_push2(p, "bar", msg, 0);
-	} else {
-#endif
-		PRINTF_BACK();
-		PRINTF_ADD("\x1b[K  %3d%% [", pc);
-		if (columns)
-			cols = atoi(columns);
-		if (cols > 115)
-			cols = 115;
-		cols-=15;
-		for(tmp=cols*pc/100;tmp;tmp--) PRINTF_ADD("#");
-		for(tmp=cols-(cols*pc/100);tmp;tmp--) PRINTF_ADD("-");
-		PRINTF_ADD("]");
-		if (part == total) PRINTF_END();
-		fflush(stdout);
-#if HAVE_SQUEUE
-	}
-#endif
+	PRINTF_BACK();
+	PRINTF_ADD("\x1b[K  %3d%% [", pc);
+	if (columns)
+		cols = atoi(columns);
+	if (cols > 115)
+		cols = 115;
+	cols-=15;
+	for(tmp=cols*pc/100;tmp;tmp--) PRINTF_ADD("#");
+	for(tmp=cols-(cols*pc/100);tmp;tmp--) PRINTF_ADD("-");
+	PRINTF_ADD("]");
+	if (part == total) PRINTF_END();
+	fflush(stdout);
 
 }
 
