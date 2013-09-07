@@ -52,7 +52,7 @@ static int root_device = -1;
 #define min(a, b) (a < b ? a : b)
 #define local_cal_copy(dest, from, len) strncpy(dest, from, min(len, sizeof(dest)-1))
 #define local_cal_read(cal, str, ptr, len) ( cal_read_block(cal, str, &ptr, &len, 0) == 0 && ptr )
-#define local_cal_store(cal, str, dest) do { void * ptr; unsigned long int len; if ( local_cal_read(cal, str, ptr, len) ) local_cal_copy(dest, ptr, len); } while ( 0 )
+#define local_cal_readcopy(cal, str, dest) do { void * ptr; unsigned long int len; if ( local_cal_read(cal, str, ptr, len) ) local_cal_copy(dest, ptr, len); } while ( 0 )
 
 static void local_cal_parse(void) {
 
@@ -64,16 +64,16 @@ static void local_cal_parse(void) {
 	if ( cal_init(&cal) < 0 || ! cal )
 		return;
 
-	local_cal_store(cal, "kernel-ver", kernel_ver);
-	local_cal_store(cal, "initfs-ver", kernel_ver);
-	local_cal_store(cal, "nolo-ver", nolo_ver);
-	local_cal_store(cal, "sw-release-ver", sw_ver);
-	local_cal_store(cal, "content-ver", content_ver);
-	local_cal_store(cal, "r&d_mode", rd_mode);
+	local_cal_readcopy(cal, "kernel-ver", kernel_ver);
+	local_cal_readcopy(cal, "initfs-ver", kernel_ver);
+	local_cal_readcopy(cal, "nolo-ver", nolo_ver);
+	local_cal_readcopy(cal, "sw-release-ver", sw_ver);
+	local_cal_readcopy(cal, "content-ver", content_ver);
+	local_cal_readcopy(cal, "r&d_mode", rd_mode);
 
 	/* overwritten hw revision */
 	memset(buf, 0, sizeof(buf));
-	local_cal_store(cal, "hw-ver", buf);
+	local_cal_readcopy(cal, "hw-ver", buf);
 
 	if ( buf[0] && sscanf(buf, "%hd", &hwrev) != 1 )
 		hwrev = -1;
@@ -82,7 +82,7 @@ static void local_cal_parse(void) {
 
 		/* original hw revision */
 		memset(buf, 0, sizeof(buf));
-		local_cal_store(cal, "phone-info", buf);
+		local_cal_readcopy(cal, "phone-info", buf);
 		buf[4] = 0;
 
 		if ( buf[0] && sscanf(buf, "%hd", &hwrev) != 1 )
@@ -91,11 +91,11 @@ static void local_cal_parse(void) {
 	}
 
 	buf[0] = 0;
-	local_cal_store(cal, "usb_host_mode", buf);
+	local_cal_readcopy(cal, "usb_host_mode", buf);
 	usb_host_mode = buf[0];
 
 	memset(buf, 0, sizeof(buf));
-	local_cal_store(cal, "root_device", buf);
+	local_cal_readcopy(cal, "root_device", buf);
 
 	if ( strcmp(buf, "mmc") == 0 )
 		root_device = 1;
