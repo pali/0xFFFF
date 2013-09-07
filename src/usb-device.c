@@ -135,7 +135,7 @@ static struct usb_device_info * usb_device_is_valid(struct usb_device * dev) {
 
 			usb_descriptor_info_print(udev, dev, product, sizeof(product));
 
-#if defined(LIBUSB_HAS_GET_DRIVER_NP) && defined(LIBUSB_HAS_DETACH_KERNEL_DRIVER_NP)
+#ifdef LIBUSB_HAS_DETACH_KERNEL_DRIVER_NP
 			PRINTF_LINE("Detaching kernel from USB interface...");
 			usb_detach_kernel_driver_np(udev, usb_devices[i].interface);
 #endif
