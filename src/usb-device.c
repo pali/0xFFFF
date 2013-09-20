@@ -249,7 +249,7 @@ struct usb_device_info * usb_open_and_wait_for_device(void) {
 	struct usb_bus * bus;
 	struct usb_device_info * ret = NULL;
 	int i = 0;
-	sighandler_t prev;
+	void (*prev)(int);
 	static char progress[] = {'/','-','\\', '|'};
 
 	usb_init();
