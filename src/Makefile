@@ -26,7 +26,9 @@ $(MANGEN): $(MANGEN).c $(DEPENDS)
 	$(HOST_CC) $(CFLAGS) $(CPPFLAGS) $(LDFLAGS) -o $@ $<
 
 $(BIN).1: $(BIN) $(MANGEN) $(DEPENDS)
-	./$(MANGEN) > $@ || ( $(RM) $@; exit 1 )
+	./$(MANGEN) > $@.tmp
+	(printf '.SH EXAMPLES\n.\n.PP\n.B\n'; cat ../doc/examples) | sed 's/^$$/.fi\n.\n.PP\n.B/' | sed '/^\.PP$$/N;/\.B/N;/\.fi/N;s/^\.PP\n\.B\n\.fi\n//' | sed '/^\.B/N;s/\n/ /;/^\.B/s/$$/\n.nf/' | sed '/^\.nf/N;/^\.fi/N;s/^\.nf\n.fi/./' >> $@.tmp
+	mv $@.tmp $@
 
 libusb-sniff-32.so: libusb-sniff.c $(DEPENDS)
 	$(CC) $(CFLAGS) $(LDFLAGS) -fPIC -ldl -shared -m32 -o $@ $<
@@ -46,4 +48,4 @@ uninstall:
 	$(RM) $(DESTDIR)$(PREFIX)/share/man/man1/$(BIN).1
 
 clean:
-	-$(RM) $(OBJS) $(BIN) $(MANGEN) $(BIN).1 libusb-sniff-32.so libusb-sniff-64.so
+	-$(RM) $(OBJS) $(BIN) $(MANGEN) $(BIN).1 $(BIN).1.tmp libusb-sniff-32.so libusb-sniff-64.so
