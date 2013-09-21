@@ -1,22 +1,22 @@
 Via USB:
 
-Load kernel & initfs and boot it:
-$ 0xFFFF -m initfs -m kernel -l -b
-
-Flash kernel:
-$ 0xFFFF -m kernel -f
-
-Flash FIASCO image:
-$ 0xFFFF -M image.fiasco -f
-
-Flash only kernel from FIASCO image:
-$ 0xFFFF -M image.fiasco -t kernel -f
-
-Reboot:
-$ 0xFFFF -r
-
 Identify device:
 $ 0xFFFF -I
+
+Load kernel & initfs and boot it with cmdline:
+$ 0xFFFF -m initfs:<file> -m kernel:<file> -l -b "<cmdline>"
+
+Flash kernel and reboot:
+$ 0xFFFF -m kernel:<file> -f -r
+
+Flash FIASCO image and reboot:
+$ 0xFFFF -M <file> -f -r
+
+Flash only kernel from FIASCO image and reboot:
+$ 0xFFFF -M <file> -t kernel -f -r
+
+Cold-Flash 2nd and secondery bootloaders:
+$ 0xFFFF -m 2nd:<file> -m secondary:<file> -c
 
 
 On device (need nanddump from mtd-utils):
@@ -24,23 +24,17 @@ On device (need nanddump from mtd-utils):
 Dump all images to current directory:
 $ 0xFFFF -e
 
-Dump all images to one fiasco file:
-$ 0xFFFF -E dump.fiasco
+Dump all images to one FIASCO file:
+$ 0xFFFF -E <file>
 
 
 FIASCO packaging:
 
-Show FIASCO archive:
-$ 0xFFFF -M image.fiasco -i
+Show FIASCO image content:
+$ 0xFFFF -M <file> -i
 
-Unpack fiasco image to current directory:
-$ 0xFFFF -M image.fiasco -u
+Unpack FIASCO image to current directory:
+$ 0xFFFF -M <file> -u
 
-Generate new fiasco image from files xloader.bin, nolo.bin, zImage, rootfs and append device&version information (xloader for RX-51 hw revision: 2101 and 2102, version 1.0)
+Generate new FIASCO image image.fiasco from files xloader.bin, nolo.bin, zImage, rootfs and append device&version information (xloader for RX-51 hw revision: 2101 and 2102, version 1.0)
 $ 0xFFFF -m RX-51:2101,2102:1.0:xloader:xloader.bin -m RX-51:2101,2102:1.0:secondary:nolo.bin -m 2.6.28:kernel:zImage -m rootfs -g image.fiasco
-
-For all options see help:
-$ 0xFFFF -h
-
-
-0xFFFF can detect more image types from file header. If autodetection not working, see syntax of param -m ([[[dev:[hw:]]ver:]type:]file[%lay])
