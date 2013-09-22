@@ -34,7 +34,7 @@ int main() {
 	if ( ! pipe )
 		return 1;
 
-	puts(".TH " NAME " 1 \"" __DATE__ "\" \"" INFO "\"");
+	puts(".TH " NAME " 1 \"" __DATE__ "\" \"" NAME " " VERSION "\"");
 	puts("");
 
 	puts(".SH NAME");
