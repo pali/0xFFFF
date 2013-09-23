@@ -9,7 +9,7 @@ The way to flash is using mtd-utils:
 
 This is an specific example plagied from initfs_flasher of bootmenu.
 
-The '-j' flag says that this is a jffs2 partition. Theorically this
+The '-j' flag says that this is a jffs2 partition. Theoretically this
 flag is not required for zImage, and the bootloader pieces.
 
 The '-a' creates the OOB data automatically, and the '-p' flag pads

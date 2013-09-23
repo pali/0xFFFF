@@ -55,9 +55,9 @@ This file tries to collect a bunch of common questions/answers about flashing
 
   On the n800 firmwares, these two pieces are distributed in a single
   file, but when flashing a 770, NOLO requires to provide the xloader
-  (without commiting) and then the secondary piece.
+  (without committing) and then the secondary piece.
 
-  This piece of software is closed source and is the responsable of
+  This piece of software is closed source and is the responsible of
   handling the requests from the client-side flasher. It provides a
   query-like interface via usb control messages for doing different
   actions on the device.
@@ -65,7 +65,7 @@ This file tries to collect a bunch of common questions/answers about flashing
 
 *) How can I identify my device?
 
-  Theorically 770 and n800 have different USB device ID, but this is not
+  Theoretically 770 and n800 have different USB device ID, but this is not
   true at all. The first series of the n800 comes with the same usb-id
   than 770. That's weird!
 

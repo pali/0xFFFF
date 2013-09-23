@@ -27,7 +27,7 @@ Over usb are used only these functions for communication:
  usb_bulk_write (ep=1, timeout=5000)
  usb_bulk_read (ep=129, timeout=5000)
 
-For every (request) message which is send by host, server send back responce.
+For every (request) message which is send by host, server send back response.
 Format of message every message is same. It has 6 bytes header and (at least)
 4 bytes body.
 
@@ -43,7 +43,7 @@ BODY
    4 bytes          --  type of message
    N bytes          --  data
 
-Reply message data always starts with char 0x00 (except pong responce).
+Reply message data always starts with char 0x00 (except pong response).
 
 Here are some sniffed messages from Nokia RX-51. First two messages seems to
 must be always protocol version exchange (first host ask for protocol version of

@@ -1,7 +1,7 @@
 Dumping the firmware:
 
 This technique consists on reconstructing a firmware image dumping
-pieces at certains offsets of the device internal memory.
+pieces at certain offsets of the device internal memory.
 
 Technical details:
 
@@ -10,7 +10,7 @@ Technical details:
  *
  * READ src/local.c for detailed information.
 
-   mtd0 - contains xloader and sencodary pieces of the bootloaders
+   mtd0 - contains xloader and secondary pieces of the bootloaders
           0x00000 - xloader.bin    (size is 0x03600)
           0x04000 - secondary.bin  (size is 0x15400)
           0x1FFFF - eof
@@ -27,7 +27,7 @@ Technical details:
 
    mtd4 - rootfs.jffs2 (a fucking copy of the above rootfs?)
 
-For dumping mtd parition is used tool nanddump. Here is example how to dump
+For dumping mtd partition is used tool nanddump. Here is example how to dump
 kernel image without padding to file zImage:
 
  $ nanddump -i -o -b -s 0x00000800 -l 0x001FF800 -f zImage /dev/mtd2
@@ -40,7 +40,7 @@ Params means:
 -l - "Length"
 -f - "Output file"
 
-Please note that some new versions of naddump have some options removed and
+Please note that some new versions of nanddump have some options removed and
 some are enabled by default. Before using check params of your nanddump version.
 
 

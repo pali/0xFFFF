@@ -15,7 +15,7 @@ $ 0xFFFF -M <file> -f -r
 Flash only kernel from FIASCO image and reboot:
 $ 0xFFFF -M <file> -t kernel -f -r
 
-Cold-Flash 2nd and secondery bootloaders:
+Cold-Flash 2nd and secondary bootloaders:
 $ 0xFFFF -m 2nd:<file> -m secondary:<file> -c
 
 

@@ -44,17 +44,17 @@ think that there are some things that should be fixed.
 
   The (new and old) FIASCO firmware format is not a very clean format, it
   doesn't provide any checksumming facility to ensure that the contents of
-  the firmware have been modified or incorrect, so i'll rather encourage
+  the firmware have been modified or incorrect, so I'll rather encourage
   to design and create a standard firmware format for embedded devices with
   checksumming, signatures, handling libraries, documentation and so.
 
-  I'll happilly collaborate on the design of this open firmware format, and
+  I'll happily collaborate on the design of this open firmware format, and
   it would be used on all the open source-based devices to aim interoperability
   between devices and flashers, providing a more standard and reliable way of
   flashing devices.
 
   This will ease the development on new devices, so the information and the
-  code could be revised and enhaced by zillions of eyes.
+  code could be revised and enhanced by zillions of eyes.
 
 
 *) Poor checksumming
