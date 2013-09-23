@@ -25,7 +25,7 @@ $(BIN): $(OBJS) $(DEPENDS)
 $(MANGEN): $(MANGEN).c $(DEPENDS)
 	$(HOST_CC) $(CFLAGS) $(CPPFLAGS) $(LDFLAGS) -o $@ $<
 
-$(BIN).1: $(BIN) $(MANGEN) $(DEPENDS)
+$(BIN).1: $(BIN) $(MANGEN) $(DEPENDS) ../doc/examples
 	./$(MANGEN) > $@.tmp
 	(printf '.SH EXAMPLES\n.\n.PP\n.B\n'; cat ../doc/examples) | sed 's/^$$/.fi\n.\n.PP\n.B/' | sed '/^\.PP$$/N;/\.B/N;/\.fi/N;s/^\.PP\n\.B\n\.fi\n//' | sed '/^\.B/N;s/\n/ /;/^\.B/s/$$/\n.nf/' | sed '/^\.nf/N;/^\.fi/N;s/^\.nf\n.fi/./' >> $@.tmp
 	mv $@.tmp $@
