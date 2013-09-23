@@ -75,7 +75,7 @@ static void show_usage(void) {
 		" -M file         specify fiasco image\n"
 		" -m arg          specify normal image\n"
 		"                 arg is [[[dev:[hw:]]ver:]type:]file[%%lay]\n"
-		"                   dev is device name string (default: emtpy)\n"
+		"                   dev is device name string (default: empty)\n"
 		"                   hw are comma separated list of HW revisions (default: empty)\n"
 		"                   ver is image version string (default: empty)\n"
 		"                   type is image type (default: autodetect)\n"
