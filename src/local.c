@@ -212,7 +212,7 @@ static int local_nanddump(const char * file, int mtd, int offset, int length) {
 	free(path);
 
 	if ( ret == 0 && buf.f_bsize * buf.f_bfree < (long unsigned int)length ) {
-		ERROR("Not enought free space (have: %lu, need: %d)", buf.f_bsize * buf.f_bfree, length);
+		ERROR("Not enough free space (have: %lu, need: %d)", buf.f_bsize * buf.f_bfree, length);
 		return 1;
 	}
 
@@ -424,7 +424,7 @@ int local_dump_image(enum image_type image, const char * file) {
 		}
 
 		if ( image >= nanddump[device].count ) {
-			ERROR("Unsuported image type: %s", image_type_to_string(image));
+			ERROR("Unsupported image type: %s", image_type_to_string(image));
 			goto clean;
 		}
 

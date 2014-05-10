@@ -153,7 +153,7 @@ static void parse_image_arg(char * arg, struct image_list ** image_first) {
 	char * layout;
 	char * layout_file;
 
-	/* Fisrt check if arg is file, then try to parse arg format */
+	/* First check if arg is file, then try to parse arg format */
 	if ( stat(arg, &st) == 0 ) {
 		image = image_alloc_from_file(arg, NULL, NULL, NULL, NULL, NULL);
 		if ( ! image ) {
@@ -746,7 +746,7 @@ int main(int argc, char **argv) {
 	if ( fiasco_in )
 		fiasco_in->first = image_first;
 
-	/* identificate images */
+	/* identify images */
 	if ( image_ident ) {
 		if ( fiasco_in ) {
 			fiasco_print_info(fiasco_in);
@@ -833,7 +833,7 @@ int main(int argc, char **argv) {
 	}
 
 	if ( dev_load && dev_flash ) {
-		ERROR("Options load and flash cannot de used together");
+		ERROR("Options load and flash cannot be used together");
 		ret = 1;
 		goto clean;
 	}

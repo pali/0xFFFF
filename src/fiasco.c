@@ -192,7 +192,7 @@ struct fiasco * fiasco_alloc_from_file(const char * file) {
 					if ( ! hwrevs[0] )
 						strcpy(hwrevs, hwrev);
 					else {
-						/* TODO: check if hwrevs has enought size */
+						/* TODO: check if hwrevs has enough size */
 						strcat(hwrevs, ",");
 						strcat(hwrevs, hwrev);
 					}

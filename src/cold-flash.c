@@ -80,7 +80,7 @@ static uint32_t crc32(unsigned char * bytes, size_t size, uint32_t crc) {
 }
 
 /* Omap Boot Messages */
-/* See spruf98v.pdf (page 3444): OMAP35x Technical Reference Manual - 25.4.5 Periheral Booting */
+/* See spruf98v.pdf (page 3444): OMAP35x Technical Reference Manual - 25.4.5 Peripheral Booting */
 
 /* Omap Peripheral boot message */
 static const uint32_t omap_peripheral_msg = 0xF0030002;
@@ -282,7 +282,7 @@ static int ping_timeout(usb_dev_handle * udev) {
 		printf("Sending X-Loader ping message\n");
 		ret = usb_bulk_write(udev, WRITE_DEV, (char *)&ping_msg, sizeof(ping_msg), WRITE_TIMEOUT);
 		if ( ret != sizeof(ping_msg) )
-			ERROR_RETURN("Sending X-Loader ping message faild", -1);
+			ERROR_RETURN("Sending X-Loader ping message failed", -1);
 
 		printf("Waiting for X-Loader pong response...\n");
 		while ( try_read > 0 ) {
@@ -303,7 +303,7 @@ static int ping_timeout(usb_dev_handle * udev) {
 		if ( pong )
 			break;
 
-		printf("Responce timeout\n");
+		printf("Response timeout\n");
 		--try_ping;
 
 	}

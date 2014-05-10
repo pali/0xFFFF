@@ -129,7 +129,7 @@ int disk_dump_raw(const char * blkdev, const char * file) {
 	free(path);
 
 	if ( ret == 0 && buf.f_bsize * buf.f_bfree < blksize ) {
-		ERROR("Not enought free space (have: %llu, need: %llu)", (unsigned long long int)(buf.f_bsize) * buf.f_bfree, (unsigned long long int)blksize);
+		ERROR("Not enough free space (have: %llu, need: %llu)", (unsigned long long int)(buf.f_bsize) * buf.f_bfree, (unsigned long long int)blksize);
 		close(fd1);
 		return -1;
 	}
