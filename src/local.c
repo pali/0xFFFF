@@ -457,6 +457,10 @@ int local_dump_image(enum image_type image, const char * file) {
 		if ( addr[nlen-1] != 0xFF )
 			break;
 
+	for ( ; nlen > 0; --nlen )
+		if ( addr[nlen-1] != 0x00 )
+			break;
+
 	if ( image == IMAGE_MMC )
 		align = 8;
 	else
