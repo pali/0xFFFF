@@ -210,7 +210,7 @@ static void parse_image_arg(char * arg, struct image_list ** image_first) {
 			exit(1);
 		}
 		lseek(fd, 0, SEEK_SET);
-		layout = malloc(len);
+		layout = malloc(len+1);
 		if ( ! layout ) {
 			ALLOC_ERROR();
 			exit(1);
@@ -219,6 +219,8 @@ static void parse_image_arg(char * arg, struct image_list ** image_first) {
 			ERROR_INFO("Cannot read %lu bytes from layout file %s", len, layout_file);
 			exit(1);
 		}
+		layout[len] = 0;
+		close(fd);
 	}
 
 	image = image_alloc_from_file(file, type, device, hwrevs, version, layout);
