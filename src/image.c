@@ -88,14 +88,13 @@ static void image_missing_values_from_name(struct image * image, const char * na
 
 	if ( image->devices && image->devices->device && ! image->devices->hwrevs )
 		image->devices->hwrevs = hwrevs_alloc_from_string(hwrevs);
-	else
-		free(hwrevs);
 
 	if ( ! image->version )
 		image->version = version;
 	else
 		free(version);
 
+	free(hwrevs);
 	free(str);
 
 }
@@ -135,8 +134,10 @@ char * image_name_alloc_from_values(struct image * image) {
 		length += 1 + strlen(image->version);
 
 	name = calloc(1, length);
-	if ( ! name )
+	if ( ! name ) {
+		free(hwrevs);
 		ALLOC_ERROR_RETURN(NULL);
+	}
 
 	strcpy(name, type);
 	ptr = name + strlen(name);
