@@ -493,8 +493,10 @@ int fiasco_unpack(struct fiasco * fiasco, const char * dir) {
 		if ( image->layout ) {
 
 			layout_name = calloc(1, strlen(name) + strlen(".layout") + 1);
-			if ( ! layout_name )
+			if ( ! layout_name ) {
+				free(name);
 				ALLOC_ERROR_RETURN(-1);
+			}
 
 			sprintf(layout_name, "%s.layout", name);
 
@@ -512,8 +514,6 @@ int fiasco_unpack(struct fiasco * fiasco, const char * dir) {
 			}
 		}
 
-		free(name);
-
 		image_seek(image, 0);
 		while ( 1 ) {
 			size = image_read(image, buf, sizeof(buf));
@@ -522,7 +522,10 @@ int fiasco_unpack(struct fiasco * fiasco, const char * dir) {
 			WRITE_OR_FAIL(name, fd, buf, size);
 		}
 
-		close(fd);
+		free(name);
+
+		if ( ! simulate )
+			close(fd);
 
 		if ( image->layout ) {
 
@@ -534,11 +537,12 @@ int fiasco_unpack(struct fiasco * fiasco, const char * dir) {
 				}
 			}
 
-			free(layout_name);
-
 			WRITE_OR_FAIL(layout_name, fd, image->layout, (int)strlen(image->layout));
 
-			close(fd);
+			free(layout_name);
+
+			if ( ! simulate )
+				close(fd);
 
 		}
 
