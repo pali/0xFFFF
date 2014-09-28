@@ -53,8 +53,8 @@ static void show_usage(void) {
 		" -f              flash all specified images\n"
 		" -c              cold flash 2nd and secondary images\n"
 		" -x [/dev/mtd]   check for bad blocks on mtd device (default: all)\n"
-		" -E file         dump all device images to one fiasco image, see -t\n"
-		" -e [dir]        dump all device images to directory, see -t (default: current)\n"
+		" -E file         dump all device images to one fiasco image\n"
+		" -e [dir]        dump all device images (or one -t) to directory (default: current)\n"
 		"\n"
 
 		"Device configuration:\n"
@@ -84,7 +84,7 @@ static void show_usage(void) {
 		"\n"
 
 		"Image filters:\n"
-		" -t types        filter images by type\n"
+		" -t type         filter images by type\n"
 		" -d dev          filter images by device\n"
 		" -w hw           filter images by HW revision\n"
 		"\n"
