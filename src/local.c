@@ -322,8 +322,8 @@ int local_dump_image(enum image_type image, const char * file) {
 			if ( fd < 0 )
 				continue;
 
-			buf[0] = 0;
-			if ( read(fd, buf, sizeof(buf)) < 0 )
+			memset(buf, 0, sizeof(buf));
+			if ( read(fd, buf, sizeof(buf)-1) < 0 )
 				buf[0] = 0;
 			close(fd);
 
@@ -410,7 +410,7 @@ int local_dump_image(enum image_type image, const char * file) {
 
 		VERBOSE("Detected internal mmc device: '%s'\n", blk);
 
-		strncat(blk, "p1", sizeof(blk));
+		strncat(blk, "p1", sizeof(blk)-strlen(blk)-1);
 
 		printf("Using MyDocs mmc device: '%s'\n", blk);
 
