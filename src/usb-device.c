@@ -198,6 +198,7 @@ static struct usb_device_info * usb_device_is_valid(struct usb_device * dev) {
 					ERROR("Device mishmash");
 					fprintf(stderr, "\n");
 					usb_close(udev);
+					free(ret);
 					return NULL;
 				}
 			}
