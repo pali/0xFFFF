@@ -1177,9 +1177,21 @@ int main(int argc, char **argv) {
 						buf[0] = 0;
 				}
 
-				for ( i = 0; i < IMAGE_COUNT; ++i )
-					if ( image_tmp_name(i) )
-						dev_dump_image(dev, i, image_tmp_name(i));
+				if ( filter_type ) {
+					enum image_type type = image_type_from_string(filter_type_arg);
+					if ( ! type || ! image_tmp_name(type) ) {
+						ERROR("Specified unknown image type for filtering: %s", filter_type_arg);
+						ret = 1;
+						goto clean;
+					}
+					ret = dev_dump_image(dev, type, image_tmp_name(type));
+					if ( ret != 0 )
+						goto clean;
+				} else {
+					for ( i = 0; i < IMAGE_COUNT; ++i )
+						if ( image_tmp_name(i) )
+							dev_dump_image(dev, i, image_tmp_name(i));
+				}
 
 				if ( buf[0] )
 					if ( chdir(buf) < 0 )
