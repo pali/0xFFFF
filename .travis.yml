@@ -1,0 +1,20 @@
+language: c
+compiler:
+  - gcc
+before_install:
+  - sudo apt-get update -qq
+  - sudo apt-get install -qq -y libusb-dev
+script: if [ ${COVERITY_SCAN_BRANCH} != 1 ]; then make ; fi
+
+env:
+  global:
+   - secure: "JdUp+xFykPZoYA4aRfmYk2CtilLapniQllWPKo2dDdJd1vzdawfTvVxIAKjy7ac9RKwZzg3Chq3RsMEXPv8BtaLbssw266C7RDLMgjacl1eFLcmGRj/Gkk9peDSZ6vVdGEcA2j+6KDSfpCa/XjFjvOufZOgKw6m+3+d0A4G45SI="
+
+addons:
+  coverity_scan:
+    project:
+      name: "pali/0xFFFF"
+      description: "Build submitted via Travis CI"
+    notification_email: pali.rohar@gmail.com
+    build_command: "make"
+    branch_pattern: master
