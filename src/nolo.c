@@ -176,7 +176,8 @@ static int nolo_get_version_string(struct usb_device_info * dev, const char * st
 	if ( strlen(str) > 500 )
 		return -1;
 
-	sprintf(buf, "version:%s", str);
+	if ( sprintf(buf, "version:%s", str) <= 0 )
+		return -1;
 
 	ret = nolo_get_string(dev, buf, out, size);
 
