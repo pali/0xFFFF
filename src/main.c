@@ -1210,7 +1210,8 @@ int main(int argc, char **argv) {
 					if ( ! image_tmp_name(i) )
 						continue;
 
-					sprintf(buf, "%hd", dev->detected_hwrev);
+					buf[0] = 0;
+					snprintf(buf, sizeof(buf), "%hd", dev->detected_hwrev);
 
 					switch ( i ) {
 						case IMAGE_2ND:
@@ -1312,14 +1313,16 @@ int main(int argc, char **argv) {
 							break;
 					}
 
-					sprintf(buf, "%s-%s:%hd_%s", image_type_to_string(i), device_to_string(dev->detected_device), dev->detected_hwrev, ptr);
+					buf[0] = 0;
+					snprintf(buf, sizeof(buf), "%s-%s:%hd_%s", image_type_to_string(i), device_to_string(dev->detected_device), dev->detected_hwrev, ptr);
 					printf("Renaming %s image file to %s...\n", image_type_to_string(i), buf);
 
 					if ( rename(image_tmp_name(i), buf) < 0 ) {
 
 						ERROR_INFO("Renaming failed");
 
-						sprintf(buf, "%s-%s_%s", image_type_to_string(i), device_to_string(dev->detected_device), ptr);
+						buf[0] = 0;
+						snprintf(buf, sizeof(buf), "%s-%s_%s", image_type_to_string(i), device_to_string(dev->detected_device), ptr);
 						printf("Trying to rename %s image file to %s...\n", image_type_to_string(i), buf);
 
 						if ( rename(image_tmp_name(i), buf) < 0 )
