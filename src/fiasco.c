@@ -495,7 +495,7 @@ int fiasco_unpack(struct fiasco * fiasco, const char * dir) {
 
 		if ( image->layout ) {
 
-			layout_name = calloc(1, strlen(name) + strlen(".layout") + 1);
+			layout_name = calloc(1, strlen(name) + sizeof(".layout")-1 + 1);
 			if ( ! layout_name ) {
 				free(name);
 				ALLOC_ERROR_RETURN(-1);

@@ -127,9 +127,9 @@ int local_init(void) {
 
 	while ( fgets(buf, sizeof(buf), file) ) {
 
-		if ( strncmp(buf, "Hardware", strlen("Hardware")) == 0 ) {
+		if ( strncmp(buf, "Hardware", sizeof("Hardware")-1) == 0 ) {
 
-			ptr = buf + strlen("Hardware");
+			ptr = buf + sizeof("Hardware")-1;
 
 			while ( ptr < buf + sizeof(buf) && *ptr > 0 && *ptr <= 32 )
 				++ptr;
@@ -328,7 +328,7 @@ int local_dump_image(enum image_type image, const char * file) {
 				buf[0] = 0;
 			close(fd);
 
-			if ( strncmp(buf, "internal", strlen("internal")) != 0 )
+			if ( strncmp(buf, "internal", sizeof("internal")-1) != 0 )
 				continue;
 
 			if ( snprintf(buf, sizeof(buf), "/sys/class/mmc_host/%s/%s:0001/", dirent->d_name, dirent->d_name) <= 0 )
@@ -340,7 +340,7 @@ int local_dump_image(enum image_type image, const char * file) {
 
 			while ( ( dirent2 = readdir(dir2) ) ) {
 
-				if ( strncmp(dirent2->d_name, "block:mmcblk", strlen("block:mmcblk")) != 0 )
+				if ( strncmp(dirent2->d_name, "block:mmcblk", sizeof("block:mmcblk")-1) != 0 )
 					continue;
 
 				if ( snprintf(buf, sizeof(buf), "/sys/class/mmc_host/%s/%s:0001/%s/dev", dirent->d_name, dirent->d_name, dirent2->d_name) <= 0 )
@@ -540,7 +540,7 @@ int local_set_usb_host_mode(int enable) {
 
 int local_get_rd_mode(void) {
 
-	if ( strncmp(rd_mode, "master", strlen("master")) == 0 )
+	if ( strncmp(rd_mode, "master", sizeof("master")-1) == 0 )
 		return 1;
 	else
 		return 0;
@@ -559,8 +559,8 @@ int local_get_rd_flags(char * flags, size_t size) {
 
 	const char * ptr;
 
-	if ( strncmp(rd_mode, "master", strlen("master")) == 0 )
-		ptr = rd_mode + strlen("master");
+	if ( strncmp(rd_mode, "master", sizeof("master")-1) == 0 )
+		ptr = rd_mode + sizeof("master")-1;
 	else
 		ptr = rd_mode;
 

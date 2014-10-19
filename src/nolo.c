@@ -464,7 +464,7 @@ int nolo_flash_image(struct usb_device_info * dev, struct image * image) {
 		if ( nolo_get_string(dev, "cmt:status", buf, sizeof(buf)) < 0 )
 			NOLO_ERROR_RETURN("cmt:status failed", -1);
 
-		if ( strncmp(buf, "idle", strlen("idle")) == 0 )
+		if ( strncmp(buf, "idle", sizeof("idle")-1) == 0 )
 			state = 4;
 		else
 			printf("Erasing CMT...\n");
@@ -476,7 +476,7 @@ int nolo_flash_image(struct usb_device_info * dev, struct image * image) {
 				NOLO_ERROR_RETURN("cmt:status failed", -1);
 			}
 
-			if ( strncmp(buf, "finished", strlen("finished")) == 0 ) {
+			if ( strncmp(buf, "finished", sizeof("finished")-1) == 0 ) {
 
 				if ( state <= 0 ) {
 					printf_progressbar(last_total, last_total);
@@ -537,9 +537,9 @@ int nolo_boot_device(struct usb_device_info * dev, const char * cmdline) {
 	int size = 0;
 	int mode = NOLO_BOOT_MODE_NORMAL;
 
-	if ( cmdline && strncmp(cmdline, "update", strlen("update")) == 0 && cmdline[strlen("update")] <= 32 ) {
+	if ( cmdline && strncmp(cmdline, "update", sizeof("update")-1) == 0 && cmdline[sizeof("update")-1] <= 32 ) {
 		mode = NOLO_BOOT_MODE_UPDATE;
-		cmdline += strlen("update");
+		cmdline += sizeof("update")-1;
 		if ( *cmdline ) ++cmdline;
 		while ( *cmdline && *cmdline <= 32 )
 			++cmdline;
