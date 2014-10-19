@@ -311,7 +311,7 @@ static int nolo_send_image(struct usb_device_info * dev, struct image * image, i
 		if ( bufs ) {
 
 			memset(buf, 0, sizeof(buf));
-			snprintf(buf, 8, "%d", dev->hwrev);
+			snprintf(buf, 8+1, "%d", dev->hwrev);
 
 			for ( i = 0; bufs[i]; ++i ) {
 				len = ((uint8_t*)bufs[i])[0];
@@ -763,7 +763,7 @@ int nolo_set_hwrev(struct usb_device_info * dev, int16_t hwrev) {
 
 	char buf[9];
 	memset(buf, 0, sizeof(buf));
-	snprintf(buf, 8, "%d", hwrev);
+	snprintf(buf, sizeof(buf), "%d", hwrev);
 	printf("Setting HW revision to: %s\n", buf);
 	return nolo_set_string(dev, "hw_rev", buf);
 
