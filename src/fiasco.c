@@ -192,9 +192,12 @@ struct fiasco * fiasco_alloc_from_file(const char * file) {
 					if ( ! hwrevs[0] )
 						strcpy(hwrevs, hwrev);
 					else {
-						/* TODO: check if hwrevs has enough size */
-						strcat(hwrevs, ",");
-						strcat(hwrevs, hwrev);
+						size_t len1 = strlen(hwrevs);
+						size_t len2 = strlen(hwrev);
+						if ( len1 + len2 + 2 < sizeof(hwrevs) ) {
+							hwrevs[len1] = ',';
+							memcpy(hwrevs+len1+1, hwrev, len2+1);
+						}
 					}
 					VERBOSE("       hw revision: %s\n", hwrev);
 					pbuf += strlen(hwrev) + 1;
