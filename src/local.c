@@ -316,7 +316,8 @@ int local_dump_image(enum image_type image, const char * file) {
 
 		while ( ( dirent = readdir(dir) ) ) {
 
-			snprintf(buf, sizeof(buf), "/sys/class/mmc_host/%s/slot_name", dirent->d_name);
+			if ( snprintf(buf, sizeof(buf), "/sys/class/mmc_host/%s/slot_name", dirent->d_name) <= 0 )
+				continue;
 
 			fd = open(buf, O_RDONLY);
 			if ( fd < 0 )
@@ -330,7 +331,8 @@ int local_dump_image(enum image_type image, const char * file) {
 			if ( strncmp(buf, "internal", strlen("internal")) != 0 )
 				continue;
 
-			snprintf(buf, sizeof(buf), "/sys/class/mmc_host/%s/%s:0001/", dirent->d_name, dirent->d_name);
+			if ( snprintf(buf, sizeof(buf), "/sys/class/mmc_host/%s/%s:0001/", dirent->d_name, dirent->d_name) <= 0 )
+				continue;
 
 			dir2 = opendir(buf);
 			if ( ! dir2 )
@@ -341,7 +343,8 @@ int local_dump_image(enum image_type image, const char * file) {
 				if ( strncmp(dirent2->d_name, "block:mmcblk", strlen("block:mmcblk")) != 0 )
 					continue;
 
-				snprintf(buf, sizeof(buf), "/sys/class/mmc_host/%s/%s:0001/%s/dev", dirent->d_name, dirent->d_name, dirent2->d_name);
+				if ( snprintf(buf, sizeof(buf), "/sys/class/mmc_host/%s/%s:0001/%s/dev", dirent->d_name, dirent->d_name, dirent2->d_name) <= 0 )
+					continue;
 
 				f = fopen(buf, "r");
 				if ( ! f )
@@ -385,7 +388,8 @@ int local_dump_image(enum image_type image, const char * file) {
 
 		while ( ( dirent = readdir(dir) ) ) {
 
-			snprintf(buf, sizeof(buf), "/dev/%s", dirent->d_name);
+			if ( snprintf(buf, sizeof(buf), "/dev/%s", dirent->d_name) <= 0 )
+				continue;
 
 			if ( stat(buf, &st) != 0 )
 				continue;
