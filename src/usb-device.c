@@ -27,6 +27,10 @@
 
 #include <usb.h>
 
+#ifdef LIBUSB_HAS_DETACH_KERNEL_DRIVER_NP
+#include <sys/ioctl.h>
+#endif
+
 #include "global.h"
 #include "device.h"
 #include "usb-device.h"
@@ -70,6 +74,25 @@ static void usb_flash_device_info_print(const struct usb_flash_device * dev) {
 		PRINTF_ADD("/%s", device_to_string(dev->devices[i]));
 
 	PRINTF_ADD(" (%#04x:%#04x) in %s mode", dev->vendor, dev->product, usb_flash_protocol_to_string(dev->protocol));
+
+}
+
+static void usb_reattach_kernel_driver(usb_dev_handle * udev, int interface) {
+
+#ifdef LIBUSB_HAS_DETACH_KERNEL_DRIVER_NP
+	struct {
+		int ifno;
+		int ioctl_code;
+		void * data;
+	} command = {
+		.ifno = interface,
+		.ioctl_code = _IO('U', 23),
+		.data = NULL,
+	};
+
+	usb_release_interface(udev, interface);
+	ioctl(*((int *)udev), _IOWR('U', 18, command), &command);
+#endif
 
 }
 
@@ -145,6 +168,7 @@ static struct usb_device_info * usb_device_is_valid(struct usb_device * dev) {
 			if ( usb_claim_interface(udev, usb_devices[i].interface) < 0 ) {
 				PRINTF_ERROR("usb_claim_interface failed");
 				fprintf(stderr, "\n");
+				usb_reattach_kernel_driver(udev, usb_devices[i].interface);
 				usb_close(udev);
 				return NULL;
 			}
@@ -154,6 +178,7 @@ static struct usb_device_info * usb_device_is_valid(struct usb_device * dev) {
 				if ( usb_set_altinterface(udev, usb_devices[i].alternate) < 0 ) {
 					PRINTF_ERROR("usb_claim_interface failed");
 					fprintf(stderr, "\n");
+					usb_reattach_kernel_driver(udev, usb_devices[i].interface);
 					usb_close(udev);
 					return NULL;
 				}
@@ -164,6 +189,7 @@ static struct usb_device_info * usb_device_is_valid(struct usb_device * dev) {
 				if ( usb_set_configuration(udev, usb_devices[i].configuration) < 0 ) {
 					PRINTF_ERROR("usb_set_configuration failed");
 					fprintf(stderr, "\n");
+					usb_reattach_kernel_driver(udev, usb_devices[i].interface);
 					usb_close(udev);
 					return NULL;
 				}
@@ -172,6 +198,7 @@ static struct usb_device_info * usb_device_is_valid(struct usb_device * dev) {
 			ret = calloc(1, sizeof(struct usb_device_info));
 			if ( ! ret ) {
 				ALLOC_ERROR();
+				usb_reattach_kernel_driver(udev, usb_devices[i].interface);
 				usb_close(udev);
 				return NULL;
 			}
@@ -197,6 +224,7 @@ static struct usb_device_info * usb_device_is_valid(struct usb_device * dev) {
 				if ( ! *device ) {
 					ERROR("Device mishmash");
 					fprintf(stderr, "\n");
+					usb_reattach_kernel_driver(udev, usb_devices[i].interface);
 					usb_close(udev);
 					free(ret);
 					return NULL;
@@ -309,6 +337,7 @@ struct usb_device_info * usb_open_and_wait_for_device(void) {
 
 void usb_close_device(struct usb_device_info * dev) {
 
+	usb_reattach_kernel_driver(dev->udev, dev->flash_device->interface);
 	usb_close(dev->udev);
 	free(dev);
 
