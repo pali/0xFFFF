@@ -255,8 +255,8 @@ int dev_reboot_device(struct device_info * dev) {
 		else if ( protocol == FLASH_MKII )
 			return mkii_reboot_device(dev->usb);
 		else {
-			ERROR("Rebooting device in RAW disk mode is not supported");
-			return -1;
+			usb_switch_to_nolo(dev->usb);
+			return -EAGAIN;
 		}
 
 	}
