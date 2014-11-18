@@ -413,6 +413,7 @@ int fiasco_write_to_file(struct fiasco * fiasco, const char * file) {
 			WRITE_OR_FAIL(file, fd, "2", 1); /* 2 - device & hwrevs */
 			WRITE_OR_FAIL(file, fd, &device_hwrevs_bufs[i][0], 1);
 			WRITE_OR_FAIL(file, fd, device_hwrevs_bufs[i]+1, ((uint8_t *)(device_hwrevs_bufs[i]))[0]);
+			/* FIXME: memory leak: device_hwrevs_bufs */
 		}
 		free(device_hwrevs_bufs);
 
@@ -513,6 +514,8 @@ int fiasco_unpack(struct fiasco * fiasco, const char * dir) {
 			fd = open(name, O_RDWR|O_CREAT|O_TRUNC, 0644);
 			if ( fd < 0 ) {
 				ERROR_INFO("Cannot create output file %s", name);
+				free(name);
+				free(layout_name);
 				return -1;
 			}
 		}
@@ -522,7 +525,15 @@ int fiasco_unpack(struct fiasco * fiasco, const char * dir) {
 			size = image_read(image, buf, sizeof(buf));
 			if ( size == 0 )
 				break;
-			WRITE_OR_FAIL(name, fd, buf, size);
+			if ( ! simulate ) {
+				if ( write(fd, buf, size) != (ssize_t)size ) {
+					ERROR_INFO_STR(name, "Cannot write %d bytes", size);
+					close(fd);
+					free(name);
+					free(layout_name);
+					return -1;
+				}
+			}
 		}
 
 		free(name);
@@ -538,9 +549,16 @@ int fiasco_unpack(struct fiasco * fiasco, const char * dir) {
 					ERROR_INFO("Cannot create layout file %s", layout_name);
 					return -1;
 				}
-			}
 
-			WRITE_OR_FAIL(layout_name, fd, image->layout, (int)strlen(image->layout));
+				size = strlen(image->layout);
+
+				if ( write(fd, image->layout, size) != (ssize_t)size ) {
+					ERROR_INFO_STR(layout_name, "Cannot write %d bytes", size);
+					close(fd);
+					free(layout_name);
+					return -1;
+				}
+			}
 
 			free(layout_name);
 
