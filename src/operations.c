@@ -178,10 +178,9 @@ int dev_flash_image(struct device_info * dev, struct image * image) {
 			return nolo_flash_image(dev->usb, image);
 		else if ( protocol == FLASH_MKII )
 			return mkii_flash_image(dev->usb, image);
-		else {
-			usb_switch_to_nolo(dev->usb);
-			return -EAGAIN;
-		}
+
+		usb_switch_to_nolo(dev->usb);
+		return -EAGAIN;
 
 	}
 
@@ -230,10 +229,9 @@ int dev_boot_device(struct device_info * dev, const char * cmdline) {
 
 		if ( protocol == FLASH_NOLO )
 			return nolo_boot_device(dev->usb, cmdline);
-		else {
-			usb_switch_to_nolo(dev->usb);
-			return 0;
-		}
+
+		usb_switch_to_nolo(dev->usb);
+		return -EAGAIN;
 
 	}
 
@@ -292,13 +290,13 @@ int dev_set_root_device(struct device_info * dev, int device) {
 
 	if ( dev->method == METHOD_USB ) {
 
-		if ( dev->usb->flash_device->protocol == FLASH_NOLO )
+		enum usb_flash_protocol protocol = dev->usb->flash_device->protocol;
+
+		if ( protocol == FLASH_NOLO )
 			return nolo_set_root_device(dev->usb, device);
 
-		if ( dev->usb->flash_device->protocol == FLASH_COLD ) {
-			usb_switch_to_nolo(dev->usb);
-			return -EAGAIN;
-		}
+		usb_switch_to_nolo(dev->usb);
+		return -EAGAIN;
 
 	}
 
@@ -313,7 +311,9 @@ int dev_get_usb_host_mode(struct device_info * dev) {
 
 	if ( dev->method == METHOD_USB ) {
 
-		if ( dev->usb->flash_device->protocol == FLASH_NOLO )
+		enum usb_flash_protocol protocol = dev->usb->flash_device->protocol;
+
+		if ( protocol == FLASH_NOLO )
 			return nolo_get_usb_host_mode(dev->usb);
 
 	}
@@ -329,13 +329,13 @@ int dev_set_usb_host_mode(struct device_info * dev, int enable) {
 
 	if ( dev->method == METHOD_USB ) {
 
-		if ( dev->usb->flash_device->protocol == FLASH_NOLO )
+		enum usb_flash_protocol protocol = dev->usb->flash_device->protocol;
+
+		if ( protocol == FLASH_NOLO )
 			return nolo_set_usb_host_mode(dev->usb, enable);
 
-		if ( dev->usb->flash_device->protocol == FLASH_COLD ) {
-			usb_switch_to_nolo(dev->usb);
-			return -EAGAIN;
-		}
+		usb_switch_to_nolo(dev->usb);
+		return -EAGAIN;
 
 	}
 
@@ -350,7 +350,9 @@ int dev_get_rd_mode(struct device_info * dev) {
 
 	if ( dev->method == METHOD_USB ) {
 
-		if ( dev->usb->flash_device->protocol == FLASH_NOLO )
+		enum usb_flash_protocol protocol = dev->usb->flash_device->protocol;
+
+		if ( protocol == FLASH_NOLO )
 			return nolo_get_rd_mode(dev->usb);
 
 	}
@@ -366,13 +368,13 @@ int dev_set_rd_mode(struct device_info * dev, int enable) {
 
 	if ( dev->method == METHOD_USB ) {
 
-		if ( dev->usb->flash_device->protocol == FLASH_NOLO )
+		enum usb_flash_protocol protocol = dev->usb->flash_device->protocol;
+
+		if ( protocol == FLASH_NOLO )
 			return nolo_set_rd_mode(dev->usb, enable);
 
-		if ( dev->usb->flash_device->protocol == FLASH_COLD ) {
-			usb_switch_to_nolo(dev->usb);
-			return -EAGAIN;
-		}
+		usb_switch_to_nolo(dev->usb);
+		return -EAGAIN;
 
 	}
 
@@ -387,7 +389,9 @@ int dev_get_rd_flags(struct device_info * dev, char * flags, size_t size) {
 
 	if ( dev->method == METHOD_USB ) {
 
-		if ( dev->usb->flash_device->protocol == FLASH_NOLO )
+		enum usb_flash_protocol protocol = dev->usb->flash_device->protocol;
+
+		if ( protocol == FLASH_NOLO )
 			return nolo_get_rd_flags(dev->usb, flags, size);
 
 	}
@@ -403,13 +407,13 @@ int dev_set_rd_flags(struct device_info * dev, const char * flags) {
 
 	if ( dev->method == METHOD_USB ) {
 
-		if ( dev->usb->flash_device->protocol == FLASH_NOLO )
+		enum usb_flash_protocol protocol = dev->usb->flash_device->protocol;
+
+		if ( protocol == FLASH_NOLO )
 			return nolo_set_rd_flags(dev->usb, flags);
 
-		if ( dev->usb->flash_device->protocol == FLASH_COLD ) {
-			usb_switch_to_nolo(dev->usb);
-			return -EAGAIN;
-		}
+		usb_switch_to_nolo(dev->usb);
+		return -EAGAIN;
 
 	}
 
@@ -424,8 +428,12 @@ int16_t dev_get_hwrev(struct device_info * dev) {
 
 	if ( dev->method == METHOD_USB ) {
 
-		if ( dev->usb->flash_device->protocol == FLASH_NOLO )
+		enum usb_flash_protocol protocol = dev->usb->flash_device->protocol;
+
+		if ( protocol == FLASH_NOLO )
 			return nolo_get_hwrev(dev->usb);
+		else if ( protocol == FLASH_MKII )
+			return mkii_get_hwrev(dev->usb);
 
 	}
 
@@ -440,13 +448,13 @@ int dev_set_hwrev(struct device_info * dev, int16_t hwrev) {
 
 	if ( dev->method == METHOD_USB ) {
 
-		if ( dev->usb->flash_device->protocol == FLASH_NOLO )
+		enum usb_flash_protocol protocol = dev->usb->flash_device->protocol;
+
+		if ( protocol == FLASH_NOLO )
 			return nolo_set_hwrev(dev->usb, hwrev);
 
-		if ( dev->usb->flash_device->protocol == FLASH_COLD ) {
-			usb_switch_to_nolo(dev->usb);
-			return -EAGAIN;
-		}
+		usb_switch_to_nolo(dev->usb);
+		return -EAGAIN;
 
 	}
 
@@ -461,7 +469,9 @@ int dev_get_kernel_ver(struct device_info * dev, char * ver, size_t size) {
 
 	if ( dev->method == METHOD_USB ) {
 
-		if ( dev->usb->flash_device->protocol == FLASH_NOLO )
+		enum usb_flash_protocol protocol = dev->usb->flash_device->protocol;
+
+		if ( protocol == FLASH_NOLO )
 			return nolo_get_kernel_ver(dev->usb, ver, size);
 
 	}
@@ -477,13 +487,13 @@ int dev_set_kernel_ver(struct device_info * dev, const char * ver) {
 
 	if ( dev->method == METHOD_USB ) {
 
-		if ( dev->usb->flash_device->protocol == FLASH_NOLO )
+		enum usb_flash_protocol protocol = dev->usb->flash_device->protocol;
+
+		if ( protocol == FLASH_NOLO )
 			return nolo_set_kernel_ver(dev->usb, ver);
 
-		if ( dev->usb->flash_device->protocol == FLASH_COLD ) {
-			usb_switch_to_nolo(dev->usb);
-			return -EAGAIN;
-		}
+		usb_switch_to_nolo(dev->usb);
+		return -EAGAIN;
 
 	}
 
@@ -498,7 +508,9 @@ int dev_get_initfs_ver(struct device_info * dev, char * ver, size_t size) {
 
 	if ( dev->method == METHOD_USB ) {
 
-		if ( dev->usb->flash_device->protocol == FLASH_NOLO )
+		enum usb_flash_protocol protocol = dev->usb->flash_device->protocol;
+
+		if ( protocol == FLASH_NOLO )
 			return nolo_get_initfs_ver(dev->usb, ver, size);
 
 	}
@@ -514,13 +526,13 @@ int dev_set_initfs_ver(struct device_info * dev, const char * ver) {
 
 	if ( dev->method == METHOD_USB ) {
 
-		if ( dev->usb->flash_device->protocol == FLASH_NOLO )
+		enum usb_flash_protocol protocol = dev->usb->flash_device->protocol;
+
+		if ( protocol == FLASH_NOLO )
 			return nolo_set_initfs_ver(dev->usb, ver);
 
-		if ( dev->usb->flash_device->protocol == FLASH_COLD ) {
-			usb_switch_to_nolo(dev->usb);
-			return -EAGAIN;
-		}
+		usb_switch_to_nolo(dev->usb);
+		return -EAGAIN;
 
 	}
 
@@ -535,7 +547,9 @@ int dev_get_nolo_ver(struct device_info * dev, char * ver, size_t size) {
 
 	if ( dev->method == METHOD_USB ) {
 
-		if ( dev->usb->flash_device->protocol == FLASH_NOLO )
+		enum usb_flash_protocol protocol = dev->usb->flash_device->protocol;
+
+		if ( protocol == FLASH_NOLO )
 			return nolo_get_nolo_ver(dev->usb, ver, size);
 
 	}
@@ -551,13 +565,13 @@ int dev_set_nolo_ver(struct device_info * dev, const char * ver) {
 
 	if ( dev->method == METHOD_USB ) {
 
-		if ( dev->usb->flash_device->protocol == FLASH_NOLO )
+		enum usb_flash_protocol protocol = dev->usb->flash_device->protocol;
+
+		if ( protocol == FLASH_NOLO )
 			return nolo_set_nolo_ver(dev->usb, ver);
 
-		if ( dev->usb->flash_device->protocol == FLASH_COLD ) {
-			usb_switch_to_nolo(dev->usb);
-			return -EAGAIN;
-		}
+		usb_switch_to_nolo(dev->usb);
+		return -EAGAIN;
 
 	}
 
@@ -572,7 +586,9 @@ int dev_get_sw_ver(struct device_info * dev, char * ver, size_t size) {
 
 	if ( dev->method == METHOD_USB ) {
 
-		if ( dev->usb->flash_device->protocol == FLASH_NOLO )
+		enum usb_flash_protocol protocol = dev->usb->flash_device->protocol;
+
+		if ( protocol == FLASH_NOLO )
 			return nolo_get_sw_ver(dev->usb, ver, size);
 
 	}
@@ -588,13 +604,13 @@ int dev_set_sw_ver(struct device_info * dev, const char * ver) {
 
 	if ( dev->method == METHOD_USB ) {
 
-		if ( dev->usb->flash_device->protocol == FLASH_NOLO )
+		enum usb_flash_protocol protocol = dev->usb->flash_device->protocol;
+
+		if ( protocol == FLASH_NOLO )
 			return nolo_set_sw_ver(dev->usb, ver);
 
-		if ( dev->usb->flash_device->protocol == FLASH_COLD ) {
-			usb_switch_to_nolo(dev->usb);
-			return -EAGAIN;
-		}
+		usb_switch_to_nolo(dev->usb);
+		return -EAGAIN;
 
 	}
 
@@ -609,7 +625,9 @@ int dev_get_content_ver(struct device_info * dev, char * ver, size_t size) {
 
 	if ( dev->method == METHOD_USB ) {
 
-		if ( dev->usb->flash_device->protocol == FLASH_NOLO )
+		enum usb_flash_protocol protocol = dev->usb->flash_device->protocol;
+
+		if ( protocol == FLASH_NOLO )
 			return nolo_get_content_ver(dev->usb, ver, size);
 
 	}
@@ -625,13 +643,13 @@ int dev_set_content_ver(struct device_info * dev, const char * ver) {
 
 	if ( dev->method == METHOD_USB ) {
 
-		if ( dev->usb->flash_device->protocol == FLASH_NOLO )
+		enum usb_flash_protocol protocol = dev->usb->flash_device->protocol;
+
+		if ( protocol == FLASH_NOLO )
 			return nolo_set_content_ver(dev->usb, ver);
 
-		if ( dev->usb->flash_device->protocol == FLASH_COLD ) {
-			usb_switch_to_nolo(dev->usb);
-			return -EAGAIN;
-		}
+		usb_switch_to_nolo(dev->usb);
+		return -EAGAIN;
 
 	}
 
