@@ -369,7 +369,7 @@ void usb_switch_to_cold(struct usb_device_info * dev) {
 
 }
 
-void usb_switch_to_mkii(struct usb_device_info * dev) {
+void usb_switch_to_update(struct usb_device_info * dev) {
 
 	printf("\nSwitching to Update mode...\n");
 
@@ -377,6 +377,8 @@ void usb_switch_to_mkii(struct usb_device_info * dev) {
 		leave_cold_flash(dev);
 	else if ( dev->flash_device->protocol == FLASH_NOLO )
 		nolo_boot_device(dev, "update");
+	else if ( dev->flash_device->protocol == FLASH_MKII )
+		mkii_reboot_device(dev);
 	else if ( dev->flash_device->protocol == FLASH_DISK )
 		printf_and_wait("Unplug USB cable, turn device off, press ENTER and plug USB cable again");
 

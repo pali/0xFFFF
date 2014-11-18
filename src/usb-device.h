@@ -56,7 +56,7 @@ void usb_close_device(struct usb_device_info * dev);
 
 void usb_switch_to_nolo(struct usb_device_info * dev);
 void usb_switch_to_cold(struct usb_device_info * dev);
-void usb_switch_to_mkii(struct usb_device_info * dev);
+void usb_switch_to_update(struct usb_device_info * dev);
 void usb_switch_to_disk(struct usb_device_info * dev);
 
 #endif
