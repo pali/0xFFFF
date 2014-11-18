@@ -150,9 +150,20 @@ int mkii_flash_image(struct usb_device_info * dev, struct image * image) {
 
 int mkii_reboot_device(struct usb_device_info * dev) {
 
-	ERROR("Not implemented yet");
-	(void)dev;
-	return -1;
+	char buf[2048];
+	struct mkii_message * msg;
+	int ret;
+
+	msg = (struct mkii_message *)buf;
+
+	printf("Rebooting device...\n");
+
+	memcpy(msg->data, "reboot", sizeof("reboot")-1);
+	ret = mkii_send_receive(dev->udev, MKII_GET_DEVICE, msg, sizeof("reboot")-1, msg, sizeof(buf));
+	if ( ret != 1 || msg->data[0] != 0 )
+		return -1;
+
+	return 0;
 
 }
 
