@@ -130,7 +130,7 @@ struct xloader_msg {
 	uint32_t size; /* 4 bytes - size of file */
 	uint32_t crc1; /* 4 bytes - crc32 of file */
 	uint32_t crc2; /* 4 bytes - crc32 of first 12 bytes of message */
-};
+} __attribute__((__packed__));
 
 #define XLOADER_MSG_TYPE_PING	0x6301326E
 #define XLOADER_MSG_TYPE_SEND	0x6302326E
