@@ -419,8 +419,8 @@ int nolo_flash_image(struct usb_device_info * dev, struct image * image) {
 	unsigned long long int part;
 	unsigned long long int total;
 	unsigned long long int last_total;
-	char status[20];
 	char buf[128];
+	char * ptr;
 
 	if ( image->type == IMAGE_ROOTFS )
 		flash = 1;
@@ -491,18 +491,29 @@ int nolo_flash_image(struct usb_device_info * dev, struct image * image) {
 
 				state = 4;
 
+			} else if ( strncmp(buf, "error", sizeof("error")-1) == 0 ) {
+
+				PRINTF_ERROR_RETURN("cmt:status error", -1);
+
 			} else {
 
-				if ( sscanf(buf, "%s:%llu/%llu", status, &part, &total) != 3 )
+				ptr = strchr(buf, ':');
+				if ( ! ptr )
 					PRINTF_ERROR_RETURN("cmt:status unknown", -1);
 
-				if ( strcmp(status, "program") == 0 && state <= 0 ) {
+				*ptr = 0;
+				ptr++;
+
+				if ( sscanf(ptr, "%llu/%llu", &part, &total) != 2 )
+					PRINTF_ERROR_RETURN("cmt:status unknown", -1);
+
+				if ( strcmp(buf, "program") == 0 && state <= 0 ) {
 					printf_progressbar(last_total, last_total);
 					printf("Done\n");
 					state = 1;
 				}
 
-				if ( strcmp(status, "program") == 0 && state <= 1 ) {
+				if ( strcmp(buf, "program") == 0 && state <= 1 ) {
 					printf("Programming CMT...\n");
 					state = 2;
 				}
@@ -510,12 +521,12 @@ int nolo_flash_image(struct usb_device_info * dev, struct image * image) {
 				printf_progressbar(part, total);
 				last_total = total;
 
-				if ( strcmp(status, "erase") == 0 && state <= 0 && part == total ) {
+				if ( strcmp(buf, "erase") == 0 && state <= 0 && part == total ) {
 					printf("Done\n");
 					state = 1;
 				}
 
-				if ( strcmp(status, "program") == 0 && state <= 2 && part == total ) {
+				if ( strcmp(buf, "program") == 0 && state <= 2 && part == total ) {
 					printf("Done\n");
 					state = 3;
 				}
