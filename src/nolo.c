@@ -84,12 +84,14 @@ static void nolo_error_log(struct usb_device_info * dev, int only_clear) {
 
 	char buf[2048];
 	size_t i, count;
+	int ret;
 
 	for ( count = 0; count < 20; ++count ) {
 
 		memset(buf, 0, sizeof(buf));
 
-		if ( usb_control_msg(dev->udev, NOLO_QUERY, NOLO_ERROR_LOG, 0, 0, buf, sizeof(buf), 2000) <= 0 )
+		ret = usb_control_msg(dev->udev, NOLO_QUERY, NOLO_ERROR_LOG, 0, 0, buf, sizeof(buf), 2000);
+		if ( ret < 0 )
 			break;
 
 		if ( ! only_clear ) {
@@ -102,6 +104,9 @@ static void nolo_error_log(struct usb_device_info * dev, int only_clear) {
 			puts(buf);
 
 		}
+
+		if ( (size_t)ret < sizeof(buf) )
+			break;
 
 	}
 
@@ -180,11 +185,10 @@ static int nolo_get_version_string(struct usb_device_info * dev, const char * st
 		return -1;
 
 	ret = nolo_get_string(dev, buf, out, size);
-
-	nolo_error_log(dev, 1);
-
-	if ( ret < 0 )
+	if ( ret < 0 ) {
+		nolo_error_log(dev, 1);
 		return ret;
+	}
 
 	if ( ! out[0] )
 		return -1;
