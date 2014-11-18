@@ -42,9 +42,9 @@
 static struct usb_flash_device usb_devices[] = {
 	{ 0x0421, 0x0105,  2,  1, -1, FLASH_NOLO, { DEVICE_SU_18, DEVICE_RX_44, DEVICE_RX_48, DEVICE_RX_51, 0 } },
 	{ 0x0421, 0x0106,  0, -1, -1, FLASH_COLD, { DEVICE_RX_51, 0 } },
-	{ 0x0421, 0x01c7,  0, -1, -1, FLASH_DISK, { DEVICE_RX_51, 0 } },
+	{ 0x0421, 0x01c7,  -1, -1, -1, FLASH_DISK, { DEVICE_RX_51, 0 } },
 	{ 0x0421, 0x01c8,  1,  1, -1, FLASH_MKII, { DEVICE_RX_51, 0 } },
-	{ 0x0421, 0x0431,  0, -1, -1, FLASH_DISK, { DEVICE_SU_18, DEVICE_RX_34, 0 } },
+	{ 0x0421, 0x0431,  -1, -1, -1, FLASH_DISK, { DEVICE_SU_18, DEVICE_RX_34, 0 } },
 	{ 0x0421, 0x3f00,  2,  1, -1, FLASH_NOLO, { DEVICE_RX_34, 0 } },
 };
 
@@ -89,6 +89,9 @@ static void usb_reattach_kernel_driver(usb_dev_handle * udev, int interface) {
 		.ioctl_code = _IO('U', 23),
 		.data = NULL,
 	};
+
+	if ( interface < 0 )
+		return;
 
 	usb_release_interface(udev, interface);
 	ioctl(*((int *)udev), _IOWR('U', 18, command), &command);
@@ -159,18 +162,22 @@ static struct usb_device_info * usb_device_is_valid(struct usb_device * dev) {
 
 			usb_descriptor_info_print(udev, dev, product, sizeof(product));
 
+			if ( usb_devices[i].interface >= 0 ) {
+
 #ifdef LIBUSB_HAS_DETACH_KERNEL_DRIVER_NP
-			PRINTF_LINE("Detaching kernel from USB interface...");
-			usb_detach_kernel_driver_np(udev, usb_devices[i].interface);
+				PRINTF_LINE("Detaching kernel from USB interface...");
+				usb_detach_kernel_driver_np(udev, usb_devices[i].interface);
 #endif
 
-			PRINTF_LINE("Claiming USB interface...");
-			if ( usb_claim_interface(udev, usb_devices[i].interface) < 0 ) {
-				PRINTF_ERROR("usb_claim_interface failed");
-				fprintf(stderr, "\n");
-				usb_reattach_kernel_driver(udev, usb_devices[i].interface);
-				usb_close(udev);
-				return NULL;
+				PRINTF_LINE("Claiming USB interface...");
+				if ( usb_claim_interface(udev, usb_devices[i].interface) < 0 ) {
+					PRINTF_ERROR("usb_claim_interface failed");
+					fprintf(stderr, "\n");
+					usb_reattach_kernel_driver(udev, usb_devices[i].interface);
+					usb_close(udev);
+					return NULL;
+				}
+
 			}
 
 			if ( usb_devices[i].alternate >= 0 ) {
