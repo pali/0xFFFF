@@ -42,9 +42,9 @@
 static struct usb_flash_device usb_devices[] = {
 	{ 0x0421, 0x0105,  2,  1, -1, FLASH_NOLO, { DEVICE_SU_18, DEVICE_RX_44, DEVICE_RX_48, DEVICE_RX_51, 0 } },
 	{ 0x0421, 0x0106,  0, -1, -1, FLASH_COLD, { DEVICE_RX_51, 0 } },
-/*	{ 0x0421, 0x01c7,  0, -1, -1, FLASH_DISK, { DEVICE_RX_51, 0 } }, */
+	{ 0x0421, 0x01c7,  0, -1, -1, FLASH_DISK, { DEVICE_RX_51, 0 } },
 	{ 0x0421, 0x01c8,  1,  1, -1, FLASH_MKII, { DEVICE_RX_51, 0 } },
-/*	{ 0x0421, 0x0431,  0, -1, -1, FLASH_DISK, { DEVICE_SU_18, DEVICE_RX_34, 0 } }, */
+	{ 0x0421, 0x0431,  0, -1, -1, FLASH_DISK, { DEVICE_SU_18, DEVICE_RX_34, 0 } },
 	{ 0x0421, 0x3f00,  2,  1, -1, FLASH_NOLO, { DEVICE_RX_34, 0 } },
 };
 
@@ -52,7 +52,7 @@ static const char * usb_flash_protocols[] = {
 	[FLASH_NOLO] = "NOLO",
 	[FLASH_COLD] = "Cold flashing",
 	[FLASH_MKII] = "Mk II protocol",
-/*	[FLASH_DISK] = "RAW disk", */
+	[FLASH_DISK] = "RAW disk",
 };
 
 const char * usb_flash_protocol_to_string(enum usb_flash_protocol protocol) {
