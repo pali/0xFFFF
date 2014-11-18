@@ -663,6 +663,9 @@ int main(int argc, char **argv) {
 			goto clean;
 		}
 		filter_images_by_type(type, &image_first);
+		/* make sure that fiasco_in has valid images */
+		if ( fiasco_in )
+			fiasco_in->first = image_first;
 	}
 
 	/* filter images by device */
@@ -674,11 +677,18 @@ int main(int argc, char **argv) {
 			goto clean;
 		}
 		filter_images_by_device(device, &image_first);
+		/* make sure that fiasco_in has valid images */
+		if ( fiasco_in )
+			fiasco_in->first = image_first;
 	}
 
 	/* filter images by hwrev */
-	if ( filter_hwrev )
+	if ( filter_hwrev ) {
 		filter_images_by_hwrev(atoi(filter_hwrev_arg), &image_first);
+		/* make sure that fiasco_in has valid images */
+		if ( fiasco_in )
+			fiasco_in->first = image_first;
+	}
 
 	/* reorder images for flashing (first x-loader, second secondary) */
 	/* set 2nd and secondary images for cold-flashing */
@@ -742,11 +752,12 @@ int main(int argc, char **argv) {
 			image_ptr = next;
 		}
 
+		/* make sure that fiasco_in has valid images */
+		if ( fiasco_in )
+			fiasco_in->first = image_first;
+
 	}
 
-	/* make sure that fiasco_in has valid images*/
-	if ( fiasco_in )
-		fiasco_in->first = image_first;
 
 	/* identify images */
 	if ( image_ident ) {
@@ -784,8 +795,9 @@ int main(int argc, char **argv) {
 			WARNING("Removing unknown image (specified by %s %s)", image_ptr->image->orig_filename ? "file" : "fiasco", image_ptr->image->orig_filename ? image_ptr->image->orig_filename : "image");
 			if ( image_ptr == image_first )
 				image_first = next;
-			image_list_unlink(image_ptr);
-			free(image_ptr);
+			if ( fiasco_in && image_ptr == fiasco_in->first )
+				fiasco_in->first = fiasco_in->first->next;
+			image_list_del(image_ptr);
 		}
 		image_ptr = next;
 	}
@@ -985,6 +997,8 @@ int main(int argc, char **argv) {
 				filter_images_by_device(dev->detected_device, &image_first);
 			if ( detected_hwrev )
 				filter_images_by_hwrev(dev->detected_hwrev, &image_first);
+			if ( fiasco_in && ( detected_device || detected_hwrev ) )
+				fiasco_in->first = image_first;
 
 			/* set kernel and initfs images for loading */
 			if ( dev_load ) {
@@ -1049,8 +1063,7 @@ int main(int argc, char **argv) {
 					if ( fiasco_in && image_kernel == fiasco_in->first )
 						fiasco_in->first = fiasco_in->first->next;
 
-					image_list_unlink(image_kernel);
-					free(image_kernel);
+					image_list_del(image_kernel);
 					image_kernel = NULL;
 				}
 
@@ -1061,11 +1074,10 @@ int main(int argc, char **argv) {
 
 					if ( image_initfs == image_first )
 						image_first = image_first->next;
-					if ( fiasco_in && image_kernel == fiasco_in->first )
+					if ( fiasco_in && image_initfs == fiasco_in->first )
 						fiasco_in->first = fiasco_in->first->next;
 
-					image_list_unlink(image_initfs);
-					free(image_initfs);
+					image_list_del(image_initfs);
 					image_initfs = NULL;
 				}
 			}
@@ -1081,11 +1093,10 @@ int main(int argc, char **argv) {
 
 					if ( image_ptr == image_first )
 						image_first = image_first->next;
-					if ( fiasco_in && image_kernel == fiasco_in->first )
+					if ( fiasco_in && image_ptr == fiasco_in->first )
 						fiasco_in->first = fiasco_in->first->next;
 
-					image_list_unlink(image_ptr);
-					free(image_ptr);
+					image_list_del(image_ptr);
 					image_ptr = next;
 				}
 			}
