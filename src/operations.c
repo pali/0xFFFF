@@ -110,8 +110,8 @@ enum device dev_get_device(struct device_info * dev) {
 			return nolo_get_device(dev->usb);
 		else if ( protocol == FLASH_MKII )
 			return mkii_get_device(dev->usb);
-/*		else if ( protocol == FLASH_DISK )
-			return disk_get_device(dev->usb);*/
+		else if ( protocol == FLASH_DISK )
+			return disk_get_device(dev->usb);
 
 	}
 
