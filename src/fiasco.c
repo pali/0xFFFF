@@ -551,6 +551,7 @@ int fiasco_unpack(struct fiasco * fiasco, const char * dir) {
 				fd = open(layout_name, O_RDWR|O_CREAT|O_TRUNC, 0644);
 				if ( fd < 0 ) {
 					ERROR_INFO("Cannot create layout file %s", layout_name);
+					free(layout_name);
 					return -1;
 				}
 
