@@ -31,10 +31,10 @@ $(BIN).1: $(BIN) $(MANGEN) $(DEPENDS) ../doc/examples
 	mv $@.tmp $@
 
 libusb-sniff-32.so: libusb-sniff.c $(DEPENDS)
-	$(CC) $(CFLAGS) $(LDFLAGS) -fPIC -ldl -shared -m32 -o $@ $<
+	$(CC) $(CFLAGS) $(LDFLAGS) -fPIC $< -ldl -shared -m32 -o $@
 
 libusb-sniff-64.so: libusb-sniff.c $(DEPENDS)
-	$(CC) $(CFLAGS) $(LDFLAGS) -fPIC -ldl -shared -m64 -o $@ $<
+	$(CC) $(CFLAGS) $(LDFLAGS) -fPIC $< -ldl -shared -m64 -o $@
 
 %.o: %.c $(DEPENDS)
 	$(CROSS_CC) $(CFLAGS) $(CPPFLAGS) -c -o $@ $<
