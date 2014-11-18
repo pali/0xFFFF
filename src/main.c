@@ -758,6 +758,23 @@ int main(int argc, char **argv) {
 
 	}
 
+	/* remove 2nd image when doing normal flash */
+	if ( dev_flash ) {
+		image_ptr = image_first;
+		while ( image_ptr ) {
+			struct image_list * next = image_ptr->next;
+			if ( image_ptr->image->type == IMAGE_2ND ) {
+				if ( image_ptr == image_first )
+					image_first = next;
+				image_list_del(image_ptr);
+			}
+			image_ptr = next;
+		}
+
+		/* make sure that fiasco_in has valid images */
+		if ( fiasco_in )
+			fiasco_in->first = image_first;
+	}
 
 	/* identify images */
 	if ( image_ident ) {
