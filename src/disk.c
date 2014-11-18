@@ -37,17 +37,14 @@ static char global_buf[1 << 22]; /* 4MB */
 
 int disk_init(struct usb_device_info * dev) {
 
-	ERROR("RAW mode is not implemented yet");
 	(void)dev;
-	return -1;
+	return 0;
 
 }
 
 enum device disk_get_device(struct usb_device_info * dev) {
 
-	ERROR("Not implemented yet");
-	(void)dev;
-	return DEVICE_UNKNOWN;
+	return dev->device;
 
 }
 
