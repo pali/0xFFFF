@@ -48,6 +48,7 @@ struct usb_device_info {
 	int16_t hwrev;
 	const struct usb_flash_device * flash_device;
 	usb_dev_handle * udev;
+	int data;
 };
 
 const char * usb_flash_protocol_to_string(enum usb_flash_protocol protocol);
