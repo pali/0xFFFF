@@ -226,7 +226,94 @@ int disk_flash_dev(int fd, const char * file) {
 
 int disk_init(struct usb_device_info * dev) {
 
-	(void)dev;
+	int fd;
+	int maj;
+	int min;
+
+	maj = -1;
+	min = -1;
+
+	FILE * f;
+	DIR * dir;
+	struct dirent * dirent;
+	char buf[1024];
+	unsigned int devnum;
+	unsigned int busnum;
+
+	struct usb_device * device;
+
+	device = usb_device(dev->udev);
+	if ( ! device || ! device->bus ) {
+		ERROR_INFO("Cannot read usb devnum and busnum");
+		return -1;
+	}
+
+	dir = opendir("/sys/dev/block/");
+	if ( ! dir ) {
+		ERROR_INFO("Cannot open '/sys/dev/block/' directory");
+		return -1;
+	}
+
+	while ( ( dirent = readdir(dir) ) ) {
+
+		if ( strncmp(dirent->d_name, ".", sizeof(".")) == 0 || strncmp(dirent->d_name, "..", sizeof("..")) == 0 )
+			continue;
+
+		if ( snprintf(buf, sizeof(buf), "/sys/dev/block/%s/device/../../../../busnum", dirent->d_name) <= 0 )
+			continue;
+
+		f = fopen(buf, "r");
+		if ( ! f )
+			continue;
+
+		if ( fscanf(f, "%u", &busnum) != 1 ) {
+			fclose(f);
+			continue;
+		}
+
+		fclose(f);
+
+		if ( snprintf(buf, sizeof(buf), "/sys/dev/block/%s/device/../../../../devnum", dirent->d_name) <= 0 )
+			continue;
+
+		f = fopen(buf, "r");
+		if ( ! f )
+			continue;
+
+		if ( fscanf(f, "%u", &devnum) != 1 ) {
+			fclose(f);
+			continue;
+		}
+
+		fclose(f);
+
+		if ( devnum != device->devnum || device->bus->location != busnum )
+			continue;
+
+		if ( sscanf(dirent->d_name, "%d:%d", &maj, &min) != 2 ) {
+			maj = -1;
+			min = -1;
+			continue;
+		}
+
+		break;
+
+	}
+
+	closedir(dir);
+
+	if ( maj == -1 || min == -1 ) {
+		ERROR("Cannot find id for mmc block disk device");
+		return -1;
+	}
+
+	/* TODO: change 1 to 0 when disk_flash_dev will be implemented */
+	fd = disk_open_dev(maj, min, -1, 1);
+
+	if ( fd < 0 )
+		return -1;
+
+	dev->data = fd;
 	return 0;
 
 }
