@@ -335,11 +335,10 @@ int disk_flash_image(struct usb_device_info * dev, struct image * image) {
 
 int disk_dump_image(struct usb_device_info * dev, enum image_type image, const char * file) {
 
-	ERROR("Not implemented yet");
-	(void)dev;
-	(void)image;
-	(void)file;
-	return -1;
+	if ( image != IMAGE_MMC )
+		ERROR_RETURN("Only mmc images are supported", -1);
+
+	return disk_dump_dev(dev->data, file);
 
 }
 
