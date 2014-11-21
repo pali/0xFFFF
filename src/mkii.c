@@ -86,6 +86,9 @@ int mkii_init(struct usb_device_info * dev) {
 	struct mkii_message * msg;
 	enum device device;
 	int ret;
+	char * newptr;
+	char * ptr;
+	enum image_type type;
 
 	printf("Initializing Mk II protocol...\n");
 
@@ -116,6 +119,34 @@ int mkii_init(struct usb_device_info * dev) {
 	}
 
 	dev->hwrev = mkii_get_hwrev(dev);
+
+	memcpy(msg->data, "/update/supported_images", sizeof("/update/supported_images")-1);
+	ret = mkii_send_receive(dev->udev, MKII_GET_IMAGES, msg, sizeof("/update/supported_images")-1, msg, sizeof(buf));
+	if ( ret < 2 || msg->data[0] != 0 ) {
+		ERROR("Cannot get supported image types");
+		return -1;
+	}
+
+	msg->data[ret] = 0;
+	ptr = msg->data + 1;
+
+	printf("Supported images by current device configuration:");
+
+	while ( ptr && *ptr ) {
+		newptr = strchr(ptr, ',');
+		if ( newptr ) {
+			*newptr = 0;
+			++newptr;
+		}
+		type = image_type_from_string(ptr);
+		if ( type != IMAGE_UNKNOWN ) {
+			dev->data |= (1 << type);
+			printf(" %s", ptr);
+		}
+		ptr = newptr;
+	}
+
+	printf("\n");
 
 	return 0;
 
@@ -154,6 +185,11 @@ int mkii_flash_image(struct usb_device_info * dev, struct image * image) {
 
 	ERROR("Not implemented yet");
 	return -1;
+
+	if ( ! ( dev->data & (1 << image->type) ) ) {
+		ERROR("Flashing image %s is not supported in current device configuration", image_type_to_string(image->type));
+		return -1;
+	}
 
 	msg = (struct mkii_message *)buf;
 	msg1 = (struct mkii_message *)buf1;
