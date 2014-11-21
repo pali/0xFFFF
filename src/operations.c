@@ -194,8 +194,15 @@ int dev_dump_image(struct device_info * dev, enum image_type image, const char *
 		return local_dump_image(image, file);
 
 	if ( dev->method == METHOD_USB ) {
-		ERROR("Dump image via USB is not supported");
+
+		enum usb_flash_protocol protocol = dev->usb->flash_device->protocol;
+
+		if ( protocol == FLASH_DISK )
+			return disk_dump_image(dev->usb, image, file);
+
+		ERROR("Dump image via USB not in Mass Storage Mode is not supported");
 		return -1;
+
 	}
 
 	return -1;
