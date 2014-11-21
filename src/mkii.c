@@ -148,6 +148,13 @@ int mkii_init(struct usb_device_info * dev) {
 
 	printf("\n");
 
+	memset(buf, 0, sizeof(buf));
+	usb_get_string_simple(dev->udev, usb_device(dev->udev)->config[dev->flash_device->configuration].iConfiguration, buf, sizeof(buf));
+	if ( strncmp(buf, "Firmware Upgrade Configuration", sizeof("Firmware Upgrade Configuration")) == 0 )
+		dev->data |= (1 << 31);
+
+	printf("Device is in: %s mode\n", (dev->data & (1<<31)) ? "Update" : "PC Suite");
+
 	return 0;
 
 }
