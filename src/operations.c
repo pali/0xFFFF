@@ -174,10 +174,15 @@ int dev_flash_image(struct device_info * dev, struct image * image) {
 
 		enum usb_flash_protocol protocol = dev->usb->flash_device->protocol;
 
-		if ( protocol == FLASH_NOLO )
-			return nolo_flash_image(dev->usb, image);
-		else if ( protocol == FLASH_MKII )
-			return mkii_flash_image(dev->usb, image);
+		if ( protocol == FLASH_NOLO ) {
+			if ( image->type != IMAGE_MMC )
+				return nolo_flash_image(dev->usb, image);
+			usb_switch_to_update(dev->usb);
+			return -EAGAIN;
+		} else if ( protocol == FLASH_MKII ) {
+			if ( dev->usb->data & (1 << image->type) )
+				return mkii_flash_image(dev->usb, image);
+		}
 
 		usb_switch_to_nolo(dev->usb);
 		return -EAGAIN;
