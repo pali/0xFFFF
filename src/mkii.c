@@ -500,11 +500,21 @@ int mkii_set_nolo_ver(struct usb_device_info * dev, const char * ver) {
 
 int mkii_get_sw_ver(struct usb_device_info * dev, char * ver, size_t size) {
 
-	ERROR("Not implemented yet");
-	(void)dev;
-	(void)ver;
-	(void)size;
-	return -1;
+	char buf[2048];
+	struct mkii_message * msg;
+	int ret;
+
+	msg = (struct mkii_message *)buf;
+
+	memcpy(msg->data, "/version/sw_release", sizeof("/version/sw_release")-1);
+	ret = mkii_send_receive(dev->udev, MKII_GET_DEVICE, msg, sizeof("/version/sw_release")-1, msg, sizeof(buf));
+	if ( ret < 2 || msg->data[0] != 0 || msg->data[1] == 0 )
+		return -1;
+
+	msg->data[ret] = 0;
+	strncpy(ver, msg->data+1, size);
+	ver[size-1] = 0;
+	return strlen(ver);
 
 }
 
