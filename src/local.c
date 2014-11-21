@@ -302,6 +302,9 @@ static void local_find_internal_mydocs(int * maj, int * min) {
 
 	while ( ( dirent = readdir(dir) ) ) {
 
+		if ( strncmp(dirent->d_name, ".", sizeof(".")) == 0 || strncmp(dirent->d_name, "..", sizeof("..")) == 0 )
+			continue;
+
 		if ( snprintf(buf, sizeof(buf), "/sys/class/mmc_host/%s/slot_name", dirent->d_name) <= 0 )
 			continue;
 
