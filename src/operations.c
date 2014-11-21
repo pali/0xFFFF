@@ -602,6 +602,8 @@ int dev_get_sw_ver(struct device_info * dev, char * ver, size_t size) {
 
 		if ( protocol == FLASH_NOLO )
 			return nolo_get_sw_ver(dev->usb, ver, size);
+		else if ( protocol == FLASH_MKII )
+			return mkii_get_sw_ver(dev->usb, ver, size);
 
 	}
 
