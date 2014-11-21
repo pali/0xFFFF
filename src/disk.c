@@ -55,6 +55,9 @@ int disk_open_dev(int maj, int min, int partition, int readonly) {
 
 	while ( ( dirent = readdir(dir) ) ) {
 
+		if ( strncmp(dirent->d_name, ".", sizeof(".")) == 0 || strncmp(dirent->d_name, "..", sizeof("..")) == 0 )
+			continue;
+
 		if ( snprintf(blkdev, sizeof(blkdev), "/dev/%s", dirent->d_name) <= 0 )
 			continue;
 
