@@ -282,6 +282,84 @@ static struct nanddump_device nanddump[] = {
 
 #undef NANDDUMP
 
+static void local_find_internal_mydocs(int * maj, int * min) {
+
+	int fd;
+	DIR * dir;
+	DIR * dir2;
+	FILE * f;
+	struct dirent * dirent;
+	struct dirent * dirent2;
+	char buf[1024];
+
+	/* Find min & maj id for block device MyDocs (mmc device, partition 1) */
+
+	dir = opendir("/sys/class/mmc_host/");
+	if ( ! dir ) {
+		ERROR("Cannot find MyDocs mmc device: Opening '/sys/class/mmc_host/' failed");
+		return;
+	}
+
+	while ( ( dirent = readdir(dir) ) ) {
+
+		if ( snprintf(buf, sizeof(buf), "/sys/class/mmc_host/%s/slot_name", dirent->d_name) <= 0 )
+			continue;
+
+		fd = open(buf, O_RDONLY);
+		if ( fd < 0 )
+			continue;
+
+		memset(buf, 0, sizeof(buf));
+		if ( read(fd, buf, sizeof(buf)-1) < 0 )
+			buf[0] = 0;
+		close(fd);
+		fd = -1;
+
+		if ( strncmp(buf, "internal", sizeof("internal")-1) != 0 )
+			continue;
+
+		if ( snprintf(buf, sizeof(buf), "/sys/class/mmc_host/%s/%s:0001/", dirent->d_name, dirent->d_name) <= 0 )
+			continue;
+
+		dir2 = opendir(buf);
+		if ( ! dir2 )
+			continue;
+
+		while ( ( dirent2 = readdir(dir2) ) ) {
+
+			if ( strncmp(dirent2->d_name, "block:mmcblk", sizeof("block:mmcblk")-1) != 0 )
+				continue;
+
+			if ( snprintf(buf, sizeof(buf), "/sys/class/mmc_host/%s/%s:0001/%s/dev", dirent->d_name, dirent->d_name, dirent2->d_name) <= 0 )
+				continue;
+
+			f = fopen(buf, "r");
+			if ( ! f )
+				continue;
+
+			if ( fscanf(f, "%d:%d", maj, min) != 2 ) {
+				*maj = -1;
+				*min = -1;
+				fclose(f);
+				continue;
+			}
+
+			fclose(f);
+			break;
+
+		}
+
+		closedir(dir2);
+
+		if ( *maj != -1 && *min != -1 )
+			break;
+
+	}
+
+	closedir(dir);
+
+}
+
 int local_dump_image(enum image_type image, const char * file) {
 
 	int ret = -1;
@@ -289,15 +367,7 @@ int local_dump_image(enum image_type image, const char * file) {
 	unsigned char * addr = NULL;
 	off_t nlen, len;
 	int align;
-	DIR * dir;
-	DIR * dir2;
-	FILE * f;
-	struct dirent * dirent;
-	struct dirent * dirent2;
-	struct stat st;
 	int maj, min;
-	char buf[1024];
-	char blk[1024];
 
 	printf("Dump %s image to file %s...\n", image_type_to_string(image), file);
 
@@ -306,119 +376,24 @@ int local_dump_image(enum image_type image, const char * file) {
 		maj = -1;
 		min = -1;
 
-		/* Find block device in /dev/ for MyDocs (mmc device, partition 1) */
-
-		dir = opendir("/sys/class/mmc_host/");
-		if ( ! dir ) {
-			ERROR("Cannot find MyDocs mmc device: Opening '/sys/class/mmc_host/' failed");
-			goto clean;
-		}
-
-		while ( ( dirent = readdir(dir) ) ) {
-
-			if ( snprintf(buf, sizeof(buf), "/sys/class/mmc_host/%s/slot_name", dirent->d_name) <= 0 )
-				continue;
-
-			fd = open(buf, O_RDONLY);
-			if ( fd < 0 )
-				continue;
-
-			memset(buf, 0, sizeof(buf));
-			if ( read(fd, buf, sizeof(buf)-1) < 0 )
-				buf[0] = 0;
-			close(fd);
-
-			if ( strncmp(buf, "internal", sizeof("internal")-1) != 0 )
-				continue;
-
-			if ( snprintf(buf, sizeof(buf), "/sys/class/mmc_host/%s/%s:0001/", dirent->d_name, dirent->d_name) <= 0 )
-				continue;
-
-			dir2 = opendir(buf);
-			if ( ! dir2 )
-				continue;
-
-			while ( ( dirent2 = readdir(dir2) ) ) {
-
-				if ( strncmp(dirent2->d_name, "block:mmcblk", sizeof("block:mmcblk")-1) != 0 )
-					continue;
-
-				if ( snprintf(buf, sizeof(buf), "/sys/class/mmc_host/%s/%s:0001/%s/dev", dirent->d_name, dirent->d_name, dirent2->d_name) <= 0 )
-					continue;
-
-				f = fopen(buf, "r");
-				if ( ! f )
-					continue;
-
-				if ( fscanf(f, "%d:%d", &maj, &min) != 2 ) {
-					maj = -1;
-					min = -1;
-					fclose(f);
-					continue;
-				}
-
-				fclose(f);
-				break;
-
-			}
-
-			closedir(dir2);
-
-			if ( maj != -1 && min != -1 )
-				break;
-
-		}
-
-		closedir(dir);
-
+		local_find_internal_mydocs(&maj, &min);
 		if ( maj == -1 || min == -1 ) {
 			ERROR("Cannot find MyDocs mmc device: Slot 'internal' was not found");
 			goto clean;
 		}
 
-		VERBOSE("Detected internal mmc device: major=%d minor=%d\n", maj, min);
+		VERBOSE("Detected internal MyDocs mmc device: major=%d minor=%d\n", maj, min);
 
-		blk[0] = 0;
-
-		dir = opendir("/dev/");
-		if ( ! dir ) {
-			ERROR("Cannot find MyDocs mmc device: Opening '/dev/' failed");
+		fd = disk_open_dev(maj, min, 1, 1);
+		if ( fd < 0 ) {
+			ERROR("Cannot open MyDocs mmc device in /dev/");
 			goto clean;
 		}
 
-		while ( ( dirent = readdir(dir) ) ) {
+		ret = disk_dump_dev(fd, file);
 
-			if ( snprintf(buf, sizeof(buf), "/dev/%s", dirent->d_name) <= 0 )
-				continue;
-
-			if ( stat(buf, &st) != 0 )
-				continue;
-
-			if ( ! S_ISBLK(st.st_mode) )
-				continue;
-
-			if ( makedev(maj, min) != st.st_rdev )
-				continue;
-
-			strcpy(blk, buf);
-			break;
-
-		}
-
-		closedir(dir);
-
-		if ( ! blk[0] ) {
-			ERROR("Cannot find MyDocs mmc device: Block device in /dev/ was not found");
-			goto clean;
-		}
-
-		VERBOSE("Detected internal mmc device: '%s'\n", blk);
-
-		strncat(blk, "p1", sizeof(blk)-strlen(blk)-1);
-
-		printf("Using MyDocs mmc device: '%s'\n", blk);
-
-		ret = disk_dump_raw(blk, file);
+		close(fd);
+		fd = -1;
 
 	} else {
 
