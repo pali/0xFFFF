@@ -27,8 +27,6 @@ int disk_init(struct usb_device_info * dev);
 
 enum device disk_get_device(struct usb_device_info * dev);
 
-int disk_flash_raw(const char * blkdev, const char * file);
-int disk_dump_raw(const char * blkdev, const char * file);
 int disk_open_dev(int maj, int min, int partition, int readonly);
 int disk_dump_dev(int fd, const char * file);
 int disk_flash_dev(int fd, const char * file);
