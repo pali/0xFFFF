@@ -55,6 +55,8 @@ static int root_device = -1;
 #define local_cal_read(cal, str, ptr, len) ( cal_read_block(cal, str, &ptr, &len, 0) == 0 && ptr )
 #define local_cal_readcopy(cal, str, dest) do { void * ptr; unsigned long int len; if ( local_cal_read(cal, str, ptr, len) ) local_cal_copy(dest, ptr, len); } while ( 0 )
 
+#if defined(__linux__) && defined(__arm__)
+
 static void local_cal_parse(void) {
 
 	struct cal * cal = NULL;
@@ -109,15 +111,21 @@ static void local_cal_parse(void) {
 
 }
 
+#endif
+
 int local_init(void) {
 
+#if defined(__linux__) && defined(__arm__)
 	char buf[1024];
 	char * ptr;
 	char * ptr2;
 	FILE * file;
+#endif
 
 	if ( failed )
 		return -1;
+
+#if defined(__linux__) && defined(__arm__)
 
 	file = fopen("/proc/cpuinfo", "r");
 	if ( ! file ) {
@@ -174,9 +182,12 @@ int local_init(void) {
 
 	}
 
+	fclose(file);
+
+#endif
+
 	failed = 1;
 	printf("Not a local device\n");
-	fclose(file);
 	return -1;
 
 }
@@ -284,6 +295,8 @@ static struct nanddump_device nanddump[] = {
 
 static void local_find_internal_mydocs(int * maj, int * min) {
 
+#ifdef __linux__
+
 	int fd;
 	DIR * dir;
 	DIR * dir2;
@@ -360,6 +373,8 @@ static void local_find_internal_mydocs(int * maj, int * min) {
 	}
 
 	closedir(dir);
+
+#endif
 
 }
 
