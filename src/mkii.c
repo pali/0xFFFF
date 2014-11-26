@@ -153,7 +153,7 @@ int mkii_init(struct usb_device_info * dev) {
 	if ( strncmp(buf, "Firmware Upgrade Configuration", sizeof("Firmware Upgrade Configuration")) == 0 )
 		dev->data |= (1 << 31);
 
-	printf("Device is in: %s mode\n", (dev->data & (1<<31)) ? "Update" : "PC Suite");
+	printf("Mode: %s\n", (dev->data & (1<<31)) ? "Update" : "PC Suite");
 
 	return 0;
 
