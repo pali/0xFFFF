@@ -18,13 +18,16 @@
 
 #include <fcntl.h>
 #include <libgen.h>
+#include <unistd.h>
 
 #include <sys/types.h>
 #include <sys/stat.h>
-#include <sys/ioctl.h>
 #include <sys/statvfs.h>
 
+#ifdef __linux__
+#include <sys/ioctl.h>
 #include <linux/fs.h>
+#endif
 
 #include "disk.h"
 #include "global.h"
@@ -36,6 +39,8 @@
 static char global_buf[1 << 22]; /* 4MB */
 
 int disk_open_dev(int maj, int min, int partition, int readonly) {
+
+#ifdef __linux__
 
 	int fd;
 	struct stat st;
@@ -140,6 +145,17 @@ int disk_open_dev(int maj, int min, int partition, int readonly) {
 
 	return fd;
 
+#else
+
+	ERROR("Not implemented yet");
+	(void)min;
+	(void)maj;
+	(void)partition;
+	(void)readonly;
+	return -1;
+
+#endif
+
 }
 
 int disk_dump_dev(int fd, const char * file) {
@@ -154,10 +170,24 @@ int disk_dump_dev(int fd, const char * file) {
 
 	printf("Dump block device to file %s...\n", file);
 
+#ifdef __linux__
+
 	if ( ioctl(fd, BLKGETSIZE64, &blksize) != 0 ) {
 		ERROR_INFO("Cannot get size of block device");
 		return -1;
 	}
+
+#else
+
+	blksize = lseek(fd, 0, SEEK_END);
+	if ( blksize == (off_t)-1 ) {
+		ERROR_INFO("Cannot get size of block device");
+		return -1;
+	}
+
+	lseek(fd, 0, SEEK_SET);
+
+#endif
 
 	if ( blksize > ULLONG_MAX ) {
 		ERROR("Block device is too big");
@@ -225,6 +255,8 @@ int disk_flash_dev(int fd, const char * file) {
 }
 
 int disk_init(struct usb_device_info * dev) {
+
+#ifdef __linux__
 
 	int fd;
 	int maj;
@@ -315,6 +347,14 @@ int disk_init(struct usb_device_info * dev) {
 
 	dev->data = fd;
 	return 0;
+
+#else
+
+	ERROR("Not implemented yet");
+	(void)dev;
+	return -1;
+
+#endif
 
 }
 
