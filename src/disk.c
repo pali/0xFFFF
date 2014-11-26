@@ -36,7 +36,7 @@
 #include "usb-device.h"
 #include "printf-utils.h"
 
-static char global_buf[1 << 22]; /* 4MB */
+static char global_buf[1UL << 22]; /* 4MB */
 
 int disk_open_dev(int maj, int min, int partition, int readonly) {
 

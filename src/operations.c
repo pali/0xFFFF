@@ -180,7 +180,7 @@ int dev_flash_image(struct device_info * dev, struct image * image) {
 			usb_switch_to_update(dev->usb);
 			return -EAGAIN;
 		} else if ( protocol == FLASH_MKII ) {
-			if ( dev->usb->data & (1 << image->type) )
+			if ( dev->usb->data & (1UL << image->type) )
 				return mkii_flash_image(dev->usb, image);
 		}
 

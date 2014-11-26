@@ -145,7 +145,7 @@ int mkii_init(struct usb_device_info * dev) {
 		}
 		type = image_type_from_string(ptr);
 		if ( type != IMAGE_UNKNOWN ) {
-			dev->data |= (1 << type);
+			dev->data |= (1UL << type);
 			printf(" %s", ptr);
 		}
 		ptr = newptr;
@@ -156,9 +156,9 @@ int mkii_init(struct usb_device_info * dev) {
 	memset(buf, 0, sizeof(buf));
 	usb_get_string_simple(dev->udev, usb_device(dev->udev)->config[dev->flash_device->configuration].iConfiguration, buf, sizeof(buf));
 	if ( strncmp(buf, "Firmware Upgrade Configuration", sizeof("Firmware Upgrade Configuration")) == 0 )
-		dev->data |= (1 << 31);
+		dev->data |= (1UL << 31);
 
-	printf("Mode: %s\n", (dev->data & (1<<31)) ? "Update" : "PC Suite");
+	printf("Mode: %s\n", (dev->data & (1UL << 31)) ? "Update" : "PC Suite");
 
 	return 0;
 
@@ -198,7 +198,7 @@ int mkii_flash_image(struct usb_device_info * dev, struct image * image) {
 	ERROR("Not implemented yet");
 	return -1;
 
-	if ( ! ( dev->data & (1 << image->type) ) ) {
+	if ( ! ( dev->data & (1UL << image->type) ) ) {
 		ERROR("Flashing image %s is not supported in current device configuration", image_type_to_string(image->type));
 		return -1;
 	}
