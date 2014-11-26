@@ -5,6 +5,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <errno.h>
+#include <time.h>
 
 extern int simulate;
 extern int noverify;
@@ -20,5 +21,7 @@ extern int verbose;
 
 #define ALLOC_ERROR() do { ERROR("Cannot allocate memory"); } while (0)
 #define ALLOC_ERROR_RETURN(...) do { ALLOC_ERROR(); return __VA_ARGS__; } while (0)
+
+#define SLEEP(usec) do { struct timespec _t = { 0, (usec) }; nanosleep(&_t, NULL); } while (0)
 
 #endif

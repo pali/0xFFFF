@@ -189,13 +189,13 @@ static int send_2nd(usb_dev_handle * udev, struct image * image) {
 
 	printf("Sending OMAP peripheral boot message...\n");
 	ret = usb_bulk_write(udev, WRITE_DEV, (char *)&omap_peripheral_msg, sizeof(omap_peripheral_msg), WRITE_TIMEOUT);
-	usleep(5000);
+	SLEEP(5000);
 	if ( ret != sizeof(omap_peripheral_msg) )
 		ERROR_RETURN("Sending OMAP peripheral boot message failed", -1);
 
 	printf("Sending 2nd X-Loader image size...\n");
 	ret = usb_bulk_write(udev, WRITE_DEV, (char *)&image->size, 4, WRITE_TIMEOUT);
-	usleep(5000);
+	SLEEP(5000);
 	if ( ret != 4 )
 		ERROR_RETURN("Sending 2nd X-Loader image size failed", -1);
 
@@ -215,7 +215,7 @@ static int send_2nd(usb_dev_handle * udev, struct image * image) {
 		readed += ret;
 		printf_progressbar(readed, image->size);
 	}
-	usleep(50000);
+	SLEEP(50000);
 
 	return 0;
 
@@ -232,7 +232,7 @@ static int send_secondary(usb_dev_handle * udev, struct image * image) {
 
 	printf("Sending X-Loader init message...\n");
 	ret = usb_bulk_write(udev, WRITE_DEV, (char *)&init_msg, sizeof(init_msg), WRITE_TIMEOUT);
-	usleep(5000);
+	SLEEP(5000);
 	if ( ret != sizeof(init_msg) )
 		ERROR_RETURN("Sending X-Loader init message failed", -1);
 
@@ -257,7 +257,7 @@ static int send_secondary(usb_dev_handle * udev, struct image * image) {
 		readed += ret;
 		printf_progressbar(readed, image->size);
 	}
-	usleep(5000);
+	SLEEP(5000);
 
 	printf("Waiting for X-Loader response...\n");
 	ret = usb_bulk_read(udev, READ_DEV, (char *)&buffer, 4, READ_TIMEOUT); /* 4 bytes - dummy value */
@@ -295,7 +295,7 @@ static int ping_timeout(usb_dev_handle * udev) {
 				break;
 			}
 
-			usleep(5000);
+			SLEEP(5000);
 			--try_read;
 
 		}
@@ -405,11 +405,11 @@ int leave_cold_flash(struct usb_device_info * dev) {
 
 	printf("Sending OMAP memory boot message...\n");
 	ret = usb_bulk_write(dev->udev, WRITE_DEV, (char *)&omap_memory_msg, sizeof(omap_memory_msg), WRITE_TIMEOUT);
-	usleep(5000);
+	SLEEP(5000);
 	if ( ret != sizeof(omap_memory_msg) )
 		ERROR_RETURN("Sending OMAP memory boot message failed", -1);
 
-	usleep(250000);
+	SLEEP(250000);
 	return 0;
 
 }
