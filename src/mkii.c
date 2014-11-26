@@ -423,7 +423,7 @@ int16_t mkii_get_hwrev(struct usb_device_info * dev) {
 	msg = (struct mkii_message *)buf;
 
 	memcpy(msg->data, "/device/hw_build", sizeof("/device/hw_build")-1);
-	ret = mkii_send_receive(dev->udev, MKII_GET_DEVICE, msg, sizeof("/device/hw_build")-1, msg, sizeof(buf));
+	ret = mkii_send_receive(dev->udev, MKII_GET_HWREV, msg, sizeof("/device/hw_build")-1, msg, sizeof(buf));
 	if ( ret < 2 || msg->data[0] != 0 || msg->data[1] == 0 )
 		return -1;
 
