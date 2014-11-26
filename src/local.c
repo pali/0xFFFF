@@ -442,7 +442,7 @@ int local_dump_image(enum image_type image, const char * file) {
 	if ( len == (off_t)-1 || len == 0 )
 		goto clean;
 
-	addr = mmap(NULL, len, PROT_READ, MAP_PRIVATE, fd, 0);
+	addr = (unsigned char *)mmap(NULL, len, PROT_READ, MAP_PRIVATE, fd, 0);
 
 	if ( addr == MAP_FAILED )
 		addr = NULL;
@@ -477,7 +477,7 @@ int local_dump_image(enum image_type image, const char * file) {
 
 clean:
 	if ( addr )
-		munmap(addr, len);
+		munmap((void *)addr, len);
 
 	if ( fd >= 0 )
 		close(fd);
