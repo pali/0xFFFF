@@ -124,6 +124,9 @@ static int nolo_identify_string(struct usb_device_info * dev, const char * str, 
 	if ( ret < 0 )
 		NOLO_ERROR_RETURN("NOLO_IDENTIFY failed", -1);
 
+	if ( (size_t)ret > sizeof(buf) )
+		ret = sizeof(buf);
+
 	ptr = memmem(buf, ret, str, strlen(str));
 	if ( ! ptr )
 		ERROR_RETURN("Substring was not found", -1);
@@ -166,6 +169,9 @@ static int nolo_get_string(struct usb_device_info * dev, char * str, char * out,
 
 	if ( ( ret = usb_control_msg(dev->udev, NOLO_QUERY, NOLO_GET_STRING, 0, 0, out, size-1, 2000) ) < 0 )
 		return -1;
+
+	if ( (size_t)ret > size-1 )
+		ret = size-1;
 
 	out[size-1] = 0;
 	out[ret] = 0;
