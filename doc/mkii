@@ -1,4 +1,4 @@
- Copyright (C) 2012  Pali Rohár <pali.rohar@gmail.com>
+ Copyright (C) 2012-2014  Pali Rohár <pali.rohar@gmail.com>
 
 Mk II protocol is the only protocol which can be used to flash eMMC images.
 NOLO does not support eMMC, so flashing eMMC is done in Maemo system. NOLO
@@ -27,6 +27,10 @@ Over usb are used only these functions for communication:
  usb_bulk_write (ep=1, timeout=5000)
  usb_bulk_read (ep=129, timeout=5000)
 
+And this function for sending raw data:
+
+ usb_bulk_write (ep=2, timeout=1000)
+
 For every (request) message which is send by host, server send back response.
 Format of message every message is same. It has 6 bytes header and (at least)
 4 bytes body.
@@ -40,51 +44,113 @@ HEADER
 
 BODY
 
-   4 bytes          --  type of message
+   2 bytes          --  unknown (always zero)
+   1 byte           --  or. num of message (starting with zero)
+   1 byte           --  type of message
    N bytes          --  data
 
 Reply message data always starts with char 0x00 (except pong response).
+
+Message types:
+
+0x00 - PING
+0x01 - GET
+0x02 - TELL
+0x0C - REBOOT
+
+0x20 - RESPONCE
 
 Here are some sniffed messages from Nokia RX-51. First two messages seems to
 must be always protocol version exchange (first host ask for protocol version of
 server and then host send its protocol version). On RX-51 is used version "2".
 
  Ping:
-   req_type = 0x00000000
-   res_type = 0x20000000
+   req_type = 0x00
+   res_type = 0x20
 
  Get protocol version:
-   req_type = 0x01010000
+   req_type = 0x01
    req_data = "/update/protocol_version"
-   res_type = 0x21010000
+   res_type = 0x21
    res_data = 0x00 "2"
 
  Tell our protocol version:
-   req_type = 0x02020000
+   req_type = 0x02
    req_data = "/update/host_protocol_version" 0x00 "2"
-   res_type = 0x22020000
+   res_type = 0x22
    res_data = 0x00
 
  Get device:
-   req_type = 0x01030000
+   req_type = 0x01
    req_data = "/device/product_code"
-   res_type = 0x21030000
+   res_type = 0x21
    res_data = 0x00 "RX-51"
 
  Get hwrev:
-   req_type = 0x01040000
+   req_type = 0x01
    req_data = "/device/hw_build"
-   res_type = 0x21040000
+   res_type = 0x21
    res_data = 0x00 "2101"
 
  Get image types:
-   req_type = 0x01050000
+   req_type = 0x01
    req_data = "/update/supported_images"
-   res_type = 0x21050000
+   res_type = 0x21
    res_data = 0x00 "xloader,secondary,kernel,mmc,cmt-2nd,cmt-algo,cmt-mcusw"
 
  Reboot device:
-   req_type = 0x0C060000
-   req_data = "reboot"
-   res_type = 0x2C060000
+   req_type = 0x0C
+   req_data = "reboot" 0x00
+   res_type = 0x2C
    res_data = 0x00
+
+ Send image (mmc):
+   req_type = 0x03
+   res_type = 0x23
+   res_data = 0x00
+
+   req_type = 0x04
+   req_data = fiasco subimage header
+   res_type = 0x24
+   res_data = 0x00 0x00 0x00 0x00 0x00 0x00 0x02 0x00 0x00
+
+   req_type = 0x05
+   req_data = 0x00 0x00 0x00 0x00 "usb:raw"
+   res_type = 0x25
+   res_data = 0x00
+
+   req_type = 0x06
+   req_data = 0x00 0x00 0x00 0x00
+   res_type = 0x26
+   res_data = 0x00 0x00 0x00 0x01 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00
+
+   req_type = 0x0B
+   req_data = 0x00 0x00 0x00 0x64
+   res_type = 0x2B
+   res_data = 0x00 0x00 0x00 0x01 0x00 0x00 0x00 0x00 0x02 0x00 0x00 0x00 0x00
+
+   req_type = 0x08
+   req_data = 0x00 0x00 0x00 0x00 0x00 0x10 0x00 0x00
+   res_type = 0x28
+   res_data = 0x00
+
+   (raw data on ep=2 size=1048576)
+
+   req_type = 0x06
+   req_data = 0x00 0x00 0x00 0x00
+   res_type = 0x26
+   res_data = 0x00 0x00 0x00 0x03 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x0F 0x9F 0x2C 0x00 0x00
+
+   req_type = 0x0B
+   req_data = 0x00 0x00 0x00 0x64
+   res_type = 0x2B
+   res_data = 0x00 0x00 0x00 0x01 0x00 0x00 0x00 0x00 0x01 0xF0 0x00 0x00 0x00
+
+   req_type = 0x08
+   req_data = 0x00 0x00 0x00 0x00 0x00 0x10 0x00 0x00
+   res_type = 0x28
+   res_data = 0x00
+
+   (raw data on ep=2 size=1048576)
+
+   ...
