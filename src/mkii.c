@@ -59,7 +59,7 @@ static int mkii_send_receive(usb_dev_handle * udev, uint8_t type, struct mkii_me
 	in_msg->num = number++;
 	in_msg->type = type;
 
-	ret = usb_bulk_write(udev, 1, (const char *)in_msg, data_size + sizeof(*in_msg), 5000);
+	ret = usb_bulk_write(udev, 1, (char *)in_msg, data_size + sizeof(*in_msg), 5000);
 	if ( ret < 0 )
 		return ret;
 	if ( (size_t)ret != data_size + sizeof(*in_msg) )
