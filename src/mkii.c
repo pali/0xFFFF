@@ -29,29 +29,34 @@
 #include "device.h"
 #include "usb-device.h"
 
-#define MKII_PING		0x00000000
-#define MKII_GET_PROTOCOL	0x01010000
-#define MKII_TELL_PROTOCOL	0x02020000
-#define MKII_GET_DEVICE		0x01030000
-#define MKII_GET_HWREV		0x01040000
-#define MKII_GET_IMAGES		0x01050000
-#define MKII_REBOOT		0x0C060000
-#define MKII_INIT_SEND		0x03010000
-#define MKII_SEND_IMAGE		0x04020000
+#define MKII_OUT	0x8810001B
+#define MKII_IN		0x8800101B
+
+#define MKII_PING	0x00
+#define MKII_GET	0x01
+#define MKII_TELL	0x02
+#define MKII_REBOOT	0x0C
+#define MKII_RESPONCE	0x20
 
 struct mkii_message {
 	uint32_t header;
 	uint16_t size;
-	uint32_t type;
+	uint16_t zero;
+	uint8_t num;
+	uint8_t type;
 	char data[];
 } __attribute__((__packed__));
 
-static int mkii_send_receive(usb_dev_handle * udev, uint32_t type, struct mkii_message * in_msg, size_t data_size, struct mkii_message * out_msg, size_t out_size) {
+
+static int mkii_send_receive(usb_dev_handle * udev, uint8_t type, struct mkii_message * in_msg, size_t data_size, struct mkii_message * out_msg, size_t out_size) {
 
 	int ret;
+	static uint8_t number = 0;
 
-	in_msg->header = 0x8810001B;
+	in_msg->header = MKII_OUT;
 	in_msg->size = htons(data_size + 4);
+	in_msg->zero = 0;
+	in_msg->num = number++;
 	in_msg->type = type;
 
 	ret = usb_bulk_write(udev, 1, (const char *)in_msg, data_size + sizeof(*in_msg), 5000);
@@ -64,10 +69,10 @@ static int mkii_send_receive(usb_dev_handle * udev, uint32_t type, struct mkii_m
 	if ( ret < 0 )
 		return ret;
 
-	if ( out_msg->header != 0x8800101B )
+	if ( out_msg->header != MKII_IN )
 		return -1;
 
-	if ( out_msg->type != (type | 0x20000000) )
+	if ( out_msg->type != (type | MKII_RESPONCE) )
 		return -1;
 
 	if ( (size_t)ret < sizeof(*out_msg) )
@@ -99,12 +104,12 @@ int mkii_init(struct usb_device_info * dev) {
 		return -1;
 
 	memcpy(msg->data, "/update/protocol_version", sizeof("/update/protocol_version")-1);
-	ret = mkii_send_receive(dev->udev, MKII_GET_PROTOCOL, msg, sizeof("/update/protocol_version")-1, msg, sizeof(buf));
+	ret = mkii_send_receive(dev->udev, MKII_GET, msg, sizeof("/update/protocol_version")-1, msg, sizeof(buf));
 	if ( ret != 2 || msg->data[0] != 0 || msg->data[1] != 0x32 )
 		return -1;
 
 	memcpy(msg->data, "/update/host_protocol_version\x00\x32", sizeof("/update/host_protocol_version\x00\x32")-1);
-	ret = mkii_send_receive(dev->udev, MKII_TELL_PROTOCOL, msg, sizeof("/update/host_protocol_version\x00\x32")-1, msg, sizeof(buf));
+	ret = mkii_send_receive(dev->udev, MKII_TELL, msg, sizeof("/update/host_protocol_version\x00\x32")-1, msg, sizeof(buf));
 	if ( ret != 1 || msg->data[0] != 0 )
 		return -1;
 
@@ -121,7 +126,7 @@ int mkii_init(struct usb_device_info * dev) {
 	dev->hwrev = mkii_get_hwrev(dev);
 
 	memcpy(msg->data, "/update/supported_images", sizeof("/update/supported_images")-1);
-	ret = mkii_send_receive(dev->udev, MKII_GET_IMAGES, msg, sizeof("/update/supported_images")-1, msg, sizeof(buf));
+	ret = mkii_send_receive(dev->udev, MKII_GET, msg, sizeof("/update/supported_images")-1, msg, sizeof(buf));
 	if ( ret < 2 || msg->data[0] != 0 ) {
 		ERROR("Cannot get supported image types");
 		return -1;
@@ -168,7 +173,7 @@ enum device mkii_get_device(struct usb_device_info * dev) {
 	msg = (struct mkii_message *)buf;
 
 	memcpy(msg->data, "/device/product_code", sizeof("/device/product_code")-1);
-	ret = mkii_send_receive(dev->udev, MKII_GET_DEVICE, msg, sizeof("/device/product_code")-1, msg, sizeof(buf));
+	ret = mkii_send_receive(dev->udev, MKII_GET, msg, sizeof("/device/product_code")-1, msg, sizeof(buf));
 	if ( ret < 2 || msg->data[0] != 0 || msg->data[1] == 0 )
 		return DEVICE_UNKNOWN;
 
@@ -311,11 +316,11 @@ int mkii_flash_image(struct usb_device_info * dev, struct image * image) {
 	memcpy(ptr, "\x00", 1);
 	ptr += 1;
 
-	ret = mkii_send_receive(dev->udev, MKII_INIT_SEND, msg1, 0, msg1, sizeof(buf1));
+	ret = mkii_send_receive(dev->udev, 0x03, msg1, 0, msg1, sizeof(buf1));
 	if ( ret != 1 || msg1->data[0] != 0 )
 		return -1;
 
-	ret = mkii_send_receive(dev->udev, MKII_SEND_IMAGE, msg, ptr - msg->data, msg, sizeof(buf));
+	ret = mkii_send_receive(dev->udev, 0x04, msg, ptr - msg->data, msg, sizeof(buf));
 	if ( ret != 9 )
 		return -1;
 
@@ -423,7 +428,7 @@ int16_t mkii_get_hwrev(struct usb_device_info * dev) {
 	msg = (struct mkii_message *)buf;
 
 	memcpy(msg->data, "/device/hw_build", sizeof("/device/hw_build")-1);
-	ret = mkii_send_receive(dev->udev, MKII_GET_HWREV, msg, sizeof("/device/hw_build")-1, msg, sizeof(buf));
+	ret = mkii_send_receive(dev->udev, MKII_GET, msg, sizeof("/device/hw_build")-1, msg, sizeof(buf));
 	if ( ret < 2 || msg->data[0] != 0 || msg->data[1] == 0 )
 		return -1;
 
@@ -507,7 +512,7 @@ int mkii_get_sw_ver(struct usb_device_info * dev, char * ver, size_t size) {
 	msg = (struct mkii_message *)buf;
 
 	memcpy(msg->data, "/version/sw_release", sizeof("/version/sw_release")-1);
-	ret = mkii_send_receive(dev->udev, MKII_GET_DEVICE, msg, sizeof("/version/sw_release")-1, msg, sizeof(buf));
+	ret = mkii_send_receive(dev->udev, MKII_GET, msg, sizeof("/version/sw_release")-1, msg, sizeof(buf));
 	if ( ret < 2 || msg->data[0] != 0 || msg->data[1] == 0 )
 		return -1;
 
