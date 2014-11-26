@@ -36,6 +36,9 @@
 #include "device.h"
 #include "operations.h"
 
+extern char *optarg;
+extern int optind, opterr, optopt;
+
 static void show_title(void) {
 	printf("0xFFFF v%s  // Open Free Fiasco Firmware Flasher\n", VERSION);
 }
