@@ -33,8 +33,10 @@
 #include <unistd.h>
 #include <fcntl.h>
 
+#ifdef __linux__
 #include <linux/fs.h>
 #include <mtd/mtd-user.h>
+#endif
 
 #include "cal.h"
 
@@ -68,7 +70,9 @@ int cal_init_file(const char * file, struct cal ** cal_out) {
 	void * mem = NULL;
 	struct cal * cal = NULL;
 	struct stat st;
+#ifdef __linux__
 	mtd_info_t mtd_info;
+#endif
 
 	if ( stat(file, &st) != 0 )
 		return -1;
@@ -81,17 +85,30 @@ int cal_init_file(const char * file, struct cal ** cal_out) {
 	if ( S_ISREG(st.st_mode) )
 		size = st.st_size;
 	else if ( S_ISBLK(st.st_mode) ) {
+#ifdef __linux__
 		if ( ioctl(fd, BLKGETSIZE64, &blksize) != 0 )
 			goto err;
+#else
+		blksize = lseek(fd, 0, SEEK_END);
+		if ( blksize == (off_t)-1 )
+			goto err;
+		lseek(fd, 0, SEEK_SET);
+#endif
 		if ( blksize > SSIZE_MAX )
 			goto err;
 		size = blksize;
-	} else if ( S_ISCHR(st.st_mode) && major(st.st_rdev) == 90 ) {
-		if ( ioctl(fd, MEMGETINFO, &mtd_info) != 0 )
-			goto err;
-		size = mtd_info.size;
 	} else {
+#ifdef __linux__
+		if ( S_ISCHR(st.st_mode) && major(st.st_rdev) == 90 ) {
+			if ( ioctl(fd, MEMGETINFO, &mtd_info) != 0 )
+				goto err;
+			size = mtd_info.size;
+		} else {
+			goto err;
+		}
+#else
 		goto err;
+#endif
 	}
 
 	if ( size == 0 || size > MAX_SIZE )
