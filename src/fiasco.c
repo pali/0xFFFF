@@ -234,8 +234,6 @@ struct fiasco * fiasco_alloc_from_file(const char * file) {
 
 	}
 
-	return fiasco;
-
 }
 
 void fiasco_free(struct fiasco * fiasco) {
