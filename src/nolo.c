@@ -127,7 +127,7 @@ static int nolo_identify_string(struct usb_device_info * dev, const char * str, 
 	if ( (size_t)ret > sizeof(buf) )
 		ret = sizeof(buf);
 
-	ptr = memmem(buf, ret, str, strlen(str));
+	ptr = MEMMEM(buf, ret, str, strlen(str));
 	if ( ! ptr )
 		ERROR_RETURN("Substring was not found", -1);
 
@@ -326,7 +326,7 @@ static int nolo_send_image(struct usb_device_info * dev, struct image * image, i
 
 			for ( i = 0; bufs[i]; ++i ) {
 				len = ((uint8_t*)bufs[i])[0];
-				if ( memmem(bufs[i]+1, len, buf, strlen(buf)) )
+				if ( MEMMEM(bufs[i]+1, len, buf, strlen(buf)) )
 					break;
 			}
 

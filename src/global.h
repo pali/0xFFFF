@@ -24,4 +24,17 @@ extern int verbose;
 
 #define SLEEP(usec) do { struct timespec _t = { 0, (usec) }; nanosleep(&_t, NULL); } while (0)
 
+static inline void * MEMMEM(void *haystack, size_t haystacklen, const void *needle, size_t needlelen) {
+	for ( size_t i = 0; i < haystacklen; ++i ) {
+		for ( size_t j = 0; j < needlelen; ++j ) {
+			if ( ((char *)haystack)[i] != ((const char *)needle)[j] )
+				break;
+			if ( j != needlelen - 1 )
+				continue;
+			return (char *)haystack + i;
+		}
+	}
+	return NULL;
+}
+
 #endif

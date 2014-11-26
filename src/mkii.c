@@ -262,7 +262,7 @@ int mkii_flash_image(struct usb_device_info * dev, struct image * image) {
 
 			for ( i = 0; bufs[i]; ++i ) {
 				len = ((uint8_t*)bufs[i])[0];
-				if ( memmem(bufs[i]+1, len, buf, strlen(buf)) )
+				if ( MEMMEM(bufs[i]+1, len, buf, strlen(buf)) )
 					break;
 			}
 
