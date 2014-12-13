@@ -1,0 +1,31 @@
+Source: 0xffff
+Section: misc
+Priority: extra
+Maintainer: Sebastian Reichel <sre@debian.org>
+Standards-Version: 3.9.5
+Build-Depends: debhelper (>= 9),
+               libusb-dev
+Homepage: http://gitorious.org/0xffff/
+Vcs-Git: git://anonscm.debian.org/pkg-n900/0xffff.git
+Vcs-Browser: http://anonscm.debian.org/gitweb/?p=pkg-n900/0xffff.git;a=summary
+
+Package: 0xffff
+Architecture: any
+Multi-Arch: foreign
+Depends: ${misc:Depends}, ${shlibs:Depends}
+Description: Open Free Fiasco Firmware Flasher
+ The ‘Open Free Fiasco Firmware Flasher’ aka 0xFFFF utility implements
+ a free userspace handler for the NOLO bootloader and extended features
+ for flashing, dumping and getting information for the Nokia Internet
+ Tablets. Thus it's a free alternative to Nokia's closed source flashing
+ utility called flasher.
+ .
+ Supported operations currently include, but are not limited to:
+  * generating and unpacking FIASCO images on local device
+  * editing Maemo firmware packages
+  * flashing any kind image type to Maemo devices via USB
+  * "cold" flashing for devices with bricked bootloaders
+  * direct kernel boot without flashing it to NAND
+  * changing configuration of Maemo device (R&D flags, HW revision strings, ...)
+ .
+ Currently supported are the Nokia 770, N800, N810, N810w and the N900.

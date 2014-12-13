@@ -1,0 +1,26 @@
+0xffff (0.6.1-1) experimental; urgency=medium
+
+  * New upstream release
+   - Contains a few security related fixes (memory corruptions & leaks)
+   - Support for -t (filter by type) for -e (dump images)
+   - reattach kernel driver
+   - minor fixes
+
+ -- Sebastian Reichel <sre@debian.org>  Thu, 11 Dec 2014 21:52:53 +0100
+
+0xffff (0.6-1) unstable; urgency=low
+
+  * New upstream release
+  * Fix vcs-field-not-canonical
+  * Remove debian/0xffff.1 (manpage now provided by upstream)
+  * Add debian/completions/_0xFFFF (zsh auto-completion)
+  * Update Debian Standards Version to 3.9.5
+  * Fix possible-unindented-list-in-extended-description
+
+ -- Sebastian Reichel <sre@debian.org>  Mon, 12 May 2014 19:01:41 +0200
+
+0xffff (0.6~git20130406-1) unstable; urgency=low
+
+  * Initial release. (Closes: #514244)
+
+ -- Sebastian Reichel <sre@debian.org>  Sat, 06 Apr 2013 17:21:36 +0200
