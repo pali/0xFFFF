@@ -127,9 +127,9 @@ int local_init(void) {
 
 	while ( fgets(buf, sizeof(buf), file) ) {
 
-		if ( strncmp(buf, "Hardware", strlen("Hardware")) == 0 ) {
+		if ( strncmp(buf, "Hardware", sizeof("Hardware")-1) == 0 ) {
 
-			ptr = buf + strlen("Hardware");
+			ptr = buf + sizeof("Hardware")-1;
 
 			while ( ptr < buf + sizeof(buf) && *ptr > 0 && *ptr <= 32 )
 				++ptr;
@@ -316,21 +316,23 @@ int local_dump_image(enum image_type image, const char * file) {
 
 		while ( ( dirent = readdir(dir) ) ) {
 
-			snprintf(buf, sizeof(buf), "/sys/class/mmc_host/%s/slot_name", dirent->d_name);
+			if ( snprintf(buf, sizeof(buf), "/sys/class/mmc_host/%s/slot_name", dirent->d_name) <= 0 )
+				continue;
 
 			fd = open(buf, O_RDONLY);
 			if ( fd < 0 )
 				continue;
 
-			buf[0] = 0;
-			if ( read(fd, buf, sizeof(buf)) < 0 )
+			memset(buf, 0, sizeof(buf));
+			if ( read(fd, buf, sizeof(buf)-1) < 0 )
 				buf[0] = 0;
 			close(fd);
 
-			if ( strncmp(buf, "internal", strlen("internal")) != 0 )
+			if ( strncmp(buf, "internal", sizeof("internal")-1) != 0 )
 				continue;
 
-			snprintf(buf, sizeof(buf), "/sys/class/mmc_host/%s/%s:0001/", dirent->d_name, dirent->d_name);
+			if ( snprintf(buf, sizeof(buf), "/sys/class/mmc_host/%s/%s:0001/", dirent->d_name, dirent->d_name) <= 0 )
+				continue;
 
 			dir2 = opendir(buf);
 			if ( ! dir2 )
@@ -338,10 +340,11 @@ int local_dump_image(enum image_type image, const char * file) {
 
 			while ( ( dirent2 = readdir(dir2) ) ) {
 
-				if ( strncmp(dirent2->d_name, "block:mmcblk", strlen("block:mmcblk")) != 0 )
+				if ( strncmp(dirent2->d_name, "block:mmcblk", sizeof("block:mmcblk")-1) != 0 )
 					continue;
 
-				snprintf(buf, sizeof(buf), "/sys/class/mmc_host/%s/%s:0001/%s/dev", dirent->d_name, dirent->d_name, dirent2->d_name);
+				if ( snprintf(buf, sizeof(buf), "/sys/class/mmc_host/%s/%s:0001/%s/dev", dirent->d_name, dirent->d_name, dirent2->d_name) <= 0 )
+					continue;
 
 				f = fopen(buf, "r");
 				if ( ! f )
@@ -385,7 +388,8 @@ int local_dump_image(enum image_type image, const char * file) {
 
 		while ( ( dirent = readdir(dir) ) ) {
 
-			snprintf(buf, sizeof(buf), "/dev/%s", dirent->d_name);
+			if ( snprintf(buf, sizeof(buf), "/dev/%s", dirent->d_name) <= 0 )
+				continue;
 
 			if ( stat(buf, &st) != 0 )
 				continue;
@@ -410,7 +414,7 @@ int local_dump_image(enum image_type image, const char * file) {
 
 		VERBOSE("Detected internal mmc device: '%s'\n", blk);
 
-		strncat(blk, "p1", sizeof(blk));
+		strncat(blk, "p1", sizeof(blk)-strlen(blk)-1);
 
 		printf("Using MyDocs mmc device: '%s'\n", blk);
 
@@ -455,6 +459,10 @@ int local_dump_image(enum image_type image, const char * file) {
 
 	for ( nlen = len; nlen > 0; --nlen )
 		if ( addr[nlen-1] != 0xFF )
+			break;
+
+	for ( ; nlen > 0; --nlen )
+		if ( addr[nlen-1] != 0x00 )
 			break;
 
 	if ( image == IMAGE_MMC )
@@ -532,7 +540,7 @@ int local_set_usb_host_mode(int enable) {
 
 int local_get_rd_mode(void) {
 
-	if ( strncmp(rd_mode, "master", strlen("master")) == 0 )
+	if ( strncmp(rd_mode, "master", sizeof("master")-1) == 0 )
 		return 1;
 	else
 		return 0;
@@ -551,8 +559,8 @@ int local_get_rd_flags(char * flags, size_t size) {
 
 	const char * ptr;
 
-	if ( strncmp(rd_mode, "master", strlen("master")) == 0 )
-		ptr = rd_mode + strlen("master");
+	if ( strncmp(rd_mode, "master", sizeof("master")-1) == 0 )
+		ptr = rd_mode + sizeof("master")-1;
 	else
 		ptr = rd_mode;
 

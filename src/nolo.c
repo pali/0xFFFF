@@ -84,12 +84,14 @@ static void nolo_error_log(struct usb_device_info * dev, int only_clear) {
 
 	char buf[2048];
 	size_t i, count;
+	int ret;
 
 	for ( count = 0; count < 20; ++count ) {
 
 		memset(buf, 0, sizeof(buf));
 
-		if ( usb_control_msg(dev->udev, NOLO_QUERY, NOLO_ERROR_LOG, 0, 0, buf, sizeof(buf), 2000) <= 0 )
+		ret = usb_control_msg(dev->udev, NOLO_QUERY, NOLO_ERROR_LOG, 0, 0, buf, sizeof(buf), 2000);
+		if ( ret < 0 )
 			break;
 
 		if ( ! only_clear ) {
@@ -102,6 +104,9 @@ static void nolo_error_log(struct usb_device_info * dev, int only_clear) {
 			puts(buf);
 
 		}
+
+		if ( (size_t)ret < sizeof(buf) )
+			break;
 
 	}
 
@@ -176,14 +181,14 @@ static int nolo_get_version_string(struct usb_device_info * dev, const char * st
 	if ( strlen(str) > 500 )
 		return -1;
 
-	sprintf(buf, "version:%s", str);
+	if ( sprintf(buf, "version:%s", str) <= 0 )
+		return -1;
 
 	ret = nolo_get_string(dev, buf, out, size);
-
-	nolo_error_log(dev, 1);
-
-	if ( ret < 0 )
+	if ( ret < 0 ) {
+		nolo_error_log(dev, 1);
 		return ret;
+	}
 
 	if ( ! out[0] )
 		return -1;
@@ -311,7 +316,7 @@ static int nolo_send_image(struct usb_device_info * dev, struct image * image, i
 		if ( bufs ) {
 
 			memset(buf, 0, sizeof(buf));
-			snprintf(buf, 8, "%d", dev->hwrev);
+			snprintf(buf, 8+1, "%d", dev->hwrev);
 
 			for ( i = 0; bufs[i]; ++i ) {
 				len = ((uint8_t*)bufs[i])[0];
@@ -418,8 +423,8 @@ int nolo_flash_image(struct usb_device_info * dev, struct image * image) {
 	unsigned long long int part;
 	unsigned long long int total;
 	unsigned long long int last_total;
-	char status[20];
 	char buf[128];
+	char * ptr;
 
 	if ( image->type == IMAGE_ROOTFS )
 		flash = 1;
@@ -463,7 +468,7 @@ int nolo_flash_image(struct usb_device_info * dev, struct image * image) {
 		if ( nolo_get_string(dev, "cmt:status", buf, sizeof(buf)) < 0 )
 			NOLO_ERROR_RETURN("cmt:status failed", -1);
 
-		if ( strncmp(buf, "idle", strlen("idle")) == 0 )
+		if ( strncmp(buf, "idle", sizeof("idle")-1) == 0 )
 			state = 4;
 		else
 			printf("Erasing CMT...\n");
@@ -475,7 +480,7 @@ int nolo_flash_image(struct usb_device_info * dev, struct image * image) {
 				NOLO_ERROR_RETURN("cmt:status failed", -1);
 			}
 
-			if ( strncmp(buf, "finished", strlen("finished")) == 0 ) {
+			if ( strncmp(buf, "finished", sizeof("finished")-1) == 0 ) {
 
 				if ( state <= 0 ) {
 					printf_progressbar(last_total, last_total);
@@ -490,18 +495,29 @@ int nolo_flash_image(struct usb_device_info * dev, struct image * image) {
 
 				state = 4;
 
+			} else if ( strncmp(buf, "error", sizeof("error")-1) == 0 ) {
+
+				PRINTF_ERROR_RETURN("cmt:status error", -1);
+
 			} else {
 
-				if ( sscanf(buf, "%s:%llu/%llu", status, &part, &total) != 3 )
+				ptr = strchr(buf, ':');
+				if ( ! ptr )
 					PRINTF_ERROR_RETURN("cmt:status unknown", -1);
 
-				if ( strcmp(status, "program") == 0 && state <= 0 ) {
+				*ptr = 0;
+				ptr++;
+
+				if ( sscanf(ptr, "%llu/%llu", &part, &total) != 2 )
+					PRINTF_ERROR_RETURN("cmt:status unknown", -1);
+
+				if ( strcmp(buf, "program") == 0 && state <= 0 ) {
 					printf_progressbar(last_total, last_total);
 					printf("Done\n");
 					state = 1;
 				}
 
-				if ( strcmp(status, "program") == 0 && state <= 1 ) {
+				if ( strcmp(buf, "program") == 0 && state <= 1 ) {
 					printf("Programming CMT...\n");
 					state = 2;
 				}
@@ -509,12 +525,12 @@ int nolo_flash_image(struct usb_device_info * dev, struct image * image) {
 				printf_progressbar(part, total);
 				last_total = total;
 
-				if ( strcmp(status, "erase") == 0 && state <= 0 && part == total ) {
+				if ( strcmp(buf, "erase") == 0 && state <= 0 && part == total ) {
 					printf("Done\n");
 					state = 1;
 				}
 
-				if ( strcmp(status, "program") == 0 && state <= 2 && part == total ) {
+				if ( strcmp(buf, "program") == 0 && state <= 2 && part == total ) {
 					printf("Done\n");
 					state = 3;
 				}
@@ -536,9 +552,9 @@ int nolo_boot_device(struct usb_device_info * dev, const char * cmdline) {
 	int size = 0;
 	int mode = NOLO_BOOT_MODE_NORMAL;
 
-	if ( cmdline && strncmp(cmdline, "update", strlen("update")) == 0 && cmdline[strlen("update")] <= 32 ) {
+	if ( cmdline && strncmp(cmdline, "update", sizeof("update")-1) == 0 && cmdline[sizeof("update")-1] <= 32 ) {
 		mode = NOLO_BOOT_MODE_UPDATE;
-		cmdline += strlen("update");
+		cmdline += sizeof("update")-1;
 		if ( *cmdline ) ++cmdline;
 		while ( *cmdline && *cmdline <= 32 )
 			++cmdline;
@@ -763,7 +779,7 @@ int nolo_set_hwrev(struct usb_device_info * dev, int16_t hwrev) {
 
 	char buf[9];
 	memset(buf, 0, sizeof(buf));
-	snprintf(buf, 8, "%d", hwrev);
+	snprintf(buf, sizeof(buf), "%d", hwrev);
 	printf("Setting HW revision to: %s\n", buf);
 	return nolo_set_string(dev, "hw_rev", buf);
 

@@ -39,7 +39,7 @@ void printf_progressbar(unsigned long long part, unsigned long long total) {
 	int tmp, cols = 80;
 
 	/* percentage calculation */
-	pc = (int)(part*100/total);
+	pc = total==0?100:(int)(part*100/total);
 	(pc<0)?pc=0:(pc>100)?pc=100:0;
 
 	PRINTF_BACK();

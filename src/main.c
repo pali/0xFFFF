@@ -53,8 +53,8 @@ static void show_usage(void) {
 		" -f              flash all specified images\n"
 		" -c              cold flash 2nd and secondary images\n"
 		" -x [/dev/mtd]   check for bad blocks on mtd device (default: all)\n"
-		" -E file         dump all device images to one fiasco image, see -t\n"
-		" -e [dir]        dump all device images to directory, see -t (default: current)\n"
+		" -E file         dump all device images to one fiasco image\n"
+		" -e [dir]        dump all device images (or one -t) to directory (default: current)\n"
 		"\n"
 
 		"Device configuration:\n"
@@ -84,7 +84,7 @@ static void show_usage(void) {
 		"\n"
 
 		"Image filters:\n"
-		" -t types        filter images by type\n"
+		" -t type         filter images by type\n"
 		" -d dev          filter images by device\n"
 		" -w hw           filter images by HW revision\n"
 		"\n"
@@ -210,7 +210,7 @@ static void parse_image_arg(char * arg, struct image_list ** image_first) {
 			exit(1);
 		}
 		lseek(fd, 0, SEEK_SET);
-		layout = malloc(len);
+		layout = malloc(len+1);
 		if ( ! layout ) {
 			ALLOC_ERROR();
 			exit(1);
@@ -219,6 +219,8 @@ static void parse_image_arg(char * arg, struct image_list ** image_first) {
 			ERROR_INFO("Cannot read %lu bytes from layout file %s", len, layout_file);
 			exit(1);
 		}
+		layout[len] = 0;
+		close(fd);
 	}
 
 	image = image_alloc_from_file(file, type, device, hwrevs, version, layout);
@@ -661,6 +663,9 @@ int main(int argc, char **argv) {
 			goto clean;
 		}
 		filter_images_by_type(type, &image_first);
+		/* make sure that fiasco_in has valid images */
+		if ( fiasco_in )
+			fiasco_in->first = image_first;
 	}
 
 	/* filter images by device */
@@ -672,11 +677,18 @@ int main(int argc, char **argv) {
 			goto clean;
 		}
 		filter_images_by_device(device, &image_first);
+		/* make sure that fiasco_in has valid images */
+		if ( fiasco_in )
+			fiasco_in->first = image_first;
 	}
 
 	/* filter images by hwrev */
-	if ( filter_hwrev )
+	if ( filter_hwrev ) {
 		filter_images_by_hwrev(atoi(filter_hwrev_arg), &image_first);
+		/* make sure that fiasco_in has valid images */
+		if ( fiasco_in )
+			fiasco_in->first = image_first;
+	}
 
 	/* reorder images for flashing (first x-loader, second secondary) */
 	/* set 2nd and secondary images for cold-flashing */
@@ -740,11 +752,29 @@ int main(int argc, char **argv) {
 			image_ptr = next;
 		}
 
+		/* make sure that fiasco_in has valid images */
+		if ( fiasco_in )
+			fiasco_in->first = image_first;
+
 	}
 
-	/* make sure that fiasco_in has valid images*/
-	if ( fiasco_in )
-		fiasco_in->first = image_first;
+	/* remove 2nd image when doing normal flash */
+	if ( dev_flash ) {
+		image_ptr = image_first;
+		while ( image_ptr ) {
+			struct image_list * next = image_ptr->next;
+			if ( image_ptr->image->type == IMAGE_2ND ) {
+				if ( image_ptr == image_first )
+					image_first = next;
+				image_list_del(image_ptr);
+			}
+			image_ptr = next;
+		}
+
+		/* make sure that fiasco_in has valid images */
+		if ( fiasco_in )
+			fiasco_in->first = image_first;
+	}
 
 	/* identify images */
 	if ( image_ident ) {
@@ -782,8 +812,9 @@ int main(int argc, char **argv) {
 			WARNING("Removing unknown image (specified by %s %s)", image_ptr->image->orig_filename ? "file" : "fiasco", image_ptr->image->orig_filename ? image_ptr->image->orig_filename : "image");
 			if ( image_ptr == image_first )
 				image_first = next;
-			image_list_unlink(image_ptr);
-			free(image_ptr);
+			if ( fiasco_in && image_ptr == fiasco_in->first )
+				fiasco_in->first = fiasco_in->first->next;
+			image_list_del(image_ptr);
 		}
 		image_ptr = next;
 	}
@@ -983,6 +1014,8 @@ int main(int argc, char **argv) {
 				filter_images_by_device(dev->detected_device, &image_first);
 			if ( detected_hwrev )
 				filter_images_by_hwrev(dev->detected_hwrev, &image_first);
+			if ( fiasco_in && ( detected_device || detected_hwrev ) )
+				fiasco_in->first = image_first;
 
 			/* set kernel and initfs images for loading */
 			if ( dev_load ) {
@@ -1047,8 +1080,7 @@ int main(int argc, char **argv) {
 					if ( fiasco_in && image_kernel == fiasco_in->first )
 						fiasco_in->first = fiasco_in->first->next;
 
-					image_list_unlink(image_kernel);
-					free(image_kernel);
+					image_list_del(image_kernel);
 					image_kernel = NULL;
 				}
 
@@ -1059,11 +1091,10 @@ int main(int argc, char **argv) {
 
 					if ( image_initfs == image_first )
 						image_first = image_first->next;
-					if ( fiasco_in && image_kernel == fiasco_in->first )
+					if ( fiasco_in && image_initfs == fiasco_in->first )
 						fiasco_in->first = fiasco_in->first->next;
 
-					image_list_unlink(image_initfs);
-					free(image_initfs);
+					image_list_del(image_initfs);
 					image_initfs = NULL;
 				}
 			}
@@ -1079,11 +1110,10 @@ int main(int argc, char **argv) {
 
 					if ( image_ptr == image_first )
 						image_first = image_first->next;
-					if ( fiasco_in && image_kernel == fiasco_in->first )
+					if ( fiasco_in && image_ptr == fiasco_in->first )
 						fiasco_in->first = fiasco_in->first->next;
 
-					image_list_unlink(image_ptr);
-					free(image_ptr);
+					image_list_del(image_ptr);
 					image_ptr = next;
 				}
 			}
@@ -1175,9 +1205,21 @@ int main(int argc, char **argv) {
 						buf[0] = 0;
 				}
 
-				for ( i = 0; i < IMAGE_COUNT; ++i )
-					if ( image_tmp_name(i) )
-						dev_dump_image(dev, i, image_tmp_name(i));
+				if ( filter_type ) {
+					enum image_type type = image_type_from_string(filter_type_arg);
+					if ( ! type || ! image_tmp_name(type) ) {
+						ERROR("Specified unknown image type for filtering: %s", filter_type_arg);
+						ret = 1;
+						goto clean;
+					}
+					ret = dev_dump_image(dev, type, image_tmp_name(type));
+					if ( ret != 0 )
+						goto clean;
+				} else {
+					for ( i = 0; i < IMAGE_COUNT; ++i )
+						if ( image_tmp_name(i) )
+							dev_dump_image(dev, i, image_tmp_name(i));
+				}
 
 				if ( buf[0] )
 					if ( chdir(buf) < 0 )
@@ -1196,7 +1238,8 @@ int main(int argc, char **argv) {
 					if ( ! image_tmp_name(i) )
 						continue;
 
-					sprintf(buf, "%hd", dev->detected_hwrev);
+					buf[0] = 0;
+					snprintf(buf, sizeof(buf), "%hd", dev->detected_hwrev);
 
 					switch ( i ) {
 						case IMAGE_2ND:
@@ -1298,14 +1341,16 @@ int main(int argc, char **argv) {
 							break;
 					}
 
-					sprintf(buf, "%s-%s:%hd_%s", image_type_to_string(i), device_to_string(dev->detected_device), dev->detected_hwrev, ptr);
+					buf[0] = 0;
+					snprintf(buf, sizeof(buf), "%s-%s:%hd_%s", image_type_to_string(i), device_to_string(dev->detected_device), dev->detected_hwrev, ptr);
 					printf("Renaming %s image file to %s...\n", image_type_to_string(i), buf);
 
 					if ( rename(image_tmp_name(i), buf) < 0 ) {
 
 						ERROR_INFO("Renaming failed");
 
-						sprintf(buf, "%s-%s_%s", image_type_to_string(i), device_to_string(dev->detected_device), ptr);
+						buf[0] = 0;
+						snprintf(buf, sizeof(buf), "%s-%s_%s", image_type_to_string(i), device_to_string(dev->detected_device), ptr);
 						printf("Trying to rename %s image file to %s...\n", image_type_to_string(i), buf);
 
 						if ( rename(image_tmp_name(i), buf) < 0 )

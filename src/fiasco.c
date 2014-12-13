@@ -192,9 +192,12 @@ struct fiasco * fiasco_alloc_from_file(const char * file) {
 					if ( ! hwrevs[0] )
 						strcpy(hwrevs, hwrev);
 					else {
-						/* TODO: check if hwrevs has enough size */
-						strcat(hwrevs, ",");
-						strcat(hwrevs, hwrev);
+						size_t len1 = strlen(hwrevs);
+						size_t len2 = strlen(hwrev);
+						if ( len1 + len2 + 2 < sizeof(hwrevs) ) {
+							hwrevs[len1] = ',';
+							memcpy(hwrevs+len1+1, hwrev, len2+1);
+						}
 					}
 					VERBOSE("       hw revision: %s\n", hwrev);
 					pbuf += strlen(hwrev) + 1;
@@ -410,6 +413,7 @@ int fiasco_write_to_file(struct fiasco * fiasco, const char * file) {
 			WRITE_OR_FAIL(file, fd, "2", 1); /* 2 - device & hwrevs */
 			WRITE_OR_FAIL(file, fd, &device_hwrevs_bufs[i][0], 1);
 			WRITE_OR_FAIL(file, fd, device_hwrevs_bufs[i]+1, ((uint8_t *)(device_hwrevs_bufs[i]))[0]);
+			/* FIXME: memory leak: device_hwrevs_bufs */
 		}
 		free(device_hwrevs_bufs);
 
@@ -449,9 +453,9 @@ int fiasco_write_to_file(struct fiasco * fiasco, const char * file) {
 
 int fiasco_unpack(struct fiasco * fiasco, const char * dir) {
 
-	int fd = -1;
-	char * name = NULL;
-	char * layout_name = NULL;
+	int fd;
+	char * name;
+	char * layout_name;
 	struct image * image;
 	struct image_list * image_list;
 	uint32_t size;
@@ -480,6 +484,10 @@ int fiasco_unpack(struct fiasco * fiasco, const char * dir) {
 
 	while ( image_list ) {
 
+		fd = -1;
+		name = NULL;
+		layout_name = NULL;
+
 		image = image_list->image;
 
 		name = image_name_alloc_from_values(image);
@@ -492,9 +500,11 @@ int fiasco_unpack(struct fiasco * fiasco, const char * dir) {
 
 		if ( image->layout ) {
 
-			layout_name = calloc(1, strlen(name) + strlen(".layout") + 1);
-			if ( ! layout_name )
+			layout_name = calloc(1, strlen(name) + sizeof(".layout")-1 + 1);
+			if ( ! layout_name ) {
+				free(name);
 				ALLOC_ERROR_RETURN(-1);
+			}
 
 			sprintf(layout_name, "%s.layout", name);
 
@@ -508,21 +518,32 @@ int fiasco_unpack(struct fiasco * fiasco, const char * dir) {
 			fd = open(name, O_RDWR|O_CREAT|O_TRUNC, 0644);
 			if ( fd < 0 ) {
 				ERROR_INFO("Cannot create output file %s", name);
+				free(name);
+				free(layout_name);
 				return -1;
 			}
 		}
-
-		free(name);
 
 		image_seek(image, 0);
 		while ( 1 ) {
 			size = image_read(image, buf, sizeof(buf));
 			if ( size == 0 )
 				break;
-			WRITE_OR_FAIL(name, fd, buf, size);
+			if ( ! simulate ) {
+				if ( write(fd, buf, size) != (ssize_t)size ) {
+					ERROR_INFO_STR(name, "Cannot write %d bytes", size);
+					close(fd);
+					free(name);
+					free(layout_name);
+					return -1;
+				}
+			}
 		}
 
-		close(fd);
+		free(name);
+
+		if ( ! simulate )
+			close(fd);
 
 		if ( image->layout ) {
 
@@ -530,15 +551,24 @@ int fiasco_unpack(struct fiasco * fiasco, const char * dir) {
 				fd = open(layout_name, O_RDWR|O_CREAT|O_TRUNC, 0644);
 				if ( fd < 0 ) {
 					ERROR_INFO("Cannot create layout file %s", layout_name);
+					free(layout_name);
+					return -1;
+				}
+
+				size = strlen(image->layout);
+
+				if ( write(fd, image->layout, size) != (ssize_t)size ) {
+					ERROR_INFO_STR(layout_name, "Cannot write %d bytes", size);
+					close(fd);
+					free(layout_name);
 					return -1;
 				}
 			}
 
 			free(layout_name);
 
-			WRITE_OR_FAIL(layout_name, fd, image->layout, (int)strlen(image->layout));
-
-			close(fd);
+			if ( ! simulate )
+				close(fd);
 
 		}
 
