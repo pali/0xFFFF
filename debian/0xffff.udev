@@ -1,5 +1,0 @@
-# Nokia Tables in Cold flashing mode
-ATTR{idVendor}=="0421", ATTR{idProduct}=="0105", GROUP="plugdev", MODE="0660" 
-
-# Nokia Tables in NOLO mode
-ATTR{idVendor}=="0421", ATTR{idProduct}=="0106", GROUP="plugdev", MODE="0660"

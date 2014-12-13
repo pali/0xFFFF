@@ -1,9 +1,9 @@
 Source: 0xffff
-Section: misc
+Section: user/system
 Priority: extra
-Maintainer: Sebastian Reichel <sre@debian.org>
+Maintainer: Pali Rohár <pali.rohar@gmail.com>
 Standards-Version: 3.9.5
-Build-Depends: debhelper (>= 9),
+Build-Depends: debhelper (>= 7),
                libusb-dev
 Homepage: http://gitorious.org/0xffff/
 Vcs-Git: git://anonscm.debian.org/pkg-n900/0xffff.git
@@ -12,7 +12,7 @@ Vcs-Browser: http://anonscm.debian.org/gitweb/?p=pkg-n900/0xffff.git;a=summary
 Package: 0xffff
 Architecture: any
 Multi-Arch: foreign
-Depends: ${misc:Depends}, ${shlibs:Depends}
+Depends: ${misc:Depends}, ${shlibs:Depends}, mtd-utils
 Description: Open Free Fiasco Firmware Flasher
  The ‘Open Free Fiasco Firmware Flasher’ aka 0xFFFF utility implements
  a free userspace handler for the NOLO bootloader and extended features
@@ -29,3 +29,62 @@ Description: Open Free Fiasco Firmware Flasher
   * changing configuration of Maemo device (R&D flags, HW revision strings, ...)
  .
  Currently supported are the Nokia 770, N800, N810, N810w and the N900.
+XSBC-Maemo-Display-Name: 0xFFFF
+XB-Maemo-Icon-26:
+ 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
+ 5l7y6xMAAAAASUVORK5CYII=
