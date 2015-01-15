@@ -27,7 +27,7 @@ extern int verbose;
 static inline void * MEMMEM(void *haystack, size_t haystacklen, const void *needle, size_t needlelen) {
 	for ( size_t i = 0; i < haystacklen; ++i ) {
 		for ( size_t j = 0; j < needlelen; ++j ) {
-			if ( ((char *)haystack)[i] != ((const char *)needle)[j] )
+			if ( ((char *)haystack)[i+j] != ((const char *)needle)[j] )
 				break;
 			if ( j != needlelen - 1 )
 				continue;
