@@ -502,7 +502,7 @@ enum image_type image_type_from_data(struct image * image) {
 		return IMAGE_2ND;
 	else if ( memcmp(buf+36, "\x18\x28\x6f\x01", 4) == 0 ) /* ARM Linux kernel magic number */
 		return IMAGE_KERNEL;
-	else if ( memcmp(buf, "\x14\x00\x00\xea", 4) == 0 ) /* ARM U-Boot - instruction branch +0x50 */
+	else if ( memcmp(buf+1, "\x00\x00\xea", 3) == 0 ) /* ARM U-Boot - instruction branch */
 		return IMAGE_KERNEL;
 	else if ( memcmp(buf, "UBI#", 4) == 0 ) /* UBI EC header */
 		return IMAGE_ROOTFS;
