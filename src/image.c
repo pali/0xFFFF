@@ -76,7 +76,7 @@ static void image_missing_values_from_name(struct image * image, const char * na
 		image->type = image_type_from_string(type);
 	free(type);
 
-	if ( ! image->devices || image->devices->device || image->devices->device == DEVICE_ANY ) {
+	if ( ! image->devices || ! image->devices->device || image->devices->device == DEVICE_ANY ) {
 		new_device = device_from_string(device);
 		if ( new_device ) {
 			if ( ! image->devices ) image->devices = calloc(1, sizeof(struct device_list));
