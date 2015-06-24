@@ -122,7 +122,7 @@ struct fiasco * fiasco_alloc_from_file(const char * file) {
 		READ_OR_RETURN(fiasco, buf, 7);
 
 		/* Header of next image */
-		if ( ! buf[0] == 0x54 && buf[2] == 0x2E && buf[3] == 0x19 && buf[4] == 0x01 && buf[5] == 0x01 && buf[6] == 0x00 ) {
+		if ( ! ( buf[0] == 0x54 && buf[2] == 0x2E && buf[3] == 0x19 && buf[4] == 0x01 && buf[5] == 0x01 && buf[6] == 0x00 ) ) {
 			ERROR("Invalid next image header");
 			return fiasco;
 		}
