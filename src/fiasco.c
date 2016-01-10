@@ -443,7 +443,9 @@ int fiasco_write_to_file(struct fiasco * fiasco, const char * file) {
 
 	}
 
-	close(fd);
+	if ( ! simulate )
+		close(fd);
+
 	printf("\nDone\n\n");
 	return 0;
 
