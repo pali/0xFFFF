@@ -227,13 +227,13 @@ static int local_nanddump(const char * file, int mtd, int offset, int length) {
 		return 1;
 	}
 
-	size = snprintf(NULL, 0, "nanddump -i -o -b -s %d -l %d -f %s /dev/mtd%dro", offset, length, file, mtd);
+	size = snprintf(NULL, 0, "nanddump -o -b -s %d -l %d -f %s /dev/mtd%dro", offset, length, file, mtd);
 
 	command = malloc(size+1);
 	if ( ! command )
 		return 1;
 
-	snprintf(command, size+1, "nanddump -i -o -b -s %d -l %d -f %s /dev/mtd%dro", offset, length, file, mtd);
+	snprintf(command, size+1, "nanddump -o -b -s %d -l %d -f %s /dev/mtd%dro", offset, length, file, mtd);
 
 	ret = system(command);
 
