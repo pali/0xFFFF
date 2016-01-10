@@ -38,7 +38,8 @@
 #define FIASCO_WRITE_ERROR(file, fd, ...) do { ERROR_INFO_STR(file, __VA_ARGS__); if ( fd >= 0 ) close(fd); return -1; } while (0)
 #define READ_OR_FAIL(fiasco, buf, size) do { if ( read(fiasco->fd, buf, size) != size ) { FIASCO_READ_ERROR(fiasco, "Cannot read %d bytes", size); } } while (0)
 #define READ_OR_RETURN(fiasco, buf, size) do { if ( read(fiasco->fd, buf, size) != size ) return fiasco; } while (0)
-#define WRITE_OR_FAIL(file, fd, buf, size) do { if ( ! simulate ) { if ( write(fd, buf, size) != (ssize_t)size ) { FIASCO_WRITE_ERROR(file, fd, "Cannot write %d bytes", size); } } } while (0)
+#define WRITE_OR_FAIL_FREE(file, fd, buf, size, var) do { if ( ! simulate ) { if ( write(fd, buf, size) != (ssize_t)size ) { free(var); FIASCO_WRITE_ERROR(file, fd, "Cannot write %d bytes", size); } } } while (0)
+#define WRITE_OR_FAIL(file, fd, buf, size) WRITE_OR_FAIL_FREE(file, fd, buf, size, NULL)
 
 struct fiasco * fiasco_alloc_empty(void) {
 
@@ -351,12 +352,6 @@ int fiasco_write_to_file(struct fiasco * fiasco, const char * file) {
 
 		type = image_type_to_string(image->type);
 
-		device_hwrevs_bufs = device_list_alloc_to_bufs(image->devices);
-
-		device_count = 0;
-		if ( device_hwrevs_bufs && device_hwrevs_bufs[0] )
-			for ( ; device_hwrevs_bufs[device_count]; ++device_count );
-
 		if ( ! type )
 			FIASCO_WRITE_ERROR(file, fd, "Unknown image type");
 
@@ -366,10 +361,16 @@ int fiasco_write_to_file(struct fiasco * fiasco, const char * file) {
 		if ( image->layout && strlen(image->layout) > UINT8_MAX )
 			FIASCO_WRITE_ERROR(file, fd, "Image layout is too long");
 
+		device_hwrevs_bufs = device_list_alloc_to_bufs(image->devices);
+
+		device_count = 0;
+		if ( device_hwrevs_bufs && device_hwrevs_bufs[0] )
+			for ( ; device_hwrevs_bufs[device_count]; ++device_count );
+
 		printf("Writing image header...\n");
 
 		/* signature */
-		WRITE_OR_FAIL(file, fd, "T", 1);
+		WRITE_OR_FAIL_FREE(file, fd, "T", 1, device_hwrevs_bufs);
 
 		/* number of subsections */
 		length8 = device_count+1;
@@ -377,41 +378,40 @@ int fiasco_write_to_file(struct fiasco * fiasco, const char * file) {
 			++length8;
 		if ( image->layout )
 			++length8;
-		WRITE_OR_FAIL(file, fd, &length8, 1);
+		WRITE_OR_FAIL_FREE(file, fd, &length8, 1, device_hwrevs_bufs);
 
 		/* unknown */
-		WRITE_OR_FAIL(file, fd, "\x2e\x19\x01\x01\x00", 5);
+		WRITE_OR_FAIL_FREE(file, fd, "\x2e\x19\x01\x01\x00", 5, device_hwrevs_bufs);
 
 		/* checksum */
 		hash = htons(image->hash);
-		WRITE_OR_FAIL(file, fd, &hash, 2);
+		WRITE_OR_FAIL_FREE(file, fd, &hash, 2, device_hwrevs_bufs);
 
 		/* image type name */
 		memset(buf, 0, 12);
 		strncpy((char *)buf, type, 12);
-		WRITE_OR_FAIL(file, fd, buf, 12);
+		WRITE_OR_FAIL_FREE(file, fd, buf, 12, device_hwrevs_bufs);
 
 		/* image size */
 		size = htonl(image->size);
-		WRITE_OR_FAIL(file, fd, &size, 4);
+		WRITE_OR_FAIL_FREE(file, fd, &size, 4, device_hwrevs_bufs);
 
 		/* unknown */
-		WRITE_OR_FAIL(file, fd, "\x00\x00\x00\x00", 4);
+		WRITE_OR_FAIL_FREE(file, fd, "\x00\x00\x00\x00", 4, device_hwrevs_bufs);
 
 		/* append version subsection */
 		if ( image->version ) {
-			WRITE_OR_FAIL(file, fd, "1", 1); /* 1 - version */
+			WRITE_OR_FAIL_FREE(file, fd, "1", 1, device_hwrevs_bufs); /* 1 - version */
 			length8 = strlen(image->version)+1;
-			WRITE_OR_FAIL(file, fd, &length8, 1);
-			WRITE_OR_FAIL(file, fd, image->version, length8);
+			WRITE_OR_FAIL_FREE(file, fd, &length8, 1, device_hwrevs_bufs);
+			WRITE_OR_FAIL_FREE(file, fd, image->version, length8, device_hwrevs_bufs);
 		}
 
 		/* append device & hwrevs subsection */
 		for ( i = 0; i < device_count; ++i ) {
-			WRITE_OR_FAIL(file, fd, "2", 1); /* 2 - device & hwrevs */
-			WRITE_OR_FAIL(file, fd, &device_hwrevs_bufs[i][0], 1);
-			WRITE_OR_FAIL(file, fd, device_hwrevs_bufs[i]+1, ((uint8_t *)(device_hwrevs_bufs[i]))[0]);
-			/* FIXME: memory leak: device_hwrevs_bufs */
+			WRITE_OR_FAIL_FREE(file, fd, "2", 1, device_hwrevs_bufs); /* 2 - device & hwrevs */
+			WRITE_OR_FAIL_FREE(file, fd, &device_hwrevs_bufs[i][0], 1, device_hwrevs_bufs);
+			WRITE_OR_FAIL_FREE(file, fd, device_hwrevs_bufs[i]+1, ((uint8_t *)(device_hwrevs_bufs[i]))[0], device_hwrevs_bufs);
 		}
 		free(device_hwrevs_bufs);
 
