@@ -405,7 +405,7 @@ int fiasco_write_to_file(struct fiasco * fiasco, const char * file) {
 		/* append version subsection */
 		if ( image->version ) {
 			WRITE_OR_FAIL_FREE(file, fd, "1", 1, device_hwrevs_bufs); /* 1 - version */
-			length8 = strlen(image->version)+1;
+			length8 = strlen(image->version)+1; /* +1 for NULL term */
 			WRITE_OR_FAIL_FREE(file, fd, &length8, 1, device_hwrevs_bufs);
 			WRITE_OR_FAIL_FREE(file, fd, image->version, length8, device_hwrevs_bufs);
 		}
@@ -413,15 +413,16 @@ int fiasco_write_to_file(struct fiasco * fiasco, const char * file) {
 		/* append device & hwrevs subsection */
 		for ( i = 0; i < device_count; ++i ) {
 			WRITE_OR_FAIL_FREE(file, fd, "2", 1, device_hwrevs_bufs); /* 2 - device & hwrevs */
-			WRITE_OR_FAIL_FREE(file, fd, &device_hwrevs_bufs[i][0], 1, device_hwrevs_bufs);
-			WRITE_OR_FAIL_FREE(file, fd, device_hwrevs_bufs[i]+1, ((uint8_t *)(device_hwrevs_bufs[i]))[0], device_hwrevs_bufs);
+			length8 = ((uint8_t *)(device_hwrevs_bufs[i]))[0];
+			WRITE_OR_FAIL_FREE(file, fd, &length8, 1, device_hwrevs_bufs);
+			WRITE_OR_FAIL_FREE(file, fd, device_hwrevs_bufs[i]+1, length8, device_hwrevs_bufs);
 		}
 		free(device_hwrevs_bufs);
 
 		/* append layout subsection */
 		if ( image->layout ) {
-			length8 = strlen(image->layout);
 			WRITE_OR_FAIL(file, fd, "3", 1); /* 3 - layout */
+			length8 = strlen(image->layout);
 			WRITE_OR_FAIL(file, fd, &length8, 1);
 			WRITE_OR_FAIL(file, fd, image->layout, length8);
 		}
