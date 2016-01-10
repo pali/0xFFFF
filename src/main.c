@@ -834,9 +834,16 @@ int main(int argc, char **argv) {
 		char * swver = strchr(fiasco_gen_arg, '%');
 		if ( swver )
 			*(swver++) = 0;
+		if ( swver && strlen(swver) >= sizeof(fiasco_out->swver) ) {
+			ERROR("SW rel version is too long");
+			ret = 1;
+			goto clean;
+		}
 		fiasco_out = fiasco_alloc_empty();
 		if ( ! fiasco_out ) {
 			ERROR("Cannot write images to fiasco file %s", fiasco_gen_arg);
+			ret = 1;
+			goto clean;
 		} else {
 			if ( swver )
 				strcpy(fiasco_out->swver, swver);
