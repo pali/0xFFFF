@@ -289,10 +289,10 @@ int fiasco_write_to_file(struct fiasco * fiasco, const char * file) {
 	if ( ! fiasco->first )
 		FIASCO_WRITE_ERROR(file, fd, "Nothing to write");
 
-	if ( fiasco->name && strlen(fiasco->name)+1 > UINT8_MAX )
+	if ( strlen(fiasco->name)+1 > UINT8_MAX )
 		FIASCO_WRITE_ERROR(file, fd, "Fiasco name string is too long");
 
-	if ( fiasco->swver && strlen(fiasco->swver)+1 > UINT8_MAX )
+	if ( strlen(fiasco->swver)+1 > UINT8_MAX )
 		FIASCO_WRITE_ERROR(file, fd, "SW version string is too long");
 
 	if ( ! simulate ) {
