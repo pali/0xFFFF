@@ -185,7 +185,10 @@ int disk_dump_dev(int fd, const char * file) {
 		return -1;
 	}
 
-	lseek(fd, 0, SEEK_SET);
+	if ( lseek(fd, 0, SEEK_SET) == (off_t)-1 ) {
+		ERROR_INFO("Cannot seek to begin of block device");
+		return -1;
+	}
 
 #endif
 

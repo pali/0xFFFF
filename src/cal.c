@@ -92,7 +92,8 @@ int cal_init_file(const char * file, struct cal ** cal_out) {
 		blksize = lseek(fd, 0, SEEK_END);
 		if ( blksize == (off_t)-1 )
 			goto err;
-		lseek(fd, 0, SEEK_SET);
+		if ( lseek(fd, 0, SEEK_SET) == (off_t)-1 )
+			goto err;
 #endif
 		if ( blksize > SSIZE_MAX )
 			goto err;

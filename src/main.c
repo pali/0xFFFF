@@ -212,7 +212,10 @@ static void parse_image_arg(char * arg, struct image_list ** image_first) {
 			ERROR_INFO("Cannot get size of file %s", layout_file);
 			exit(1);
 		}
-		lseek(fd, 0, SEEK_SET);
+		if ( lseek(fd, 0, SEEK_SET) == (off_t)-1 ) {
+			ERROR_INFO("Cannot seek to begin of file %s", layout_file);
+			exit(1);
+		}
 		layout = malloc(len+1);
 		if ( ! layout ) {
 			ALLOC_ERROR();

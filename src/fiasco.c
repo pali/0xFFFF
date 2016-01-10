@@ -218,6 +218,8 @@ struct fiasco * fiasco_alloc_from_file(const char * file) {
 		READ_OR_RETURN(fiasco, buf, 1);
 
 		offset = lseek(fiasco->fd, 0, SEEK_CUR);
+		if ( offset == (off_t)-1 )
+			FIASCO_READ_ERROR(fiasco, "Cannot get offset of file");
 
 		VERBOSE("   version: %s\n", version);
 		VERBOSE("   device: %s\n", device);
@@ -231,7 +233,8 @@ struct fiasco * fiasco_alloc_from_file(const char * file) {
 
 		fiasco_add_image(fiasco, image);
 
-		lseek(fiasco->fd, offset+length, SEEK_SET);
+		if ( lseek(fiasco->fd, offset+length, SEEK_SET) == (off_t)-1 )
+			FIASCO_READ_ERROR(fiasco, "Cannot seek to next image in file");
 
 	}
 

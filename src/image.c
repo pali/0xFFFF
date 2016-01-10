@@ -247,6 +247,7 @@ static struct image * image_alloc(void) {
 
 struct image * image_alloc_from_file(const char * file, const char * type, const char * device, const char * hwrevs, const char * version, const char * layout) {
 
+	off_t offset;
 	struct image * image = image_alloc();
 	if ( ! image )
 		return NULL;
@@ -259,11 +260,26 @@ struct image * image_alloc_from_file(const char * file, const char * type, const
 		return NULL;
 	}
 
-	image->size = lseek(image->fd, 0, SEEK_END);
+	offset = lseek(image->fd, 0, SEEK_END);
+	if ( offset == (off_t)-1 ) {
+		ERROR_INFO("Cannot seek to end of file %s", file);
+		close(image->fd);
+		free(image);
+		return NULL;
+	}
+
+	image->size = offset;
 	image->offset = 0;
 	image->cur = 0;
 	image->orig_filename = strdup(file);
-	lseek(image->fd, 0, SEEK_SET);
+
+	if ( lseek(image->fd, 0, SEEK_SET) == (off_t)-1 ) {
+		ERROR_INFO("Cannot seek to begin of file %s", file);
+		close(image->fd);
+		free(image->orig_filename);
+		free(image);
+		return NULL;
+	}
 
 	if ( image_append(image, type, device, hwrevs, version, layout) < 0 )
 		return NULL;
@@ -331,16 +347,21 @@ void image_free(struct image * image) {
 
 void image_seek(struct image * image, size_t whence) {
 
+	off_t offset;
+
 	if ( whence > image->size )
 		return;
 
 	if ( whence >= image->size - image->align ) {
-		lseek(image->fd, image->size - image->align - 1, SEEK_SET);
+		offset = lseek(image->fd, image->size - image->align - 1, SEEK_SET);
 		image->acur = whence - ( image->size - image->align );
 	} else {
-		lseek(image->fd, image->offset + whence, SEEK_SET);
+		offset = lseek(image->fd, image->offset + whence, SEEK_SET);
 		image->acur = 0;
 	}
+
+	if ( offset == (off_t)-1 )
+		ERROR_INFO("Seek in file %s failed", (image->orig_filename ? image->orig_filename : "(unknown)"));
 
 	IMAGE_STORE_CUR(image);
 
@@ -350,6 +371,7 @@ size_t image_read(struct image * image, void * buf, size_t count) {
 
 	size_t cur;
 	ssize_t ret;
+	off_t offset;
 	size_t new_count = 0;
 	size_t ret_count = 0;
 
@@ -376,7 +398,13 @@ size_t image_read(struct image * image, void * buf, size_t count) {
 	if ( ret_count == count )
 		return ret_count;
 
-	cur = lseek(image->fd, 0, SEEK_CUR) - image->offset;
+	offset = lseek(image->fd, 0, SEEK_CUR);
+	if ( offset == (off_t)-1 ) {
+		ERROR_INFO("Cannot get offset of file %s", (image->orig_filename ? image->orig_filename : "(unknown)"));
+		return 0;
+	}
+
+	cur = offset - image->offset;
 
 	if ( image->align && cur == image->size - image->align && image->acur < image->align ) {
 
