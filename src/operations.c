@@ -17,6 +17,8 @@
 
 */
 
+#include <stdlib.h>
+
 #include "global.h"
 #include "device.h"
 #include "usb-device.h"
