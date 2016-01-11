@@ -20,7 +20,7 @@
 #ifndef USB_DEVICE_H
 #define USB_DEVICE_H
 
-#include <usb.h>
+#include <libusb-1.0/libusb.h>
 
 #include "device.h"
 
@@ -47,7 +47,7 @@ struct usb_device_info {
 	enum device device;
 	int16_t hwrev;
 	const struct usb_flash_device * flash_device;
-	usb_dev_handle * udev;
+	libusb_device_handle * udev;
 	int data;
 };
 
