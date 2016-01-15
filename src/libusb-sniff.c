@@ -25,7 +25,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <dlfcn.h>
-#include <usb.h>
+
+struct myusb_dev_handle_t;
+typedef struct myusb_dev_handle_t usb_dev_handle;
 
 static char to_ascii(char c) {
 
