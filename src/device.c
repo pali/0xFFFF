@@ -31,6 +31,7 @@ static const char * devices[] = {
 	[DEVICE_RX_44] = "RX-44",
 	[DEVICE_RX_48] = "RX-48",
 	[DEVICE_RX_51] = "RX-51",
+	[DEVICE_RM_680] = "RM-680",
 };
 
 enum device device_from_string(const char * device) {
@@ -63,6 +64,7 @@ static const char * long_devices[] = {
 	[DEVICE_RX_44] = "Nokia N810",
 	[DEVICE_RX_48] = "Nokia N810 Wimax",
 	[DEVICE_RX_51] = "Nokia N900",
+	[DEVICE_RM_680] = "Nokia N950",
 };
 
 const char * device_to_long_string(enum device device) {
