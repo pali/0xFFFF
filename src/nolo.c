@@ -22,7 +22,7 @@
 #include <stdlib.h>
 #include <arpa/inet.h>
 
-#include <usb.h>
+#include <libusb-1.0/libusb.h>
 
 #include "nolo.h"
 #include "image.h"
@@ -90,7 +90,7 @@ static void nolo_error_log(struct usb_device_info * dev, int only_clear) {
 
 		memset(buf, 0, sizeof(buf));
 
-		ret = usb_control_msg(dev->udev, NOLO_QUERY, NOLO_ERROR_LOG, 0, 0, buf, sizeof(buf), 2000);
+		ret = libusb_control_transfer(dev->udev, NOLO_QUERY, NOLO_ERROR_LOG, 0, 0, (unsigned char *) buf, sizeof(buf), 2000);
 		if ( ret < 0 )
 			break;
 
@@ -120,7 +120,7 @@ static int nolo_identify_string(struct usb_device_info * dev, const char * str, 
 
 	memset(buf, 0, sizeof(buf));
 
-	ret = usb_control_msg(dev->udev, NOLO_QUERY, NOLO_IDENTIFY, 0, 0, (char *)buf, sizeof(buf), 2000);
+	ret = libusb_control_transfer(dev->udev, NOLO_QUERY, NOLO_IDENTIFY, 0, 0, (unsigned char *) buf, sizeof(buf), 2000);
 	if ( ret < 0 )
 		NOLO_ERROR_RETURN("NOLO_IDENTIFY failed", -1);
 
@@ -150,10 +150,10 @@ static int nolo_set_string(struct usb_device_info * dev, char * str, char * arg)
 	if ( simulate )
 		return 0;
 
-	if ( usb_control_msg(dev->udev, NOLO_WRITE, NOLO_STRING, 0, 0, str, strlen(str), 2000) < 0 )
+	if ( libusb_control_transfer(dev->udev, NOLO_WRITE, NOLO_STRING, 0, 0, (unsigned char*) str, strlen(str), 2000) < 0 )
 		NOLO_ERROR_RETURN("NOLO_STRING failed", -1);
 
-	if ( usb_control_msg(dev->udev, NOLO_WRITE, NOLO_SET_STRING, 0, 0, arg, strlen(arg), 2000) < 0 )
+	if ( libusb_control_transfer(dev->udev, NOLO_WRITE, NOLO_SET_STRING, 0, 0, (unsigned char*) arg, strlen(arg), 2000) < 0 )
 		NOLO_ERROR_RETURN("NOLO_SET_STRING failed", -1);
 
 	return 0;
@@ -164,10 +164,10 @@ static int nolo_get_string(struct usb_device_info * dev, char * str, char * out,
 
 	int ret = 0;
 
-	if ( usb_control_msg(dev->udev, NOLO_WRITE, NOLO_STRING, 0, 0, str, strlen(str), 2000) < 0 )
+	if ( libusb_control_transfer(dev->udev, NOLO_WRITE, NOLO_STRING, 0, 0, (unsigned char*) str, strlen(str), 2000) < 0 )
 		return -1;
 
-	if ( ( ret = usb_control_msg(dev->udev, NOLO_QUERY, NOLO_GET_STRING, 0, 0, out, size-1, 2000) ) < 0 )
+	if ( ( ret = libusb_control_transfer(dev->udev, NOLO_QUERY, NOLO_GET_STRING, 0, 0, (unsigned char*) out, size-1, 2000) ) < 0 )
 		return -1;
 
 	if ( (size_t)ret > size-1 )
@@ -211,7 +211,7 @@ int nolo_init(struct usb_device_info * dev) {
 	printf("Initializing NOLO...\n");
 
 	while ( val != 0 )
-		if ( usb_control_msg(dev->udev, NOLO_QUERY, NOLO_STATUS, 0, 0, (char *)&val, 4, 2000) == -1 )
+		if ( libusb_control_transfer(dev->udev, NOLO_QUERY, NOLO_STATUS, 0, 0, (unsigned char *)&val, 4, 2000) == -1 )
 			NOLO_ERROR_RETURN("NOLO_STATUS failed", -1);
 
 	/* clear error log */
@@ -370,7 +370,7 @@ static int nolo_send_image(struct usb_device_info * dev, struct image * image, i
 	printf("Sending image header...\n");
 
 	if ( ! simulate ) {
-		if ( usb_control_msg(dev->udev, NOLO_WRITE, request, 0, 0, buf, ptr-buf, 2000) < 0 )
+		if ( libusb_control_transfer(dev->udev, NOLO_WRITE, request, 0, 0, (unsigned char*) buf, ptr-buf, 2000) < 0 )
 			NOLO_ERROR_RETURN("Sending image header failed", -1);
 	}
 
@@ -389,9 +389,14 @@ static int nolo_send_image(struct usb_device_info * dev, struct image * image, i
 		if ( ret == 0 )
 			break;
 		if ( ! simulate ) {
-			if ( usb_bulk_write(dev->udev, 2, buf, ret, 5000) != ret ) {
+			int actual_length = 0;
+			if ( libusb_bulk_transfer(dev->udev, 2, (unsigned char*) buf, ret, &actual_length, 5000) < 0) {
 				PRINTF_END();
 				NOLO_ERROR_RETURN("Sending image failed", -1);
+			}
+			if ( actual_length != ret ) {
+				PRINTF_END();
+				NOLO_ERROR_RETURN("Sending image was incomplete!", -1);
 			}
 		}
 		readed += ret;
@@ -401,7 +406,7 @@ static int nolo_send_image(struct usb_device_info * dev, struct image * image, i
 	if ( flash ) {
 		printf("Finishing flashing...\n");
 		if ( ! simulate ) {
-			if ( usb_control_msg(dev->udev, NOLO_WRITE, NOLO_SEND_FLASH_FINISH, 0, 0, NULL, 0, 30000) < 0 )
+			if ( libusb_control_transfer(dev->udev, NOLO_WRITE, NOLO_SEND_FLASH_FINISH, 0, 0, NULL, 0, 30000) < 0 )
 				NOLO_ERROR_RETURN("Finishing failed", -1);
 		}
 	}
@@ -458,7 +463,7 @@ int nolo_flash_image(struct usb_device_info * dev, struct image * image) {
 		printf("Flashing image...\n");
 
 		if ( ! simulate ) {
-			if ( usb_control_msg(dev->udev, NOLO_WRITE, NOLO_FLASH_IMAGE, 0, index, NULL, 0, 10000) )
+			if ( libusb_control_transfer(dev->udev, NOLO_WRITE, NOLO_FLASH_IMAGE, 0, index, NULL, 0, 10000) )
 				NOLO_ERROR_RETURN("Flashing failed", -1);
 		}
 
@@ -579,7 +584,7 @@ int nolo_boot_device(struct usb_device_info * dev, const char * cmdline) {
 		cmdline = NULL;
 	}
 
-	if ( usb_control_msg(dev->udev, NOLO_WRITE, NOLO_BOOT, mode, 0, (char *)cmdline, size, 2000) < 0 )
+	if ( libusb_control_transfer(dev->udev, NOLO_WRITE, NOLO_BOOT, mode, 0, (unsigned char *)cmdline, size, 2000) < 0 )
 		NOLO_ERROR_RETURN("Booting failed", -1);
 
 	return 0;
@@ -589,7 +594,7 @@ int nolo_boot_device(struct usb_device_info * dev, const char * cmdline) {
 int nolo_reboot_device(struct usb_device_info * dev) {
 
 	printf("Rebooting device...\n");
-	if ( usb_control_msg(dev->udev, NOLO_WRITE, NOLO_REBOOT, 0, 0, NULL, 0, 2000) < 0 )
+	if ( libusb_control_transfer(dev->udev, NOLO_WRITE, NOLO_REBOOT, 0, 0, NULL, 0, 2000) < 0 )
 		NOLO_ERROR_RETURN("NOLO_REBOOT failed", -1);
 	return 0;
 
@@ -598,7 +603,7 @@ int nolo_reboot_device(struct usb_device_info * dev) {
 int nolo_get_root_device(struct usb_device_info * dev) {
 
 	uint8_t device = 0;
-	if ( usb_control_msg(dev->udev, NOLO_QUERY, NOLO_GET, 0, NOLO_ROOT_DEVICE, (char *)&device, 1, 2000) < 0 )
+	if ( libusb_control_transfer(dev->udev, NOLO_QUERY, NOLO_GET, 0, NOLO_ROOT_DEVICE, (unsigned char *)&device, 1, 2000) < 0 )
 		NOLO_ERROR_RETURN("Cannot get root device", -1);
 	return device;
 
@@ -609,7 +614,7 @@ int nolo_set_root_device(struct usb_device_info * dev, int device) {
 	printf("Setting root device to %d...\n", device);
 	if ( simulate )
 		return 0;
-	if ( usb_control_msg(dev->udev, NOLO_WRITE, NOLO_SET, device, NOLO_ROOT_DEVICE, NULL, 0, 2000) < 0 )
+	if ( libusb_control_transfer(dev->udev, NOLO_WRITE, NOLO_SET, device, NOLO_ROOT_DEVICE, NULL, 0, 2000) < 0 )
 		NOLO_ERROR_RETURN("Cannot set root device", -1);
 	return 0;
 
@@ -618,7 +623,7 @@ int nolo_set_root_device(struct usb_device_info * dev, int device) {
 int nolo_get_usb_host_mode(struct usb_device_info * dev) {
 
 	uint32_t enabled = 0;
-	if ( usb_control_msg(dev->udev, NOLO_QUERY, NOLO_GET, 0, NOLO_USB_HOST_MODE, (void *)&enabled, 4, 2000) < 0 )
+	if ( libusb_control_transfer(dev->udev, NOLO_QUERY, NOLO_GET, 0, NOLO_USB_HOST_MODE, (unsigned char *)&enabled, 4, 2000) < 0 )
 		NOLO_ERROR_RETURN("Cannot get USB host mode status", -1);
 	return enabled ? 1 : 0;
 
@@ -629,7 +634,7 @@ int nolo_set_usb_host_mode(struct usb_device_info * dev, int enable) {
 	printf("%s USB host mode...\n", enable ? "Enabling" : "Disabling");
 	if ( simulate )
 		return 0;
-	if ( usb_control_msg(dev->udev, NOLO_WRITE, NOLO_SET, enable, NOLO_USB_HOST_MODE, NULL, 0, 2000) < 0 )
+	if ( libusb_control_transfer(dev->udev, NOLO_WRITE, NOLO_SET, enable, NOLO_USB_HOST_MODE, NULL, 0, 2000) < 0 )
 		NOLO_ERROR_RETURN("Cannot change USB host mode status", -1);
 	return 0;
 
@@ -638,7 +643,7 @@ int nolo_set_usb_host_mode(struct usb_device_info * dev, int enable) {
 int nolo_get_rd_mode(struct usb_device_info * dev) {
 
 	uint8_t enabled = 0;
-	if ( usb_control_msg(dev->udev, NOLO_QUERY, NOLO_GET, 0, NOLO_RD_MODE, (char *)&enabled, 1, 2000) < 0 )
+	if ( libusb_control_transfer(dev->udev, NOLO_QUERY, NOLO_GET, 0, NOLO_RD_MODE, (unsigned char *)&enabled, 1, 2000) < 0 )
 		NOLO_ERROR_RETURN("Cannot get R&D mode status", -1);
 	return enabled ? 1 : 0;
 
@@ -649,7 +654,7 @@ int nolo_set_rd_mode(struct usb_device_info * dev, int enable) {
 	printf("%s R&D mode...\n", enable ? "Enabling" : "Disabling");
 	if ( simulate )
 		return 0;
-	if ( usb_control_msg(dev->udev, NOLO_WRITE, NOLO_SET, enable, NOLO_RD_MODE, NULL, 0, 2000) < 0 )
+	if ( libusb_control_transfer(dev->udev, NOLO_WRITE, NOLO_SET, enable, NOLO_RD_MODE, NULL, 0, 2000) < 0 )
 		NOLO_ERROR_RETURN("Cannot change R&D mode status", -1);
 	return 0;
 
@@ -662,7 +667,7 @@ int nolo_get_rd_flags(struct usb_device_info * dev, char * flags, size_t size) {
 	uint16_t add_flags = 0;
 	char * ptr = flags;
 
-	if ( usb_control_msg(dev->udev, NOLO_QUERY, NOLO_GET, 0, NOLO_ADD_RD_FLAGS, (char *)&add_flags, 2, 2000) < 0 )
+	if ( libusb_control_transfer(dev->udev, NOLO_QUERY, NOLO_GET, 0, NOLO_ADD_RD_FLAGS, (unsigned char *)&add_flags, 2, 2000) < 0 )
 		NOLO_ERROR_RETURN("Cannot get R&D flags", -1);
 
 	if ( add_flags & NOLO_RD_FLAG_NO_OMAP_WD )
@@ -762,10 +767,10 @@ int nolo_set_rd_flags(struct usb_device_info * dev, const char * flags) {
 	if ( simulate )
 		return 0;
 
-	if ( usb_control_msg(dev->udev, NOLO_WRITE, NOLO_SET, add_flags, NOLO_ADD_RD_FLAGS, NULL, 0, 2000) < 0 )
+	if ( libusb_control_transfer(dev->udev, NOLO_WRITE, NOLO_SET, add_flags, NOLO_ADD_RD_FLAGS, NULL, 0, 2000) < 0 )
 		NOLO_ERROR_RETURN("Cannot add R&D flags", -1);
 
-	if ( usb_control_msg(dev->udev, NOLO_WRITE, NOLO_SET, del_flags, NOLO_DEL_RD_FLAGS, NULL, 0, 2000) < 0 )
+	if ( libusb_control_transfer(dev->udev, NOLO_WRITE, NOLO_SET, del_flags, NOLO_DEL_RD_FLAGS, NULL, 0, 2000) < 0 )
 		NOLO_ERROR_RETURN("Cannot del R&D flags", -1);
 
 	return 0;
@@ -825,7 +830,7 @@ int nolo_get_nolo_ver(struct usb_device_info * dev, char * ver, size_t size) {
 
 	uint32_t version = 0;
 
-	if ( usb_control_msg(dev->udev, NOLO_QUERY, NOLO_GET_NOLO_VERSION, 0, 0, (char *)&version, 4, 2000) < 0 )
+	if ( libusb_control_transfer(dev->udev, NOLO_QUERY, NOLO_GET_NOLO_VERSION, 0, 0, (unsigned char *)&version, 4, 2000) < 0 )
 		NOLO_ERROR_RETURN("Cannot get NOLO version", -1);
 
 	if ( (version & 255) > 1 )
@@ -884,7 +889,7 @@ int nolo_set_sw_ver(struct usb_device_info * dev, const char * ver) {
 	memcpy(ptr, ver, len);
 	ptr += len;
 
-	if ( usb_control_msg(dev->udev, NOLO_WRITE, NOLO_SET_SW_RELEASE, 0, 0, buf, ptr-buf, 2000) < 0 )
+	if ( libusb_control_transfer(dev->udev, NOLO_WRITE, NOLO_SET_SW_RELEASE, 0, 0, (unsigned char*) buf, ptr-buf, 2000) < 0 )
 		NOLO_ERROR_RETURN("NOLO_SET_SW_RELEASE failed", -1);
 
 	return 0;
