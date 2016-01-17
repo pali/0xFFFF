@@ -36,10 +36,10 @@
 #include "mkii.h"
 
 static struct usb_flash_device usb_devices[] = {
-	{ 0x0421, 0x0105,  2,  1, -1, FLASH_NOLO, { DEVICE_SU_18, DEVICE_RX_44, DEVICE_RX_48, DEVICE_RX_51, 0 } },
-	{ 0x0421, 0x0106,  0, -1, -1, FLASH_COLD, { DEVICE_RX_51, 0 } },
+	{ 0x0421, 0x0105,  2,  1, -1, FLASH_NOLO, { DEVICE_SU_18, DEVICE_RX_44, DEVICE_RX_48, DEVICE_RX_51, DEVICE_RM_680, 0 } },
+	{ 0x0421, 0x0106,  0, -1, -1, FLASH_COLD, { DEVICE_RX_51, DEVICE_RM_680, 0 } },
 	{ 0x0421, 0x01c7,  -1, -1, -1, FLASH_DISK, { DEVICE_RX_51, 0 } },
-	{ 0x0421, 0x01c8,  1,  1, -1, FLASH_MKII, { DEVICE_RX_51, 0 } },
+	{ 0x0421, 0x01c8,  1,  1, -1, FLASH_MKII, { DEVICE_RX_51, DEVICE_RM_680, 0 } },
 	{ 0x0421, 0x0431,  -1, -1, -1, FLASH_DISK, { DEVICE_SU_18, DEVICE_RX_34, 0 } },
 	{ 0x0421, 0x3f00,  2,  1, -1, FLASH_NOLO, { DEVICE_RX_34, 0 } },
 };
@@ -208,6 +208,8 @@ static struct usb_device_info * usb_device_is_valid(struct libusb_device * dev) 
 
 			if ( strstr(product, "N900") )
 				ret->device = DEVICE_RX_51;
+			else if ( strstr(product, "N950") )
+				ret->device = DEVICE_RM_680;
 			else
 				ret->device = DEVICE_UNKNOWN;
 
