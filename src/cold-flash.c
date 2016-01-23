@@ -85,6 +85,8 @@ static uint32_t crc32(unsigned char * bytes, size_t size, uint32_t crc) {
 /* Omap Peripheral boot message */
 static const uint32_t omap_peripheral_msg = 0xF0030002;
 
+/* Unused */
+#if 0
 /* Omap Void (no device) boot message */
 static const uint32_t omap_void_msg = 0xF0030006;
 
@@ -117,6 +119,7 @@ static const uint32_t omap_hsusb_msg = 0xF0031106;
 
 /* Omap next device boot message */
 static const uint32_t omap_next_msg = 0xFFFFFFFF;
+#endif
 
 /* Omap memory boot message */
 static const uint32_t omap_memory_msg = 0;
