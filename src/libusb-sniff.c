@@ -71,7 +71,7 @@ int usb_bulk_write(usb_dev_handle * dev, int ep, const char * bytes, int size, i
 	static int (*real_usb_bulk_write)(usb_dev_handle * dev, int ep, const char * bytes, int size, int timeout) = NULL;
 
 	if ( ! real_usb_bulk_write )
-		real_usb_bulk_write = dlsym(RTLD_NEXT, "usb_bulk_write");
+		*(void **)(&real_usb_bulk_write) = dlsym(RTLD_NEXT, "usb_bulk_write");
 
 	if ( ! getenv("USBSNIFF_SKIP_WRITE") ) {
 
@@ -95,7 +95,7 @@ int usb_bulk_read(usb_dev_handle * dev, int ep, char * bytes, int size, int time
 	int ret;
 
 	if ( ! real_usb_bulk_read )
-		real_usb_bulk_read = dlsym(RTLD_NEXT, "usb_bulk_read");
+		*(void **)(&real_usb_bulk_read) = dlsym(RTLD_NEXT, "usb_bulk_read");
 
 	ret = real_usb_bulk_read(dev, ep, bytes, size, timeout);
 
@@ -123,7 +123,7 @@ int usb_control_msg(usb_dev_handle *dev, int requesttype, int request, int value
 	int ret;
 
 	if ( ! real_usb_control_msg )
-		real_usb_control_msg = dlsym(RTLD_NEXT, "usb_control_msg");
+		*(void **)(&real_usb_control_msg) = dlsym(RTLD_NEXT, "usb_control_msg");
 
 	if ( requesttype == 64 && ! getenv("USBSNIFF_SKIP_CONTROL") ) {
 
@@ -162,7 +162,7 @@ int usb_set_configuration(usb_dev_handle *dev, int configuration) {
 	static int (*real_usb_set_configuration)(usb_dev_handle *dev, int configuration) = NULL;
 
 	if ( ! real_usb_set_configuration )
-		real_usb_set_configuration = dlsym(RTLD_NEXT, "usb_set_configuration");
+		*(void **)(&real_usb_set_configuration) = dlsym(RTLD_NEXT, "usb_set_configuration");
 
 	printf("\n==== usb_set_configuration (configuration=%d) ====\n", configuration);
 
@@ -175,7 +175,7 @@ int usb_claim_interface(usb_dev_handle *dev, int interface) {
 	static int (*real_usb_claim_interface)(usb_dev_handle *dev, int interface) = NULL;
 
 	if ( ! real_usb_claim_interface )
-		real_usb_claim_interface = dlsym(RTLD_NEXT, "usb_claim_interface");
+		*(void **)(&real_usb_claim_interface) = dlsym(RTLD_NEXT, "usb_claim_interface");
 
 	printf("\n==== usb_claim_interface (interface=%d) ====\n", interface);
 
@@ -188,7 +188,7 @@ int usb_set_altinterface(usb_dev_handle *dev, int alternate) {
 	static int (*real_usb_set_altinterface)(usb_dev_handle *dev, int alternate) = NULL;
 
 	if ( ! real_usb_set_altinterface )
-		real_usb_set_altinterface = dlsym(RTLD_NEXT, "usb_set_altinterface");
+		*(void **)(&real_usb_set_altinterface) = dlsym(RTLD_NEXT, "usb_set_altinterface");
 
 	printf("\n==== usb_set_altinterface (alternate=%d) ====\n", alternate);
 
