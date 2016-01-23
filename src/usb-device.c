@@ -292,6 +292,8 @@ struct usb_device_info * usb_open_and_wait_for_device(void) {
 				break;
 		}
 
+		libusb_free_device_list(devs, 1);
+
 		if ( ret )
 			break;
 
@@ -316,6 +318,7 @@ void usb_close_device(struct usb_device_info * dev) {
 
 	usb_reattach_kernel_driver(dev->udev, dev->flash_device->interface);
 	libusb_close(dev->udev);
+	libusb_exit(NULL);
 	free(dev);
 
 }
