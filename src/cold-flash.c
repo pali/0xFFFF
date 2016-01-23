@@ -138,7 +138,7 @@ struct xloader_msg {
 struct xloader_msg xloader_msg_create(uint32_t type, struct image * image) {
 
 	struct xloader_msg msg;
-	uint32_t need, readed;
+	uint32_t need, sent;
 	int ret;
 	uint8_t buffer[1024];
 
@@ -149,16 +149,16 @@ struct xloader_msg xloader_msg_create(uint32_t type, struct image * image) {
 	if ( image ) {
 		msg.size = image->size;
 		image_seek(image, 0);
-		readed = 0;
-		while ( readed < image->size ) {
-			need = image->size - readed;
+		sent = 0;
+		while ( sent < image->size ) {
+			need = image->size - sent;
 			if ( need > sizeof(buffer) )
 				need = sizeof(buffer);
 			ret = image_read(image, buffer, need);
 			if ( ret == 0 )
 				break;
 			msg.crc1 = crc32(buffer, ret, msg.crc1);
-			readed += ret;
+			sent += ret;
 		}
 	}
 
@@ -186,7 +186,7 @@ static int read_asic(libusb_device_handle * udev, uint8_t * asic_buffer, int siz
 static int send_2nd(libusb_device_handle * udev, struct image * image) {
 
 	uint8_t buffer[1024];
-	uint32_t need, readed;
+	uint32_t need, sent;
 	int ret, transferred;
 
 	printf("Sending OMAP peripheral boot message...\n");
@@ -206,9 +206,9 @@ static int send_2nd(libusb_device_handle * udev, struct image * image) {
 	printf("Sending 2nd X-Loader image...\n");
 	printf_progressbar(0, image->size);
 	image_seek(image, 0);
-	readed = 0;
-	while ( readed < image->size ) {
-		need = image->size - readed;
+	sent = 0;
+	while ( sent < image->size ) {
+		need = image->size - sent;
 		if ( need > sizeof(buffer) )
 			need = sizeof(buffer);
 		ret = image_read(image, buffer, need);
@@ -218,8 +218,8 @@ static int send_2nd(libusb_device_handle * udev, struct image * image) {
 			PRINTF_ERROR_RETURN("Sending 2nd X-Loader image failed", -1);
 		if ( ret != transferred )
 			PRINTF_ERROR_RETURN("Sending 2nd X-Loader image failed (incomplete bulk transfer)", -1);
-		readed += transferred;
-		printf_progressbar(readed, image->size);
+		sent += transferred;
+		printf_progressbar(sent, image->size);
 	}
 
 	SLEEP(50000);
@@ -231,7 +231,7 @@ static int send_secondary(libusb_device_handle * udev, struct image * image) {
 
 	struct xloader_msg init_msg;
 	uint8_t buffer[1024];
-	uint32_t need, readed;
+	uint32_t need, sent;
 	int ret, transferred;
 
 	init_msg = xloader_msg_create(XLOADER_MSG_TYPE_SEND, image);
@@ -250,9 +250,9 @@ static int send_secondary(libusb_device_handle * udev, struct image * image) {
 	printf("Sending Secondary image...\n");
 	printf_progressbar(0, image->size);
 	image_seek(image, 0);
-	readed = 0;
-	while ( readed < image->size ) {
-		need = image->size - readed;
+	sent = 0;
+	while ( sent < image->size ) {
+		need = image->size - sent;
 		if ( need > sizeof(buffer) )
 			need = sizeof(buffer);
 		ret = image_read(image, buffer, need);
@@ -262,8 +262,8 @@ static int send_secondary(libusb_device_handle * udev, struct image * image) {
 			PRINTF_ERROR_RETURN("Sending Secondary image failed", -1);
 		if ( ret != transferred )
 			PRINTF_ERROR_RETURN("Sending Secondary image failed (incomplete bulk transfer)", -1);
-		readed += transferred;
-		printf_progressbar(readed, image->size);
+		sent += transferred;
+		printf_progressbar(sent, image->size);
 	}
 
 	printf("Waiting for X-Loader response...\n");

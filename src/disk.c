@@ -166,7 +166,7 @@ int disk_dump_dev(int fd, const char * file) {
 	int ret;
 	char * path;
 	uint64_t blksize;
-	size_t need, readed;
+	size_t need, sent;
 	ssize_t size;
 	struct statvfs buf;
 
@@ -226,11 +226,11 @@ int disk_dump_dev(int fd, const char * file) {
 		return -1;
 	}
 
-	readed = 0;
+	sent = 0;
 	printf_progressbar(0, blksize);
 
-	while ( readed < blksize ) {
-		need = blksize - readed;
+	while ( sent < blksize ) {
+		need = blksize - sent;
 		if ( need > sizeof(global_buf) )
 			need = sizeof(global_buf);
 		size = read(fd, global_buf, need);
@@ -241,8 +241,8 @@ int disk_dump_dev(int fd, const char * file) {
 			close(fd2);
 			return -1;
 		}
-		readed += size;
-		printf_progressbar(readed, blksize);
+		sent += size;
+		printf_progressbar(sent, blksize);
 	}
 
 	close(fd2);

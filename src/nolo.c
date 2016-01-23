@@ -256,7 +256,7 @@ static int nolo_send_image(struct usb_device_info * dev, struct image * image, i
 	uint16_t hash;
 	uint32_t size;
 	uint32_t need;
-	uint32_t readed;
+	uint32_t sent;
 	int request;
 	int ret;
 	int transferred;
@@ -384,9 +384,9 @@ static int nolo_send_image(struct usb_device_info * dev, struct image * image, i
 		printf("Sending image...\n");
 	printf_progressbar(0, image->size);
 	image_seek(image, 0);
-	readed = 0;
-	while ( readed < image->size ) {
-		need = image->size - readed;
+	sent = 0;
+	while ( sent < image->size ) {
+		need = image->size - sent;
 		if ( need > sizeof(buf) )
 			need = sizeof(buf);
 		ret = image_read(image, buf, need);
@@ -402,8 +402,8 @@ static int nolo_send_image(struct usb_device_info * dev, struct image * image, i
 				NOLO_ERROR_RETURN("Sending image was incomplete!", -1);
 			}
 		}
-		readed += transferred;
-		printf_progressbar(readed, image->size);
+		sent += ret;
+		printf_progressbar(sent, image->size);
 	}
 
 	if ( flash ) {
