@@ -224,10 +224,10 @@ static int64_t find_section(void *start, uint64_t count, int want_index, const c
 		memcpy(sectname, hdr->name, sizeof(hdr->name));
 
 		if ( want_index == INDEX_LAST ) {
-			if ((int)hdr->index <= previous_index)
+			if ( (int)hdr->index <= previous_index )
 				goto next;
 		} else {
-			if (want_index >= 0 && want_index != hdr->index)
+			if ( want_index >= 0 && want_index != hdr->index )
 				goto next;
 		}
 

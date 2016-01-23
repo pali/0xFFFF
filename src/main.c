@@ -168,7 +168,7 @@ static void parse_image_arg(char * arg, struct image_list ** image_first) {
 	}
 
 	layout_file = strchr(arg, '%');
-	if (layout_file)
+	if ( layout_file )
 		*(layout_file++) = 0;
 
 	type = NULL;
@@ -178,16 +178,16 @@ static void parse_image_arg(char * arg, struct image_list ** image_first) {
 	layout = NULL;
 
 	file = strrchr(arg, ':');
-	if (file) {
+	if ( file ) {
 		*(file++) = 0;
 		type = strrchr(arg, ':');
-		if (type) {
+		if ( type ) {
 			*(type++) = 0;
 			version = strrchr(arg, ':');
-			if (version) {
+			if ( version ) {
 				*(version++) = 0;
 				hwrevs = strchr(arg, ':');
-				if (hwrevs)
+				if ( hwrevs )
 					*(hwrevs++) = 0;
 				device = arg;
 			} else {

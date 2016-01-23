@@ -82,7 +82,7 @@ struct device_info * dev_detect(void) {
 	}
 
 clean:
-	if (usb)
+	if ( usb )
 		usb_close_device(usb);
 	free(dev);
 	return NULL;

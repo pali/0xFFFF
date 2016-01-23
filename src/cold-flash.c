@@ -49,7 +49,7 @@ static void crc32_gentab(void) {
 
 		for ( j = 8; j > 0; j-- ) {
 
-			if (crc & 1)
+			if ( crc & 1 )
 				crc = (crc >> 1) ^ poly;
 			else
 				crc >>= 1;
@@ -316,7 +316,7 @@ static int ping_timeout(libusb_device_handle * udev) {
 
 	}
 
-	if (pong)
+	if ( pong )
 		return 0;
 	else
 		return -1;

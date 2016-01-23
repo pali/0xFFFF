@@ -39,20 +39,20 @@ void printf_progressbar(unsigned long long part, unsigned long long total) {
 	int tmp, cols = 80;
 
 	/* percentage calculation */
-	pc = total==0?100:(int)(part*100/total);
-	(pc<0)?pc=0:(pc>100)?pc=100:0;
+	pc = total == 0 ? 100 : (int)(part*100/total);
+	( pc < 0 ) ? pc = 0 : ( pc > 100 ) ? pc = 100 : 0;
 
 	PRINTF_BACK();
 	PRINTF_ADD("\x1b[K  %3d%% [", pc);
-	if (columns)
+	if ( columns )
 		cols = atoi(columns);
-	if (cols > 115)
+	if ( cols > 115 )
 		cols = 115;
 	cols-=15;
-	for(tmp=cols*pc/100;tmp;tmp--) PRINTF_ADD("#");
-	for(tmp=cols-(cols*pc/100);tmp;tmp--) PRINTF_ADD("-");
+	for ( tmp = cols*pc/100; tmp; tmp-- ) PRINTF_ADD("#");
+	for ( tmp = cols-(cols*pc/100); tmp; tmp-- ) PRINTF_ADD("-");
 	PRINTF_ADD("]");
-	if (part == total) PRINTF_END();
+	if ( part == total ) PRINTF_END();
 	fflush(stdout);
 
 }
