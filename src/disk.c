@@ -289,7 +289,7 @@ int disk_init(struct usb_device_info * dev) {
 	}
 
 	usbbusnum = libusb_get_bus_number(device);
-	usbdevnum = libusb_get_port_number(device);
+	usbdevnum = libusb_get_device_address(device);
 
 	dir = opendir("/sys/dev/block/");
 	if ( ! dir ) {
