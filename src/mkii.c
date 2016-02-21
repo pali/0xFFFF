@@ -29,9 +29,6 @@
 #include "device.h"
 #include "usb-device.h"
 
-#define READ_DEV	0x81
-#define WRITE_DEV	0x01
-
 #define MKII_OUT	0x8810001B
 #define MKII_IN		0x8800101B
 
@@ -62,13 +59,13 @@ static int mkii_send_receive(libusb_device_handle * udev, uint8_t type, struct m
 	in_msg->num = number++;
 	in_msg->type = type;
 
-	ret = libusb_bulk_transfer(udev, WRITE_DEV, (unsigned char *)in_msg, data_size + sizeof(*in_msg), &transferred, 5000);
+	ret = libusb_bulk_transfer(udev, USB_WRITE_EP, (unsigned char *)in_msg, data_size + sizeof(*in_msg), &transferred, 5000);
 	if ( ret < 0 )
 		return ret;
 	if ( (size_t)transferred != data_size + sizeof(*in_msg) )
 		return -1;
 
-	ret = libusb_bulk_transfer(udev, READ_DEV, (unsigned char *)out_msg, out_size, &transferred, 5000);
+	ret = libusb_bulk_transfer(udev, USB_READ_EP, (unsigned char *)out_msg, out_size, &transferred, 5000);
 	if ( ret < 0 )
 		return ret;
 	if ( (size_t)transferred < sizeof(*out_msg) )

@@ -29,9 +29,6 @@
 #include "global.h"
 #include "printf-utils.h"
 
-#define READ_DEV		0x81
-#define WRITE_DEV		0x01
-
 /* Request type */
 #define NOLO_WRITE		64
 #define NOLO_QUERY		192
@@ -393,7 +390,7 @@ static int nolo_send_image(struct usb_device_info * dev, struct image * image, i
 		if ( ret == 0 )
 			break;
 		if ( ! simulate ) {
-			if ( libusb_bulk_transfer(dev->udev, WRITE_DEV, (unsigned char*)buf, ret, &transferred, 5000) < 0 ) {
+			if ( libusb_bulk_transfer(dev->udev, USB_WRITE_DATA_EP, (unsigned char*)buf, ret, &transferred, 5000) < 0 ) {
 				PRINTF_END();
 				NOLO_ERROR_RETURN("Sending image failed", -1);
 			}

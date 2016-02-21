@@ -22,6 +22,10 @@
 
 #include <libusb-1.0/libusb.h>
 
+#define USB_READ_EP		(LIBUSB_ENDPOINT_IN | 0x1)
+#define USB_WRITE_EP		(LIBUSB_ENDPOINT_OUT | 0x1)
+#define USB_WRITE_DATA_EP	(LIBUSB_ENDPOINT_OUT | 0x2)
+
 #include "device.h"
 
 enum usb_flash_protocol {

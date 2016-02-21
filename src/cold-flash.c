@@ -30,8 +30,6 @@
 #include "usb-device.h"
 #include "printf-utils.h"
 
-#define READ_DEV		0x81
-#define WRITE_DEV		0x01
 #define READ_TIMEOUT		500
 #define WRITE_TIMEOUT		3000
 
@@ -176,7 +174,7 @@ static int read_asic(libusb_device_handle * udev, uint8_t * asic_buffer, int siz
 	int ret, transferred;
 
 	printf("Waiting for ASIC ID...\n");
-	ret = libusb_bulk_transfer(udev, READ_DEV, (unsigned char *)asic_buffer, size, &transferred, READ_TIMEOUT);
+	ret = libusb_bulk_transfer(udev, USB_READ_EP, (unsigned char *)asic_buffer, size, &transferred, READ_TIMEOUT);
 	if ( ret < 0 )
 		ERROR_RETURN("Cannot read ASIC ID", -1);
 	if ( transferred != asic_size )
@@ -193,14 +191,14 @@ static int send_2nd(libusb_device_handle * udev, struct image * image) {
 	int ret, transferred;
 
 	printf("Sending OMAP peripheral boot message...\n");
-	ret = libusb_bulk_transfer(udev, WRITE_DEV, (unsigned char *)&omap_peripheral_msg, sizeof(omap_peripheral_msg), &transferred, WRITE_TIMEOUT);
+	ret = libusb_bulk_transfer(udev, USB_WRITE_EP, (unsigned char *)&omap_peripheral_msg, sizeof(omap_peripheral_msg), &transferred, WRITE_TIMEOUT);
 	if ( ret < 0 || transferred != sizeof(omap_peripheral_msg) )
 		ERROR_RETURN("Sending OMAP peripheral boot message failed", -1);
 
 	SLEEP(5000);
 
 	printf("Sending 2nd X-Loader image size...\n");
-	ret = libusb_bulk_transfer(udev, WRITE_DEV, (unsigned char *)&image->size, 4, &transferred, WRITE_TIMEOUT);
+	ret = libusb_bulk_transfer(udev, USB_WRITE_EP, (unsigned char *)&image->size, 4, &transferred, WRITE_TIMEOUT);
 	if ( ret < 0 || transferred != 4 )
 		ERROR_RETURN("Sending 2nd X-Loader image size failed", -1);
 
@@ -217,7 +215,7 @@ static int send_2nd(libusb_device_handle * udev, struct image * image) {
 		ret = image_read(image, buffer, need);
 		if ( ret == 0 )
 			break;
-		if ( libusb_bulk_transfer(udev, WRITE_DEV, (unsigned char *)buffer, ret, &transferred, WRITE_TIMEOUT) < 0 )
+		if ( libusb_bulk_transfer(udev, USB_WRITE_EP, (unsigned char *)buffer, ret, &transferred, WRITE_TIMEOUT) < 0 )
 			PRINTF_ERROR_RETURN("Sending 2nd X-Loader image failed", -1);
 		if ( ret != transferred )
 			PRINTF_ERROR_RETURN("Sending 2nd X-Loader image failed (incomplete bulk transfer)", -1);
@@ -240,13 +238,13 @@ static int send_secondary(libusb_device_handle * udev, struct image * image) {
 	init_msg = xloader_msg_create(XLOADER_MSG_TYPE_SEND, image);
 
 	printf("Sending X-Loader init message...\n");
-	ret = libusb_bulk_transfer(udev, WRITE_DEV, (unsigned char *)&init_msg, sizeof(init_msg), &transferred, WRITE_TIMEOUT);
+	ret = libusb_bulk_transfer(udev, USB_WRITE_EP, (unsigned char *)&init_msg, sizeof(init_msg), &transferred, WRITE_TIMEOUT);
 	if ( ret < 0 || transferred != sizeof(init_msg) )
 		ERROR_RETURN("Sending X-Loader init message failed", -1);
 
 	printf("Waiting for X-Loader response...\n");
 	SLEEP(5000);
-	ret = libusb_bulk_transfer(udev, READ_DEV, (unsigned char *)&buffer, 4, &transferred, READ_TIMEOUT); /* 4 bytes - dummy value */
+	ret = libusb_bulk_transfer(udev, USB_READ_EP, (unsigned char *)&buffer, 4, &transferred, READ_TIMEOUT); /* 4 bytes - dummy value */
 	if ( ret < 0 || transferred != 4 )
 		ERROR_RETURN("No response", -1);
 
@@ -261,7 +259,7 @@ static int send_secondary(libusb_device_handle * udev, struct image * image) {
 		ret = image_read(image, buffer, need);
 		if ( ret == 0 )
 			break;
-		if ( libusb_bulk_transfer(udev, WRITE_DEV, (unsigned char *)buffer, ret, &transferred, WRITE_TIMEOUT) < 0 )
+		if ( libusb_bulk_transfer(udev, USB_WRITE_EP, (unsigned char *)buffer, ret, &transferred, WRITE_TIMEOUT) < 0 )
 			PRINTF_ERROR_RETURN("Sending Secondary image failed", -1);
 		if ( ret != transferred )
 			PRINTF_ERROR_RETURN("Sending Secondary image failed (incomplete bulk transfer)", -1);
@@ -271,7 +269,7 @@ static int send_secondary(libusb_device_handle * udev, struct image * image) {
 
 	printf("Waiting for X-Loader response...\n");
 	SLEEP(5000);
-	ret = libusb_bulk_transfer(udev, READ_DEV, (unsigned char *)&buffer, 4, &transferred, READ_TIMEOUT); /* 4 bytes - dummy value */
+	ret = libusb_bulk_transfer(udev, USB_READ_EP, (unsigned char *)&buffer, 4, &transferred, READ_TIMEOUT); /* 4 bytes - dummy value */
 	if ( ret < 0 || transferred != 4 )
 		ERROR_RETURN("No response", -1);
 
@@ -291,7 +289,7 @@ static int ping_timeout(libusb_device_handle * udev) {
 		int try_read = 4;
 
 		printf("Sending X-Loader ping message\n");
-		ret = libusb_bulk_transfer(udev, WRITE_DEV, (unsigned char *)&ping_msg, sizeof(ping_msg), &transferred, WRITE_TIMEOUT);
+		ret = libusb_bulk_transfer(udev, USB_WRITE_EP, (unsigned char *)&ping_msg, sizeof(ping_msg), &transferred, WRITE_TIMEOUT);
 		if ( ret < 0 || transferred != sizeof(ping_msg) )
 			ERROR_RETURN("Sending X-Loader ping message failed", -1);
 
@@ -299,7 +297,7 @@ static int ping_timeout(libusb_device_handle * udev) {
 		while ( try_read > 0 ) {
 
 			uint32_t ping_read;
-			ret = libusb_bulk_transfer(udev, READ_DEV, (unsigned char *)&ping_read, sizeof(ping_read), &transferred, READ_TIMEOUT);
+			ret = libusb_bulk_transfer(udev, USB_READ_EP, (unsigned char *)&ping_read, sizeof(ping_read), &transferred, READ_TIMEOUT);
 			if ( ret == 0 && transferred == sizeof(ping_read) ) {
 				printf("Got it\n");
 				pong = 1;
@@ -415,7 +413,7 @@ int leave_cold_flash(struct usb_device_info * dev) {
 	int ret, transferred;
 
 	printf("Sending OMAP memory boot message...\n");
-	ret = libusb_bulk_transfer(dev->udev, WRITE_DEV, (unsigned char *)&omap_memory_msg, sizeof(omap_memory_msg), &transferred, WRITE_TIMEOUT);
+	ret = libusb_bulk_transfer(dev->udev, USB_WRITE_EP, (unsigned char *)&omap_memory_msg, sizeof(omap_memory_msg), &transferred, WRITE_TIMEOUT);
 	if ( ret < 0 || transferred != sizeof(omap_memory_msg) )
 		ERROR_RETURN("Sending OMAP memory boot message failed", -1);
 
