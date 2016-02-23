@@ -1000,6 +1000,7 @@ int main(int argc, char **argv) {
 			printf("\n");
 
 			if ( ret == 1 ) {
+				buf[0] = 0;
 				ret = dev_get_rd_flags(dev, buf, sizeof(buf));
 				printf("R&D flags: ");
 				if ( ret < 0 )
