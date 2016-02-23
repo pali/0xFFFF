@@ -206,7 +206,9 @@ static struct usb_device_info * usb_device_is_valid(struct libusb_device * dev) 
 				return NULL;
 			}
 
-			if ( strstr(product, "N900") )
+			if ( strncmp(product, "Nokia 770", sizeof("Nokia 770")-1) == 0 )
+				ret->device = DEVICE_SU_18;
+			else if ( strstr(product, "N900") )
 				ret->device = DEVICE_RX_51;
 			else
 				ret->device = DEVICE_UNKNOWN;
