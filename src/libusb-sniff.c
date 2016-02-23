@@ -24,6 +24,7 @@
 #define _GNU_SOURCE
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdint.h>
 #include <dlfcn.h>
 
 struct usb_dev_handle;
@@ -207,17 +208,17 @@ int usb_control_msg(usb_dev_handle *dev, int requesttype, int request, int value
 
 }
 
-int libusb_control_msg(libusb_device_handle *dev, int requesttype, int request, int value, int index, unsigned char *bytes, int size, int timeout) {
+int libusb_control_transfer(libusb_device_handle *dev, uint8_t requesttype, uint8_t request, uint16_t value, uint16_t index, unsigned char *bytes, uint16_t size, unsigned int timeout) {
 
-	static int (*real_usb_control_msg)(libusb_device_handle *dev, int requesttype, int request, int value, int index, unsigned char *bytes, int size, int timeout) = NULL;
+	static int (*real_libusb_control_transfer)(libusb_device_handle *dev, uint8_t requesttype, uint8_t request, uint16_t value, uint16_t index, unsigned char *bytes, uint16_t size, unsigned int timeout) = NULL;
 	int ret;
 
-	if ( ! real_usb_control_msg )
-		*(void **)(&real_usb_control_msg) = dlsym(RTLD_NEXT, "libusb_control_msg");
+	if ( ! real_libusb_control_transfer )
+		*(void **)(&real_libusb_control_transfer) = dlsym(RTLD_NEXT, "libusb_control_transfer");
 
 	if ( requesttype == 64 && ! getenv("USBSNIFF_SKIP_CONTROL") ) {
 
-		printf("\n==== usb_control_msg(requesttype=%d, request=%d, value=%d, index=%d, size=%d, timeout=%d) ====\n", requesttype, request, value, index, size, timeout);
+		printf("\n==== usb_control_msg(requesttype=%d, request=%d, value=%d, index=%d, size=%d, timeout=%d) ====\n", (int)requesttype, (int)request, (int)value, (int)index, (int)size, (int)timeout);
 		dump_bytes((char*) bytes, size);
 		printf("====\n");
 
@@ -227,11 +228,11 @@ int libusb_control_msg(libusb_device_handle *dev, int requesttype, int request, 
 
 	}
 
-	ret = real_usb_control_msg(dev, requesttype, request, value, index, bytes, size, timeout);
+	ret = real_libusb_control_transfer(dev, requesttype, request, value, index, bytes, size, timeout);
 
 	if ( requesttype != 64 && ! getenv("USBSNIFF_SKIP_CONTROL") ) {
 
-		printf("\n==== usb_control_msg(requesttype=%d, request=%d, value=%d, index=%d, size=%d, timeout=%d) ret = %d ====\n", requesttype, request, value, index, size, timeout, ret);
+		printf("\n==== usb_control_msg(requesttype=%d, request=%d, value=%d, index=%d, size=%d, timeout=%d) ret = %d ====\n", (int)requesttype, (int)request, (int)value, (int)index, (int)size, (int)timeout, ret);
 		if ( ret > 0 ) {
 			dump_bytes((char*) bytes, ret);
 			printf("====\n");
