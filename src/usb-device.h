@@ -50,6 +50,7 @@ struct usb_flash_device {
 struct usb_device_info {
 	enum device device;
 	int16_t hwrev;
+	int protocol_version;
 	const struct usb_flash_device * flash_device;
 	libusb_device_handle * udev;
 	int data;

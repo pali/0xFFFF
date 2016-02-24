@@ -105,17 +105,26 @@ int mkii_init(struct usb_device_info * dev) {
 
 	ret = mkii_send_receive(dev->udev, MKII_PING, msg, 0, msg, sizeof(buf));
 	if ( ret != 0 )
-		return -1;
+		ERROR_RETURN("MKII_PING failed", -1);
 
 	memcpy(msg->data, "/update/protocol_version", sizeof("/update/protocol_version")-1);
 	ret = mkii_send_receive(dev->udev, MKII_GET, msg, sizeof("/update/protocol_version")-1, msg, sizeof(buf));
-	if ( ret != 2 || msg->data[0] != 0 || msg->data[1] != 0x32 )
-		return -1;
+	if ( ret < 2 || msg->data[0] != 0)
+		ERROR_RETURN("MKII_GET failed", -1);
+
+	ptr = strndup(msg->data + 1, ret-1);
+	dev->protocol_version = atoi(ptr);
+	free(ptr);
+
+	printf("Detected Mk II Protocol Version: %d\n", dev->protocol_version);
+
+	if (dev->protocol_version < 2 || dev->protocol_version > 108)
+		ERROR_RETURN("MKII Protocol Version is not supported", -1);
 
 	memcpy(msg->data, "/update/host_protocol_version\x00\x32", sizeof("/update/host_protocol_version\x00\x32")-1);
 	ret = mkii_send_receive(dev->udev, MKII_TELL, msg, sizeof("/update/host_protocol_version\x00\x32")-1, msg, sizeof(buf));
 	if ( ret != 1 || msg->data[0] != 0 )
-		return -1;
+		ERROR_RETURN("MKII_TELL failed", -1);
 
 	device = mkii_get_device(dev);
 
@@ -519,10 +528,15 @@ int mkii_get_sw_ver(struct usb_device_info * dev, char * ver, size_t size) {
 
 	msg = (struct mkii_message *)buf;
 
+	if (dev->protocol_version != 2) {
+		/* not supported by newer nolo releases */
+		return -1;
+	}
+
 	memcpy(msg->data, "/version/sw_release", sizeof("/version/sw_release")-1);
 	ret = mkii_send_receive(dev->udev, MKII_GET, msg, sizeof("/version/sw_release")-1, msg, sizeof(buf));
 	if ( ret < 2 || msg->data[0] != 0 || msg->data[1] == 0 )
-		return -1;
+		ERROR_RETURN("MKII_GET /version/sw_release failed", -1);
 
 	msg->data[ret] = 0;
 	strncpy(ver, msg->data+1, size);
