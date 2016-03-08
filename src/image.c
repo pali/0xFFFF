@@ -546,7 +546,7 @@ enum image_type image_type_from_data(struct image * image) {
 	else if ( size >= 4 && memcmp(buf, "\x45\x3d\xcd\x28", 4) == 0 ) /* CRAMFS MAGIC */
 		return IMAGE_INITFS;
 	else if ( size >= 2 && memcmp(buf, "\x85\x19", 2) == 0 ) { /* JFFS2 MAGIC */
-		if ( image->size < 0x300000 )
+		if ( image->size < 0x1000000 )
 			return IMAGE_INITFS;
 		else
 			return IMAGE_ROOTFS;
