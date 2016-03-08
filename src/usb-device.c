@@ -209,14 +209,20 @@ static struct usb_device_info * usb_device_is_valid(struct libusb_device * dev) 
 				return NULL;
 			}
 
-			if ( strncmp(product, "Nokia 770", sizeof("Nokia 770")-1) == 0 )
+			if ( strcmp(product, "Nokia 770") == 0 || strcmp(product, "Nokia 770 (Update mode)") == 0 )
 				ret->device = DEVICE_SU_18;
-			else if ( strstr(product, "N900") )
+			else if ( strcmp(product, "Nokia N800 Internet Tablet") == 0 || strcmp(product, "Nokia N800 (Update mode)") == 0 )
+				ret->device = DEVICE_RX_34;
+			else if ( strcmp(product, "Nokia N810 Internet Tablet") == 0 || strcmp(product, "Nokia N810 (Update mode)") == 0 )
+				ret->device = DEVICE_RX_44;
+			else if ( strcmp(product, "Nokia N810 Internet Tablet WiMAX Edition") == 0 || strcmp(product, "Nokia-RX48 (Update mode)") == 0 )
+				ret->device = DEVICE_RX_48;
+			else if ( strcmp(product, "N900 (Storage Mode)") == 0 || strcmp(product, "Nokia N900 (Update mode)") == 0 || strcmp(product, "N900 (PC-Suite Mode)") == 0 )
 				ret->device = DEVICE_RX_51;
+			else if ( strcmp(product, "Nokia USB ROM") == 0 )
+				ret->device = DEVICE_ANY;
 			else
 				ret->device = DEVICE_UNKNOWN;
-
-			/* TODO: Autodetect more devices */
 
 			if ( device_to_string(ret->device) )
 				PRINTF_LINE("Detected USB device: %s", device_to_string(ret->device));
@@ -224,7 +230,16 @@ static struct usb_device_info * usb_device_is_valid(struct libusb_device * dev) 
 				PRINTF_LINE("Detected USB device: (not detected)");
 			PRINTF_END();
 
-			if ( ret->device ) {
+			if ( ! noverify && ret->device == DEVICE_UNKNOWN ) {
+				ERROR("Device detection failed");
+				fprintf(stderr, "\n");
+				usb_reattach_kernel_driver(udev, usb_devices[i].interface);
+				libusb_close(udev);
+				free(ret);
+				return NULL;
+			}
+
+			if ( ! noverify && ret->device != DEVICE_ANY ) {
 				enum device * device;
 				for ( device = usb_devices[i].devices; *device; ++device )
 					if ( *device == ret->device )
