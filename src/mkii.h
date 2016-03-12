@@ -31,7 +31,7 @@ int mkii_init(struct usb_device_info * dev);
 enum device mkii_get_device(struct usb_device_info * dev);
 
 int mkii_flash_image(struct usb_device_info * dev, struct image * image);
-int mkii_reboot_device(struct usb_device_info * dev);
+int mkii_reboot_device(struct usb_device_info * dev, int update);
 
 int mkii_get_root_device(struct usb_device_info * dev);
 int mkii_set_root_device(struct usb_device_info * dev, int device);

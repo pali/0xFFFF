@@ -340,18 +340,28 @@ int mkii_flash_image(struct usb_device_info * dev, struct image * image) {
 
 }
 
-int mkii_reboot_device(struct usb_device_info * dev) {
+int mkii_reboot_device(struct usb_device_info * dev, int update) {
 
 	char buf[2048];
 	struct mkii_message * msg;
+	const char * str;
+	int len;
 	int ret;
 
 	msg = (struct mkii_message *)buf;
 
-	printf("Rebooting device...\n");
+	if ( update ) {
+		printf("Rebooting device to Update mode...\n");
+		len = sizeof("reboot=update");
+		str = "reboot=update";
+	} else {
+		printf("Rebooting device...\n");
+		len = sizeof("reboot");
+		str = "reboot";
+	}
 
-	memcpy(msg->data, "reboot", sizeof("reboot"));
-	ret = mkii_send_receive(dev->udev, MKII_REBOOT, msg, sizeof("reboot"), msg, sizeof(buf));
+	memcpy(msg->data, str, len);
+	ret = mkii_send_receive(dev->udev, MKII_REBOOT, msg, len, msg, sizeof(buf));
 	if ( ret != 1 || msg->data[0] != 0 )
 		return -1;
 

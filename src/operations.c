@@ -243,6 +243,8 @@ int dev_boot_device(struct device_info * dev, const char * cmdline) {
 
 		if ( protocol == FLASH_NOLO )
 			return nolo_boot_device(dev->usb, cmdline);
+		else if ( protocol == FLASH_MKII && strcmp(cmdline, "update") == 0 )
+			return mkii_reboot_device(dev->usb, 1);
 
 		usb_switch_to_nolo(dev->usb);
 		return -EAGAIN;
@@ -267,7 +269,7 @@ int dev_reboot_device(struct device_info * dev) {
 		else if ( protocol == FLASH_NOLO )
 			return nolo_reboot_device(dev->usb);
 		else if ( protocol == FLASH_MKII )
-			return mkii_reboot_device(dev->usb);
+			return mkii_reboot_device(dev->usb, 0);
 		else {
 			usb_switch_to_nolo(dev->usb);
 			return -EAGAIN;
