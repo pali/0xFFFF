@@ -165,6 +165,8 @@ int mkii_init(struct usb_device_info * dev) {
 		libusb_get_string_descriptor_ascii(dev->udev, desc->iConfiguration, (unsigned char*)buf, sizeof(buf));
 	if ( strncmp(buf, "Firmware Upgrade Configuration", sizeof("Firmware Upgrade Configuration")) == 0 )
 		dev->data |= (1UL << 31);
+	if ( ret == 0 )
+		libusb_free_config_descriptor(desc);
 
 	printf("Mode: %s\n", (dev->data & (1UL << 31)) ? "Update" : "PC Suite");
 
