@@ -160,7 +160,7 @@ int mkii_init(struct usb_device_info * dev) {
 	memset(buf, 0, sizeof(buf));
 
 	udev = libusb_get_device(dev->udev);
-	ret = libusb_get_config_descriptor(udev, dev->flash_device->configuration, &desc);
+	ret = libusb_get_active_config_descriptor(udev, &desc);
 	if ( ret == 0 )
 		libusb_get_string_descriptor_ascii(dev->udev, desc->iConfiguration, (unsigned char*)buf, sizeof(buf));
 	if ( strncmp(buf, "Firmware Upgrade Configuration", sizeof("Firmware Upgrade Configuration")) == 0 )
