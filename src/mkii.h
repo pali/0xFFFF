@@ -24,6 +24,8 @@
 #include "device.h"
 #include "usb-device.h"
 
+#define MKII_UPDATE_MODE	(1UL << 31)
+
 int mkii_init(struct usb_device_info * dev);
 
 enum device mkii_get_device(struct usb_device_info * dev);

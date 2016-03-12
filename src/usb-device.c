@@ -377,7 +377,7 @@ void usb_switch_to_update(struct usb_device_info * dev) {
 		leave_cold_flash(dev);
 	else if ( dev->flash_device->protocol == FLASH_NOLO )
 		nolo_boot_device(dev, "update");
-	else if ( dev->flash_device->protocol == FLASH_MKII && ! ( dev->data & ( 1UL << 31 ) ) )
+	else if ( dev->flash_device->protocol == FLASH_MKII && ! ( dev->data & MKII_UPDATE_MODE ) )
 		mkii_reboot_device(dev);
 	else if ( dev->flash_device->protocol == FLASH_DISK )
 		printf_and_wait("Unplug USB cable, turn device off, press ENTER and plug USB cable again");
@@ -394,7 +394,7 @@ void usb_switch_to_disk(struct usb_device_info * dev) {
 		nolo_boot_device(dev, NULL);
 		printf_and_wait("Wait until device start, choose USB Mass Storage Mode and press ENTER");
 	} else if ( dev->flash_device->protocol == FLASH_MKII ) {
-		if ( dev->data & ( 1UL << 31 ) )
+		if ( dev->data & MKII_UPDATE_MODE )
 			mkii_reboot_device(dev);
 		else
 			printf_and_wait("Unplug USB cable, plug again, choose USB Mass Storage Mode and press ENTER");
