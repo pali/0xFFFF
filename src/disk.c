@@ -264,11 +264,15 @@ int disk_init(struct usb_device_info * dev) {
 #ifdef __linux__
 
 	int fd;
-	int maj;
-	int min;
+	int maj1;
+	int maj2;
+	int min1;
+	int min2;
 
-	maj = -1;
-	min = -1;
+	maj1 = -1;
+	maj2 = -1;
+	min1 = -1;
+	min2 = -1;
 
 	FILE * f;
 	DIR * dir;
@@ -333,25 +337,39 @@ int disk_init(struct usb_device_info * dev) {
 		if ( devnum != usbdevnum || usbbusnum != busnum )
 			continue;
 
-		if ( sscanf(dirent->d_name, "%d:%d", &maj, &min) != 2 ) {
-			maj = -1;
-			min = -1;
+		if ( sscanf(dirent->d_name, "%d:%d", &maj2, &min2) != 2 ) {
+			maj2 = -1;
+			min2 = -1;
 			continue;
 		}
 
-		break;
+		if ( maj1 != -1 && min1 != -1 && maj2 != -1 && min2 != -1 )
+			break;
+
+		maj1 = maj2;
+		min1 = min2;
+		maj2 = -1;
+		min2 = -1;
 
 	}
 
 	closedir(dir);
 
-	if ( maj == -1 || min == -1 ) {
+	if ( maj1 == -1 || min1 == -1 ) {
 		ERROR("Cannot find id for mmc block disk device");
 		return -1;
 	}
 
 	/* TODO: change 1 to 0 when disk_flash_dev will be implemented */
-	fd = disk_open_dev(maj, min, -1, 1);
+
+	/* RX-51 exports MyDocs in first usb device and just first partion, so host system see whole device without MBR table */
+	if ( dev->device == DEVICE_RX_51 )
+		fd = disk_open_dev(maj1, min1, -1, 1);
+	/* Other devices can export SD card as first partition and export whole mmc device, so host system will see MBR table */
+	else if ( maj2 != -1 && min2 != -1 )
+		fd = disk_open_dev(maj2, min2, 1, 1);
+	else
+		fd = disk_open_dev(maj1, min1, 1, 1);
 
 	if ( fd < 0 )
 		return -1;
