@@ -78,6 +78,9 @@ static void usb_flash_device_info_print(const struct usb_flash_device * dev) {
 
 static void usb_reattach_kernel_driver(libusb_device_handle * udev, int interface) {
 
+	if ( interface < 0 )
+		return;
+
 	PRINTF_LINE("Reattach kernel driver to USB interface...");
 	PRINTF_END();
 	libusb_release_interface(udev, interface);
