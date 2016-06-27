@@ -24,6 +24,7 @@
 #include "device.h"
 #include "usb-device.h"
 
+#define MKII_SUPPORT_SW_RELEASE	(1UL << 30)
 #define MKII_UPDATE_MODE	(1UL << 31)
 
 int mkii_init(struct usb_device_info * dev);

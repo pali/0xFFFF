@@ -105,17 +105,24 @@ int mkii_init(struct usb_device_info * dev) {
 
 	ret = mkii_send_receive(dev->udev, MKII_PING, msg, 0, msg, sizeof(buf));
 	if ( ret != 0 )
-		return -1;
+		ERROR_RETURN("Cannot ping device", -1);
 
 	memcpy(msg->data, "/update/protocol_version", sizeof("/update/protocol_version")-1);
 	ret = mkii_send_receive(dev->udev, MKII_GET, msg, sizeof("/update/protocol_version")-1, msg, sizeof(buf));
-	if ( ret != 2 || msg->data[0] != 0 || msg->data[1] != 0x32 )
-		return -1;
+	if ( ret < 2 || msg->data[0] != 0 )
+		ERROR_RETURN("Cannot get Mk II protocol version", -1);
+
+	msg->data[ret] = 0;
+
+	if ( ret == 2 && msg->data[1] == 0x32 )
+		dev->data |= MKII_SUPPORT_SW_RELEASE;
+
+	printf("Detected Mk II protocol version: %s\n", msg->data);
 
 	memcpy(msg->data, "/update/host_protocol_version\x00\x32", sizeof("/update/host_protocol_version\x00\x32")-1);
 	ret = mkii_send_receive(dev->udev, MKII_TELL, msg, sizeof("/update/host_protocol_version\x00\x32")-1, msg, sizeof(buf));
 	if ( ret != 1 || msg->data[0] != 0 )
-		return -1;
+		ERROR_RETURN("Cannot send our protocol version", -1);
 
 	device = mkii_get_device(dev);
 
@@ -131,10 +138,8 @@ int mkii_init(struct usb_device_info * dev) {
 
 	memcpy(msg->data, "/update/supported_images", sizeof("/update/supported_images")-1);
 	ret = mkii_send_receive(dev->udev, MKII_GET, msg, sizeof("/update/supported_images")-1, msg, sizeof(buf));
-	if ( ret < 2 || msg->data[0] != 0 ) {
-		ERROR("Cannot get supported image types");
-		return -1;
-	}
+	if ( ret < 2 || msg->data[0] != 0 )
+		ERROR_RETURN("Cannot get supported image types", -1);
 
 	msg->data[ret] = 0;
 	ptr = msg->data + 1;
@@ -363,7 +368,7 @@ int mkii_reboot_device(struct usb_device_info * dev, int update) {
 	memcpy(msg->data, str, len);
 	ret = mkii_send_receive(dev->udev, MKII_REBOOT, msg, len, msg, sizeof(buf));
 	if ( ret != 1 || msg->data[0] != 0 )
-		return -1;
+		ERROR_RETURN("Cannot send reboot command", -1);
 
 	return 0;
 
@@ -450,7 +455,7 @@ int16_t mkii_get_hwrev(struct usb_device_info * dev) {
 	memcpy(msg->data, "/device/hw_build", sizeof("/device/hw_build")-1);
 	ret = mkii_send_receive(dev->udev, MKII_GET, msg, sizeof("/device/hw_build")-1, msg, sizeof(buf));
 	if ( ret < 2 || msg->data[0] != 0 || msg->data[1] == 0 )
-		return -1;
+		ERROR_RETURN("Cannot get hw revision", -1);
 
 	msg->data[ret] = 0;
 	return atoi(msg->data+1);
@@ -529,12 +534,15 @@ int mkii_get_sw_ver(struct usb_device_info * dev, char * ver, size_t size) {
 	struct mkii_message * msg;
 	int ret;
 
+	if ( ! ( dev->data & MKII_SUPPORT_SW_RELEASE ) )
+		return -1;
+
 	msg = (struct mkii_message *)buf;
 
 	memcpy(msg->data, "/version/sw_release", sizeof("/version/sw_release")-1);
 	ret = mkii_send_receive(dev->udev, MKII_GET, msg, sizeof("/version/sw_release")-1, msg, sizeof(buf));
 	if ( ret < 2 || msg->data[0] != 0 || msg->data[1] == 0 )
-		return -1;
+		ERROR_RETURN("Cannot get sw release", -1);
 
 	msg->data[ret] = 0;
 	strncpy(ver, msg->data+1, size);
