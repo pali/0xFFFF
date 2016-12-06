@@ -214,15 +214,12 @@ static int image_append(struct image * image, const char * type, const char * de
 
 static void image_align(struct image * image) {
 
-	size_t align = 0;
+	size_t align;
 
 	if ( image->type == IMAGE_MMC )
 		align = 8;
 	else
 		align = 7;
-
-	if ( align == 0 )
-		return;
 
 	if ( ( image->size & ( ( 1ULL << align ) - 1 ) ) == 0 )
 		return;
