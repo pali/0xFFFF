@@ -20,11 +20,11 @@
 #ifndef USB_DEVICE_H
 #define USB_DEVICE_H
 
-#include <libusb-1.0/libusb.h>
+#include <usb.h>
 
-#define USB_READ_EP		(LIBUSB_ENDPOINT_IN | 0x1)
-#define USB_WRITE_EP		(LIBUSB_ENDPOINT_OUT | 0x1)
-#define USB_WRITE_DATA_EP	(LIBUSB_ENDPOINT_OUT | 0x2)
+#define USB_READ_EP		(USB_ENDPOINT_IN | 0x1)
+#define USB_WRITE_EP		(USB_ENDPOINT_OUT | 0x1)
+#define USB_WRITE_DATA_EP	(USB_ENDPOINT_OUT | 0x2)
 
 #include "device.h"
 
@@ -51,7 +51,7 @@ struct usb_device_info {
 	enum device device;
 	int16_t hwrev;
 	const struct usb_flash_device * flash_device;
-	libusb_device_handle * udev;
+	usb_dev_handle * udev;
 	int data;
 };
 

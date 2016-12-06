@@ -48,9 +48,9 @@ struct mkii_message {
 } __attribute__((__packed__));
 
 
-static int mkii_send_receive(libusb_device_handle * udev, uint8_t type, struct mkii_message * in_msg, size_t data_size, struct mkii_message * out_msg, size_t out_size) {
+static int mkii_send_receive(usb_dev_handle * udev, uint8_t type, struct mkii_message * in_msg, size_t data_size, struct mkii_message * out_msg, size_t out_size) {
 
-	int ret, transferred;
+	int ret;
 	static uint8_t number = 0;
 
 	in_msg->header = MKII_OUT;
@@ -59,17 +59,15 @@ static int mkii_send_receive(libusb_device_handle * udev, uint8_t type, struct m
 	in_msg->num = number++;
 	in_msg->type = type;
 
-	ret = libusb_bulk_transfer(udev, USB_WRITE_EP, (unsigned char *)in_msg, data_size + sizeof(*in_msg), &transferred, 5000);
+	ret = usb_bulk_write(udev, USB_WRITE_EP, (char *)in_msg, data_size + sizeof(*in_msg), 5000);
 	if ( ret < 0 )
 		return ret;
-	if ( (size_t)transferred != data_size + sizeof(*in_msg) )
+	if ( (size_t)ret != data_size + sizeof(*in_msg) )
 		return -1;
 
-	ret = libusb_bulk_transfer(udev, USB_READ_EP, (unsigned char *)out_msg, out_size, &transferred, 5000);
+	ret = usb_bulk_read(udev, USB_READ_EP, (char *)out_msg, out_size, 5000);
 	if ( ret < 0 )
 		return ret;
-	if ( (size_t)transferred < sizeof(*out_msg) )
-		return -1;
 
 	if ( out_msg->header != MKII_IN )
 		return -1;
@@ -77,13 +75,13 @@ static int mkii_send_receive(libusb_device_handle * udev, uint8_t type, struct m
 	if ( out_msg->type != (type | MKII_RESPONCE) )
 		return -1;
 
-	if ( (size_t)transferred < sizeof(*out_msg) )
+	if ( (size_t)ret < sizeof(*out_msg) )
 		return -1;
 
-	if ( ntohs(out_msg->size) != transferred - sizeof(*out_msg) + 4 )
+	if ( ntohs(out_msg->size) != ret - sizeof(*out_msg) + 4 )
 		return -1;
 
-	return transferred - sizeof(*out_msg);
+	return ret - sizeof(*out_msg);
 
 }
 
@@ -96,8 +94,6 @@ int mkii_init(struct usb_device_info * dev) {
 	char * newptr;
 	char * ptr;
 	enum image_type type;
-	struct libusb_device *udev;
-	struct libusb_config_descriptor *desc;
 
 	printf("Initializing Mk II protocol...\n");
 
@@ -163,15 +159,9 @@ int mkii_init(struct usb_device_info * dev) {
 	printf("\n");
 
 	memset(buf, 0, sizeof(buf));
-
-	udev = libusb_get_device(dev->udev);
-	ret = libusb_get_active_config_descriptor(udev, &desc);
-	if ( ret == 0 )
-		libusb_get_string_descriptor_ascii(dev->udev, desc->iConfiguration, (unsigned char*)buf, sizeof(buf));
+	usb_get_string_simple(dev->udev, usb_device(dev->udev)->config[dev->flash_device->configuration].iConfiguration, buf, sizeof(buf));
 	if ( strncmp(buf, "Firmware Upgrade Configuration", sizeof("Firmware Upgrade Configuration")) == 0 )
 		dev->data |= MKII_UPDATE_MODE;
-	if ( ret == 0 )
-		libusb_free_config_descriptor(desc);
 
 	printf("Mode: %s\n", (dev->data & MKII_UPDATE_MODE) ? "Update" : "PC Suite");
 

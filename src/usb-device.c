@@ -25,7 +25,13 @@
 #include <ctype.h>
 #include <signal.h>
 
-#include <libusb-1.0/libusb.h>
+#include <usb.h>
+
+#ifdef __linux__
+#ifdef LIBUSB_HAS_DETACH_KERNEL_DRIVER_NP
+#include <sys/ioctl.h>
+#endif
+#endif
 
 #include "global.h"
 #include "device.h"
@@ -76,34 +82,42 @@ static void usb_flash_device_info_print(const struct usb_flash_device * dev) {
 
 }
 
-static void usb_reattach_kernel_driver(libusb_device_handle * udev, int interface) {
+static void usb_reattach_kernel_driver(usb_dev_handle * udev, int interface) {
+
+#ifdef __linux__
+#ifdef LIBUSB_HAS_DETACH_KERNEL_DRIVER_NP
+	struct {
+		int ifno;
+		int ioctl_code;
+		void * data;
+	} command = {
+		.ifno = interface,
+		.ioctl_code = _IO('U', 23),
+		.data = NULL,
+	};
 
 	if ( interface < 0 )
 		return;
 
 	PRINTF_LINE("Reattach kernel driver to USB interface...");
 	PRINTF_END();
-	libusb_release_interface(udev, interface);
-	libusb_attach_kernel_driver(udev, interface);
+	usb_release_interface(udev, interface);
+	ioctl(*((int *)udev), _IOWR('U', 18, command), &command);
+#endif
+#endif
 
 }
 
-static void usb_descriptor_info_print(libusb_device_handle * udev, struct libusb_device * dev, char * product, size_t size) {
+static void usb_descriptor_info_print(usb_dev_handle * udev, struct usb_device * dev, char * product, size_t size) {
 
-	struct libusb_device_descriptor desc;
 	char buf[1024];
 	char buf2[1024];
 	unsigned int x;
 	int ret;
 	int i;
 
-	if ( libusb_get_device_descriptor(dev, &desc) < 0 ) {
-		PRINTF_LINE("libusb_get_device_descriptor() failed");
-		PRINTF_END();
-		return;
-	}
 	memset(buf, 0, sizeof(buf));
-	libusb_get_string_descriptor_ascii(udev, desc.iProduct, (unsigned char *)buf, sizeof(buf));
+	usb_get_string_simple(udev, dev->descriptor.iProduct, buf, sizeof(buf));
 	PRINTF_LINE("USB device product string: %s", buf[0] ? buf : "(not detected)");
 	PRINTF_END();
 
@@ -112,7 +126,7 @@ static void usb_descriptor_info_print(libusb_device_handle * udev, struct libusb
 
 	memset(buf, 0, sizeof(buf));
 	memset(buf2, 0, sizeof(buf2));
-	ret = libusb_get_string_descriptor_ascii(udev, desc.iSerialNumber, (unsigned char *)buf, sizeof(buf));
+	ret = usb_get_string_simple(udev, dev->descriptor.iSerialNumber, buf, sizeof(buf));
 	if ( ! isalnum(buf[0]) )
 		buf[0] = 0;
 	for ( i = 0; i < ret; i+=2 ) {
@@ -131,23 +145,15 @@ static void usb_descriptor_info_print(libusb_device_handle * udev, struct libusb
 
 }
 
-static struct usb_device_info * usb_device_is_valid(struct libusb_device * dev) {
+static struct usb_device_info * usb_device_is_valid(struct usb_device * dev) {
 
-	int err, i;
+	int i;
 	char product[1024];
-	libusb_device_handle * udev;
 	struct usb_device_info * ret = NULL;
-	struct libusb_device_descriptor desc;
-
-	if ( libusb_get_device_descriptor(dev, &desc) < 0 ) {
-		PRINTF_LINE("libusb_get_device_descriptor failed");
-		PRINTF_END();
-		return NULL;
-	}
 
 	for ( i = 0; usb_devices[i].vendor; ++i ) {
 
-		if ( desc.idVendor == usb_devices[i].vendor && desc.idProduct == usb_devices[i].product ) {
+		if ( dev->descriptor.idVendor == usb_devices[i].vendor && dev->descriptor.idProduct == usb_devices[i].product ) {
 
 			printf("\b\b  ");
 			PRINTF_END();
@@ -156,10 +162,9 @@ static struct usb_device_info * usb_device_is_valid(struct libusb_device * dev) 
 			PRINTF_END();
 
 			PRINTF_LINE("Opening USB...");
-
-			err = libusb_open(dev, &udev);
-			if ( err < 0 ) {
-				PRINTF_ERROR("libusb_open failed");
+			usb_dev_handle * udev = usb_open(dev);
+			if ( ! udev ) {
+				PRINTF_ERROR("usb_open failed");
 				fprintf(stderr, "\n");
 				return NULL;
 			}
@@ -168,15 +173,17 @@ static struct usb_device_info * usb_device_is_valid(struct libusb_device * dev) 
 
 			if ( usb_devices[i].interface >= 0 ) {
 
+#ifdef LIBUSB_HAS_DETACH_KERNEL_DRIVER_NP
 				PRINTF_LINE("Detaching kernel from USB interface...");
-				libusb_detach_kernel_driver(udev, usb_devices[i].interface);
+				usb_detach_kernel_driver_np(udev, usb_devices[i].interface);
+#endif
 
 				PRINTF_LINE("Claiming USB interface...");
-				if ( libusb_claim_interface(udev, usb_devices[i].interface) < 0 ) {
-					PRINTF_ERROR("libusb_claim_interface failed");
+				if ( usb_claim_interface(udev, usb_devices[i].interface) < 0 ) {
+					PRINTF_ERROR("usb_claim_interface failed");
 					fprintf(stderr, "\n");
 					usb_reattach_kernel_driver(udev, usb_devices[i].interface);
-					libusb_close(udev);
+					usb_close(udev);
 					return NULL;
 				}
 
@@ -184,22 +191,22 @@ static struct usb_device_info * usb_device_is_valid(struct libusb_device * dev) 
 
 			if ( usb_devices[i].alternate >= 0 ) {
 				PRINTF_LINE("Setting alternate USB interface...");
-				if ( libusb_set_interface_alt_setting(udev, usb_devices[i].interface, usb_devices[i].alternate) < 0 ) {
-					PRINTF_ERROR("libusb_claim_interface failed");
+				if ( usb_set_altinterface(udev, usb_devices[i].alternate) < 0 ) {
+					PRINTF_ERROR("usb_claim_interface failed");
 					fprintf(stderr, "\n");
 					usb_reattach_kernel_driver(udev, usb_devices[i].interface);
-					libusb_close(udev);
+					usb_close(udev);
 					return NULL;
 				}
 			}
 
 			if ( usb_devices[i].configuration >= 0 ) {
 				PRINTF_LINE("Setting USB configuration...");
-				if ( libusb_set_configuration(udev, usb_devices[i].configuration) < 0 ) {
-					PRINTF_ERROR("libusb_set_configuration failed");
+				if ( usb_set_configuration(udev, usb_devices[i].configuration) < 0 ) {
+					PRINTF_ERROR("usb_set_configuration failed");
 					fprintf(stderr, "\n");
 					usb_reattach_kernel_driver(udev, usb_devices[i].interface);
-					libusb_close(udev);
+					usb_close(udev);
 					return NULL;
 				}
 			}
@@ -208,7 +215,7 @@ static struct usb_device_info * usb_device_is_valid(struct libusb_device * dev) 
 			if ( ! ret ) {
 				ALLOC_ERROR();
 				usb_reattach_kernel_driver(udev, usb_devices[i].interface);
-				libusb_close(udev);
+				usb_close(udev);
 				return NULL;
 			}
 
@@ -239,7 +246,7 @@ static struct usb_device_info * usb_device_is_valid(struct libusb_device * dev) 
 				ERROR("Device detection failed");
 				fprintf(stderr, "\n");
 				usb_reattach_kernel_driver(udev, usb_devices[i].interface);
-				libusb_close(udev);
+				usb_close(udev);
 				free(ret);
 				return NULL;
 			}
@@ -253,7 +260,7 @@ static struct usb_device_info * usb_device_is_valid(struct libusb_device * dev) 
 					ERROR("Device mishmash");
 					fprintf(stderr, "\n");
 					usb_reattach_kernel_driver(udev, usb_devices[i].interface);
-					libusb_close(udev);
+					usb_close(udev);
 					free(ret);
 					return NULL;
 				}
@@ -264,6 +271,28 @@ static struct usb_device_info * usb_device_is_valid(struct libusb_device * dev) 
 			ret->udev = udev;
 			break;
 		}
+	}
+
+	return ret;
+
+}
+
+static struct usb_device_info * usb_search_device(struct usb_device * dev, int level) {
+
+	int i;
+	struct usb_device_info * ret = NULL;
+
+	if ( ! dev )
+		return NULL;
+
+	ret = usb_device_is_valid(dev);
+	if ( ret )
+		return ret;
+
+	for ( i = 0; i < dev->num_children; i++ ) {
+		ret = usb_search_device(dev->children[i], level + 1);
+		if ( ret )
+			break;
 	}
 
 	return ret;
@@ -281,18 +310,14 @@ static void signal_handler(int signum) {
 
 struct usb_device_info * usb_open_and_wait_for_device(void) {
 
-	libusb_device **devs;
-	libusb_device **dev;
+	struct usb_bus * bus;
 	struct usb_device_info * ret = NULL;
 	int i = 0;
 	void (*prev)(int);
 	static char progress[] = {'/','-','\\', '|'};
 
-	if ( libusb_init(NULL) < 0 ) {
-		PRINTF_LINE("libusb_init failed");
-		PRINTF_END();
-		return NULL;
-	}
+	usb_init();
+	usb_find_busses();
 
 	PRINTF_BACK();
 	printf("\n");
@@ -305,19 +330,25 @@ struct usb_device_info * usb_open_and_wait_for_device(void) {
 
 		PRINTF_LINE("Waiting for USB device... %c", progress[++i%sizeof(progress)]);
 
-		if ( libusb_get_device_list(NULL, &devs) < 0 ) {
-			PRINTF_LINE("Listing USB devices failed");
-			PRINTF_END();
-			break;
-		}
+		usb_find_devices();
 
-		for ( dev = devs; *dev != NULL; ++dev ) {
-			ret = usb_device_is_valid(*dev);
+		for ( bus = usb_get_busses(); bus; bus = bus->next ) {
+
+			if ( bus->root_dev )
+				ret = usb_search_device(bus->root_dev, 0);
+			else {
+				struct usb_device *dev;
+				for ( dev = bus->devices; dev; dev = dev->next ) {
+					ret = usb_search_device(dev, 0);
+					if ( ret )
+						break;
+				}
+			}
+
 			if ( ret )
 				break;
-		}
 
-		libusb_free_device_list(devs, 1);
+		}
 
 		if ( ret )
 			break;
@@ -342,8 +373,7 @@ struct usb_device_info * usb_open_and_wait_for_device(void) {
 void usb_close_device(struct usb_device_info * dev) {
 
 	usb_reattach_kernel_driver(dev->udev, dev->flash_device->interface);
-	libusb_close(dev->udev);
-	libusb_exit(NULL);
+	usb_close(dev->udev);
 	free(dev);
 
 }
