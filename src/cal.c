@@ -194,8 +194,8 @@ static int is_header(void *data, size_t size) {
 		return 0;
 
 	if ( memcmp(hdr->magic, HDR_MAGIC, sizeof(hdr->magic)) != 0 )
-
 		return 0;
+
 	return 1;
 
 }
