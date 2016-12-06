@@ -323,6 +323,7 @@ int init_cold_flash(struct usb_device_info * dev) {
 	uint8_t asic_buffer[127];
 	int asic_size = 69;
 	const char * chip = NULL;
+	int revision;
 	int i;
 
 	if ( dev->flash_device->protocol != FLASH_COLD )
@@ -346,11 +347,11 @@ int init_cold_flash(struct usb_device_info * dev) {
 	if ( asic_buffer[0] != 0x05 )
 		ERROR_RETURN("Invalid ASIC ID", -1);
 
-	/* ID Subblock - header */
+	/* 1. ID Subblock - header */
 	if ( memcmp(asic_buffer+1, "\x01\x05\x01", 3) != 0 )
 		ERROR_RETURN("Invalid ASIC ID", -1);
 
-	/* ID Subblock - OMAP chip version (check for OMAP3430 or 3630) */
+	/* 1. ID Subblock - OMAP chip version (check for OMAP3430 or 3630) */
 	if ( memcmp(asic_buffer+4, "\x34\x30\x07", 3) == 0 )
 		chip = "OMAP3430";
 	else if ( memcmp(asic_buffer+4, "\x36\x30\x07", 3) == 0 )
@@ -358,23 +359,26 @@ int init_cold_flash(struct usb_device_info * dev) {
 	else
 		ERROR_RETURN("Invalid ASIC ID", -1);
 
-	/* Reserved1 - header */
+	/* 1. ID Subblock - OMAP chip revision */
+	revision = asic_buffer[7];
+
+	/* 2. Secure Mode Subblock - header */
 	if ( memcmp(asic_buffer+8, "\x13\x02\x01", 3) != 0 )
 		ERROR_RETURN("Invalid ASIC ID", -1);
 
-	/* 2nd ID Subblock - header */
+	/* 3. 2nd ID Subblock - header */
 	if ( memcmp(asic_buffer+12, "\x12\x15\x01", 3) != 0 )
 		ERROR_RETURN("Invalid ASIC ID", -1);
 
-	/* Reserved2 - header */
+	/* 4. Root Key Hash Subblock - header */
 	if ( memcmp(asic_buffer+35, "\x14\x15\x01", 3) != 0 )
 		ERROR_RETURN("Invalid ASIC ID", -1);
 
-	/* Checksum subblock - header */
+	/* 5. Checksum subblock - header */
 	if ( memcmp(asic_buffer+58, "\x15\x09\x01", 3) != 0 )
 		ERROR_RETURN("Invalid ASIC ID", -1);
 
-	printf("Detected %s chip\n", chip);
+	printf("Detected %s chip (revision %d)\n", chip, revision);
 
 	return 0;
 
