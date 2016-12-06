@@ -17,6 +17,11 @@
 
 */
 
+/* Enable RTLD_DEFAULT for glibc */
+#ifndef _GNU_SOURCE
+#define _GNU_SOURCE
+#endif
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
@@ -24,6 +29,7 @@
 #include <errno.h>
 #include <ctype.h>
 #include <signal.h>
+#include <dlfcn.h>
 
 #include <usb.h>
 
@@ -315,6 +321,9 @@ struct usb_device_info * usb_open_and_wait_for_device(void) {
 	int i = 0;
 	void (*prev)(int);
 	static char progress[] = {'/','-','\\', '|'};
+
+	if ( dlsym(RTLD_DEFAULT, "libusb_init") )
+		ERROR_RETURN("You are trying to use broken libusb-1.0 library (either directly or via wrapper) which has slow listing of usb devices. It cannot be used for flashing or cold-flashing. Please use libusb 0.1.", NULL);
 
 	usb_init();
 	usb_find_busses();

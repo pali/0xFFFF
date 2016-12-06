@@ -11,7 +11,7 @@ HOST_CC = $(HOST_COMPILE)$(CC)
 
 CPPFLAGS += -DVERSION=\"$(VERSION)\" -DBUILD_DATE="\"$(BUILD_DATE)\"" -D_POSIX_C_SOURCE=200809L
 CFLAGS += -W -Wall -O2 -pedantic -std=c99
-LIBS += -lusb
+LIBS += -lusb -ldl
 
 DEPENDS = Makefile ../config.mk
 
