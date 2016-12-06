@@ -37,12 +37,16 @@ FW HEADER
 IMAGE
 
    1 byte = 0x54    --  signature
-   1 byte           --  number of subsection blocks + 1
-   5 bytes          --  unknown (always 0x2e 0x19 0x01 0x01 0x00)
+   1 byte           --  number of subsection blocks
+                        (start of data block)
+   1 byte           --  type of subsection block (data - always 0x2e)
+   1 byte           --  length of subsection block (data - always 25)
+   3 bytes          --  unknown (always 0x01 0x01 0x00)
    2 bytes          --  checksum for the image contents (xorpair) (big endian)
   12 bytes          --  image name type (first byte is FF if is the last image)
    4 bytes          --  length of image data (big endian)
    4 bytes          --  unknown (always 0x00 0x00 0x00 0x00)
+                        (end of data block)
              block {
    1 byte           --  type of subsection block
                           '1' - version
