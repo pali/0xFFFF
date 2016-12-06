@@ -20,6 +20,12 @@
 
 /* This is simple CAL parser form Calvaria */
 
+#ifdef __linux__
+#ifndef _BSD_SOURCE
+#define _BSD_SOURCE
+#endif
+#endif
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>

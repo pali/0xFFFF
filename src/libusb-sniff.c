@@ -21,7 +21,11 @@
 /* usage: sudo USBSNIFF_WAIT=1 LD_PRELOAD=./libusb-sniff.so flasher-3.5 ... */
 /* usage: sudo USBSNIFF_SKIP_READ=1 USBSNIFF_SKIP_WRITE=1 LD_PRELOAD=./libusb-sniff.so flasher-3.5 ... */
 
+/* Enable RTLD_NEXT for glibc */
+#ifndef _GNU_SOURCE
 #define _GNU_SOURCE
+#endif
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
