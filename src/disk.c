@@ -35,6 +35,7 @@
 #include <sys/ioctl.h>
 #include <linux/fs.h>
 #include <dirent.h>
+#include <errno.h>
 #endif
 
 #include "disk.h"
@@ -147,7 +148,8 @@ int disk_open_dev(int maj, int min, int partition, int readonly) {
 	fd = open(blkdev, (readonly ? O_RDONLY : O_RDWR) | O_EXCL);
 
 	if ( fd < 0 ) {
-		ERROR_INFO("Cannot open block device %s", blkdev);
+		if ( errno != ENOMEDIUM )
+			ERROR_INFO("Cannot open block device %s", blkdev);
 		return -1;
 	}
 
@@ -371,7 +373,7 @@ int disk_init(struct usb_device_info * dev) {
 	else
 		fd = disk_open_dev(maj1, min1, 1, 1);
 
-	if ( fd < 0 )
+	if ( fd < 0 && errno != ENOMEDIUM )
 		return -1;
 
 	dev->data = fd;
