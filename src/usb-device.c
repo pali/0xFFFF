@@ -379,7 +379,8 @@ struct usb_device_info * usb_open_and_wait_for_device(void) {
 
 void usb_close_device(struct usb_device_info * dev) {
 
-	usb_reattach_kernel_driver(dev->udev, dev->flash_device->interface);
+	if ( dev->flash_device->protocol != FLASH_COLD )
+		usb_reattach_kernel_driver(dev->udev, dev->flash_device->interface);
 	usb_close(dev->udev);
 	free(dev);
 
