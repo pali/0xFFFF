@@ -105,8 +105,6 @@ static void usb_reattach_kernel_driver(usb_dev_handle * udev, int interface) {
 	if ( interface < 0 )
 		return;
 
-	PRINTF_LINE("Reattach kernel driver to USB interface...");
-	PRINTF_END();
 	usb_release_interface(udev, interface);
 	ioctl(*((int *)udev), _IOWR('U', 18, command), &command);
 #endif
