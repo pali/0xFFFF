@@ -159,7 +159,8 @@ int mkii_init(struct usb_device_info * dev) {
 	printf("\n");
 
 	memset(buf, 0, sizeof(buf));
-	usb_get_string_simple(dev->udev, usb_device(dev->udev)->config[dev->flash_device->configuration].iConfiguration, buf, sizeof(buf));
+	if ( usb_device(dev->udev)->descriptor.bNumConfigurations >= 1 )
+		usb_get_string_simple(dev->udev, usb_device(dev->udev)->config[0].iConfiguration, buf, sizeof(buf));
 	if ( strncmp(buf, "Firmware Upgrade Configuration", sizeof("Firmware Upgrade Configuration")) == 0 )
 		dev->data |= MKII_UPDATE_MODE;
 
