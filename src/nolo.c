@@ -22,8 +22,6 @@
 #include <stdlib.h>
 #include <arpa/inet.h>
 
-#include <usb.h>
-
 #include "nolo.h"
 #include "image.h"
 #include "global.h"

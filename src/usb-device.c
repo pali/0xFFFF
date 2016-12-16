@@ -31,14 +31,6 @@
 #include <signal.h>
 #include <dlfcn.h>
 
-#include <usb.h>
-
-#ifdef __linux__
-#ifdef LIBUSB_HAS_DETACH_KERNEL_DRIVER_NP
-#include <sys/ioctl.h>
-#endif
-#endif
-
 #include "global.h"
 #include "device.h"
 #include "usb-device.h"
@@ -46,6 +38,12 @@
 #include "nolo.h"
 #include "cold-flash.h"
 #include "mkii.h"
+
+#ifdef __linux__
+#ifdef LIBUSB_HAS_DETACH_KERNEL_DRIVER_NP
+#include <sys/ioctl.h>
+#endif
+#endif
 
 static struct usb_flash_device usb_devices[] = {
 	{ 0x0421, 0x0096, -1, -1, -1, FLASH_DISK, { DEVICE_RX_44, 0 } },

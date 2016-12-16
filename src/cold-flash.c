@@ -22,8 +22,6 @@
 #include <string.h>
 #include <errno.h>
 
-#include <usb.h>
-
 #include "global.h"
 #include "cold-flash.h"
 #include "image.h"

@@ -20,6 +20,13 @@
 #ifndef USB_DEVICE_H
 #define USB_DEVICE_H
 
+#include <stdint.h>
+
+/* u_int*_t types are not defined without _GNU_SOURCE but usb.h needs them */
+#define u_int8_t uint8_t
+#define u_int16_t uint16_t
+#define u_int32_t uint32_t
+
 #include <usb.h>
 
 #define USB_READ_EP		(USB_ENDPOINT_IN | 0x1)
