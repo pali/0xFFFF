@@ -16,12 +16,6 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifdef __linux__
-#ifndef _BSD_SOURCE
-#define _BSD_SOURCE
-#endif
-#endif
-
 #include <fcntl.h>
 #include <libgen.h>
 #include <unistd.h>
@@ -32,6 +26,7 @@
 #include <sys/statvfs.h>
 
 #ifdef __linux__
+#include <sys/sysmacros.h>
 #include <sys/ioctl.h>
 #include <linux/fs.h>
 #include <dirent.h>
