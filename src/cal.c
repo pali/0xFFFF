@@ -46,7 +46,6 @@
 #define HDR_MAGIC	"ConF"
 
 struct cal {
-	int fd;
 	ssize_t size;
 	void * mem;
 };
@@ -132,9 +131,10 @@ int cal_init_file(const char * file, struct cal ** cal_out) {
 	if ( ! cal )
 		goto err;
 
-	cal->fd = fd;
 	cal->mem = mem;
 	cal->size = size;
+
+	close(fd);
 
 	*cal_out = cal;
 	return 0;
@@ -142,6 +142,7 @@ int cal_init_file(const char * file, struct cal ** cal_out) {
 err:
 	close(fd);
 	free(mem);
+	free(cal);
 	return -1;
 
 }
