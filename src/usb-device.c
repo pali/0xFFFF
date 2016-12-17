@@ -231,7 +231,7 @@ static struct usb_device_info * usb_device_is_valid(struct usb_device * dev) {
 				ret->device = DEVICE_RX_48;
 			else if ( strcmp(product, "N900 (Storage Mode)") == 0 || strcmp(product, "Nokia N900 (Update mode)") == 0 || strcmp(product, "N900 (PC-Suite Mode)") == 0 )
 				ret->device = DEVICE_RX_51;
-			else if ( strcmp(product, "Sync Mode") == 0 )
+			else if ( strcmp(product, "Sync Mode") == 0 || strcmp(product, "N950 (Update mode)") == 0 )
 				ret->device = DEVICE_RM_680;
 			else if ( strcmp(product, "Nokia USB ROM") == 0 )
 				ret->device = DEVICE_ANY;
