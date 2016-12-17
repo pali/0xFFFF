@@ -73,6 +73,8 @@ int cal_init_file(const char * file, struct cal ** cal_out) {
 	struct stat st;
 #ifdef __linux__
 	mtd_info_t mtd_info;
+#else
+	off_t lsize = 0;
 #endif
 
 	if ( stat(file, &st) != 0 )
@@ -90,11 +92,12 @@ int cal_init_file(const char * file, struct cal ** cal_out) {
 		if ( ioctl(fd, BLKGETSIZE64, &blksize) != 0 )
 			goto err;
 #else
-		blksize = lseek(fd, 0, SEEK_END);
-		if ( blksize == (off_t)-1 )
+		lsize = lseek(fd, 0, SEEK_END);
+		if ( lsize == (off_t)-1 )
 			goto err;
 		if ( lseek(fd, 0, SEEK_SET) == (off_t)-1 )
 			goto err;
+		blksize = lsize;
 #endif
 		if ( blksize > SSIZE_MAX )
 			goto err;
