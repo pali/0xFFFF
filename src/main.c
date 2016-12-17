@@ -222,7 +222,7 @@ static void parse_image_arg(char * arg, struct image_list ** image_first) {
 			exit(1);
 		}
 		if ( read(fd, layout, len) != len ) {
-			ERROR_INFO("Cannot read %lu bytes from layout file %s", len, layout_file);
+			ERROR_INFO("Cannot read %ju bytes from layout file %s", (intmax_t)len, layout_file);
 			exit(1);
 		}
 		layout[len] = 0;

@@ -223,7 +223,7 @@ static int local_nanddump(const char * file, int mtd, int offset, int length) {
 	free(path);
 
 	if ( ret == 0 && buf.f_bsize * buf.f_bfree < (long unsigned int)length ) {
-		ERROR("Not enough free space (have: %lu, need: %d)", buf.f_bsize * buf.f_bfree, length);
+		ERROR("Not enough free space (have: %ju, need: %d)", (intmax_t)(buf.f_bsize * buf.f_bfree), length);
 		return 1;
 	}
 
