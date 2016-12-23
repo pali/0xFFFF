@@ -27,13 +27,13 @@
 #include <errno.h>
 #include <string.h>
 
-#include <sys/ioctl.h>
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <unistd.h>
 #include <fcntl.h>
 
 #ifdef __linux__
+#include <sys/ioctl.h>
 #include <linux/fs.h>
 #include <mtd/mtd-user.h>
 #include <sys/sysmacros.h>
