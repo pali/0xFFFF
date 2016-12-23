@@ -98,8 +98,10 @@ int cal_init_file(const char * file, struct cal ** cal_out) {
 			goto err;
 		blksize = lsize;
 #endif
+#ifdef SSIZE_MAX
 		if ( blksize > SSIZE_MAX )
 			goto err;
+#endif
 		size = blksize;
 	} else {
 #ifdef __linux__
