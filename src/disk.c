@@ -131,8 +131,18 @@ int disk_open_dev(int maj, int min, int partition, int readonly) {
 		if ( stat(blkdev, &st) != 0 || ! S_ISBLK(st.st_mode) ) {
 			memcpy(blkdev+len, "1", 2);
 			if ( stat(blkdev, &st) != 0 || ! S_ISBLK(st.st_mode) ) {
-				ERROR("Block device has partitions");
-				return -1;
+				blkdev[len] = 0;
+				fd = open(blkdev, O_RDONLY);
+				if ( fd < 0 ) {
+					if ( errno != ENOMEDIUM ) {
+						ERROR_INFO("Cannot open block device %s", blkdev);
+						return -1;
+					}
+				} else {
+					close(fd);
+					ERROR("Block device does not have partitions");
+					return -1;
+				}
 			}
 		}
 
