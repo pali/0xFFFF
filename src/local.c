@@ -53,7 +53,7 @@ static int root_device = -1;
 #define min(a, b) (a < b ? a : b)
 #define local_cal_copy(dest, from, len) strncpy(dest, from, min(len, sizeof(dest)-1))
 #define local_cal_read(cal, str, ptr, len) ( cal_read_block(cal, str, &ptr, &len, 0) == 0 && ptr )
-#define local_cal_readcopy(cal, str, dest) do { void * ptr; unsigned long int len; if ( local_cal_read(cal, str, ptr, len) ) local_cal_copy(dest, ptr, len); } while ( 0 )
+#define local_cal_readcopy(cal, str, dest) do { void * ptr; unsigned long int len; if ( local_cal_read(cal, str, ptr, len) ) { local_cal_copy(dest, ptr, len); free(ptr); } } while ( 0 )
 
 #if defined(__linux__) && defined(__arm__)
 

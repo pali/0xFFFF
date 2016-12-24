@@ -264,6 +264,7 @@ int cal_read_block(struct cal * cal, const char * name, void ** ptr, unsigned lo
 	uint64_t filelen = cal->size;
 	uint8_t * data = cal->mem;
 	struct header * hdr;
+	void * offset;
 
 	find_offset = find_section(data, filelen, INDEX_LAST, name);
 	if ( find_offset < 0 )
@@ -277,11 +278,17 @@ int cal_read_block(struct cal * cal, const char * name, void ** ptr, unsigned lo
 	if ( crc32(0, hdr, sizeof(*hdr) - 4) != hdr->hdrsum )
 		return -1;
 
-	*ptr = data + find_offset + sizeof(struct header);
-	*len = hdr->length;
+	offset = data + find_offset + sizeof(struct header);
 
-	if ( crc32(0, *ptr, *len) != hdr->datasum )
+	if ( crc32(0, offset, hdr->length) != hdr->datasum )
 		return -1;
+
+	*ptr = malloc(hdr->length);
+	if (!ptr)
+		return -1;
+
+	memcpy(*ptr, offset, hdr->length);
+	*len = hdr->length;
 
 	return 0;
 
