@@ -284,7 +284,7 @@ int cal_read_block(struct cal * cal, const char * name, void ** ptr, unsigned lo
 		return -1;
 
 	*ptr = malloc(hdr->length);
-	if (!ptr)
+	if (!*ptr)
 		return -1;
 
 	memcpy(*ptr, offset, hdr->length);
