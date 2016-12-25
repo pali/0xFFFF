@@ -2,16 +2,15 @@ Source: 0xffff
 Section: user/system
 Priority: extra
 Maintainer: Pali Rohár <pali.rohar@gmail.com>
-Standards-Version: 3.9.5
+Standards-Version: 3.9.8
 Build-Depends: debhelper (>= 7),
                libusb-dev
-Homepage: http://gitorious.org/0xffff/
-Vcs-Git: git://anonscm.debian.org/pkg-n900/0xffff.git
-Vcs-Browser: http://anonscm.debian.org/gitweb/?p=pkg-n900/0xffff.git;a=summary
+Homepage: https://github.com/pali/0xFFFF
+Vcs-Git: https://github.com/pali/0xFFFF.git
+Vcs-Browser: https://github.com/pali/0xFFFF/tree/maemo
 
 Package: 0xffff
 Architecture: any
-Multi-Arch: foreign
 Depends: ${misc:Depends}, ${shlibs:Depends}, mtd-utils
 Description: Open Free Fiasco Firmware Flasher
  The ‘Open Free Fiasco Firmware Flasher’ aka 0xFFFF utility implements
@@ -28,7 +27,7 @@ Description: Open Free Fiasco Firmware Flasher
   * direct kernel boot without flashing it to NAND
   * changing configuration of Maemo device (R&D flags, HW revision strings, ...)
  .
- Currently supported are the Nokia 770, N800, N810, N810w and the N900.
+ Supported are the Nokia 770, N800, N810, N810w, N900, N950 and N9.
 XSBC-Maemo-Display-Name: 0xFFFF
 XB-Maemo-Icon-26:
  iVBORw0KGgoAAAANSUhEUgAAADAAAAAwCAYAAABXAvmHAAAAGXRFWHRTb2Z0

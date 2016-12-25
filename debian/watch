@@ -1,17 +1,4 @@
 version=3
 
-# This is kind of hacked support to support git tags in gitorious.
-# Since gitorious does not differ between branches and tags inside
-# of the links branches with version like names will also be found.
-# NOTE: 0xFFFF does not yet have such branches
-
-opts=\
-downloadurlmangle=s/\/trees\//\/archive-tarball\//g,\
-filenamemangle=s/^.*\/(\d+[\d\.]+)$/0xffff-$1.tar.gz/\
- http://gitorious.org/0xffff/0xffff/trees/master /0xffff/0xffff/trees/(\d+[\d\.]+)(-beta\d*)?
-
-opts=\
-downloadurlmangle=s/\/trees\//\/archive-tarball\//g,\
-filenamemangle=s/^.*\/(\d+[\d\.]+)$/0xffff-$1.tar.gz/,\
-uversionmangle=s/-beta(\d+)/~beta$1/ \
- http://gitorious.org/0xffff/0xffff/trees/master /0xffff/0xffff/trees/(\d+[\d\.]+-beta\d*)
+opts=filenamemangle=s/.+\/v?(\d\S+)\.tar\.gz/0xFFFF-$1\.tar\.gz/,pgpsigurlmangle=s/$/.asc/ \
+  https://github.com/pali/0xFFFF/releases .*/0xffff_(\d\S+)\.orig\.tar\.gz

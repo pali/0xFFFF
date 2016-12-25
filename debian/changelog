@@ -1,3 +1,9 @@
+0xffff (0.7-1) fremantle; urgency=low
+
+  * New upstream version
+
+ -- Pali Rohár <pali.rohar@gmail.com>  Sun, 25 Dec 2016 11:47:44 +0100
+
 0xffff (0.6.1-1) experimental; urgency=medium
 
   * New upstream release
@@ -10,17 +16,6 @@
 
 0xffff (0.6-1) unstable; urgency=low
 
-  * New upstream release
-  * Fix vcs-field-not-canonical
-  * Remove debian/0xffff.1 (manpage now provided by upstream)
-  * Add debian/completions/_0xFFFF (zsh auto-completion)
-  * Update Debian Standards Version to 3.9.5
-  * Fix possible-unindented-list-in-extended-description
+  * This is new rewritten version of original 0xFFFF 0.5 tool
 
- -- Sebastian Reichel <sre@debian.org>  Mon, 12 May 2014 19:01:41 +0200
-
-0xffff (0.6~git20130406-1) unstable; urgency=low
-
-  * Initial release. (Closes: #514244)
-
- -- Sebastian Reichel <sre@debian.org>  Sat, 06 Apr 2013 17:21:36 +0200
+ -- Pali Rohár <pali.rohar@gmail.com>  Sun, 07 Apr 2013 15:01:50 +0200
