@@ -3,13 +3,15 @@ include ../config.mk
 PREFIX ?= /usr/local
 INSTALL ?= install
 
+BUILD_DATE ?= $(shell LC_ALL=C date '+%b %e %Y')
+
 CC = gcc
 CROSS_CC = $(CROSS_COMPILE)$(CC)
 HOST_CC = $(HOST_COMPILE)$(CC)
 
-CPPFLAGS += -DVERSION=\"$(VERSION)\" -D_GNU_SOURCE
+CPPFLAGS += -DVERSION=\"$(VERSION)\" -DBUILD_DATE="\"$(BUILD_DATE)\"" -D_POSIX_C_SOURCE=200809L -D_FILE_OFFSET_BITS=64
 CFLAGS += -W -Wall -O2 -pedantic -std=c99
-LIBS += -lusb
+LIBS += -lusb -ldl
 
 DEPENDS = Makefile ../config.mk
 

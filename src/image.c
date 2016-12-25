@@ -76,7 +76,7 @@ static void image_missing_values_from_name(struct image * image, const char * na
 		image->type = image_type_from_string(type);
 	free(type);
 
-	if ( ! image->devices || image->devices->device || image->devices->device == DEVICE_ANY ) {
+	if ( ! image->devices || ! image->devices->device || image->devices->device == DEVICE_ANY ) {
 		new_device = device_from_string(device);
 		if ( new_device ) {
 			if ( ! image->devices ) image->devices = calloc(1, sizeof(struct device_list));
@@ -214,15 +214,12 @@ static int image_append(struct image * image, const char * type, const char * de
 
 static void image_align(struct image * image) {
 
-	size_t align = 0;
+	size_t align;
 
 	if ( image->type == IMAGE_MMC )
 		align = 8;
 	else
 		align = 7;
-
-	if ( align == 0 )
-		return;
 
 	if ( ( image->size & ( ( 1ULL << align ) - 1 ) ) == 0 )
 		return;
@@ -247,6 +244,7 @@ static struct image * image_alloc(void) {
 
 struct image * image_alloc_from_file(const char * file, const char * type, const char * device, const char * hwrevs, const char * version, const char * layout) {
 
+	off_t offset;
 	struct image * image = image_alloc();
 	if ( ! image )
 		return NULL;
@@ -259,11 +257,26 @@ struct image * image_alloc_from_file(const char * file, const char * type, const
 		return NULL;
 	}
 
-	image->size = lseek(image->fd, 0, SEEK_END);
+	offset = lseek(image->fd, 0, SEEK_END);
+	if ( offset == (off_t)-1 ) {
+		ERROR_INFO("Cannot seek to end of file %s", file);
+		close(image->fd);
+		free(image);
+		return NULL;
+	}
+
+	image->size = offset;
 	image->offset = 0;
 	image->cur = 0;
 	image->orig_filename = strdup(file);
-	lseek(image->fd, 0, SEEK_SET);
+
+	if ( lseek(image->fd, 0, SEEK_SET) == (off_t)-1 ) {
+		ERROR_INFO("Cannot seek to begin of file %s", file);
+		close(image->fd);
+		free(image->orig_filename);
+		free(image);
+		return NULL;
+	}
 
 	if ( image_append(image, type, device, hwrevs, version, layout) < 0 )
 		return NULL;
@@ -331,16 +344,21 @@ void image_free(struct image * image) {
 
 void image_seek(struct image * image, size_t whence) {
 
+	off_t offset;
+
 	if ( whence > image->size )
 		return;
 
 	if ( whence >= image->size - image->align ) {
-		lseek(image->fd, image->size - image->align - 1, SEEK_SET);
+		offset = lseek(image->fd, image->size - image->align - 1, SEEK_SET);
 		image->acur = whence - ( image->size - image->align );
 	} else {
-		lseek(image->fd, image->offset + whence, SEEK_SET);
+		offset = lseek(image->fd, image->offset + whence, SEEK_SET);
 		image->acur = 0;
 	}
+
+	if ( offset == (off_t)-1 )
+		ERROR_INFO("Seek in file %s failed", (image->orig_filename ? image->orig_filename : "(unknown)"));
 
 	IMAGE_STORE_CUR(image);
 
@@ -350,6 +368,7 @@ size_t image_read(struct image * image, void * buf, size_t count) {
 
 	size_t cur;
 	ssize_t ret;
+	off_t offset;
 	size_t new_count = 0;
 	size_t ret_count = 0;
 
@@ -376,7 +395,13 @@ size_t image_read(struct image * image, void * buf, size_t count) {
 	if ( ret_count == count )
 		return ret_count;
 
-	cur = lseek(image->fd, 0, SEEK_CUR) - image->offset;
+	offset = lseek(image->fd, 0, SEEK_CUR);
+	if ( offset == (off_t)-1 ) {
+		ERROR_INFO("Cannot get offset of file %s", (image->orig_filename ? image->orig_filename : "(unknown)"));
+		return 0;
+	}
+
+	cur = offset - image->offset;
 
 	if ( image->align && cur == image->size - image->align && image->acur < image->align ) {
 
@@ -483,41 +508,42 @@ static const char * image_types[] = {
 enum image_type image_type_from_data(struct image * image) {
 
 	unsigned char buf[512];
+	size_t size;
 
 	memset(buf, 0, sizeof(buf));
 	image_seek(image, 0);
-	image_read(image, buf, sizeof(buf));
+	size = image_read(image, buf, sizeof(buf));
 
-	if ( memcmp(buf+52, "2NDAPE", 6) == 0 )
+	if ( size >= 58 && memcmp(buf+52, "2NDAPE", 6) == 0 )
 		return IMAGE_2ND;
-	else if ( memcmp(buf+20, "2ND", 3) == 0 )
+	else if ( size >= 23 && memcmp(buf+20, "2ND", 3) == 0 )
 		return IMAGE_2ND;
-	else if ( memcmp(buf+4, "NOLOScnd", 8) == 0 )
+	else if ( size >= 8 && memcmp(buf+4, "NOLOScnd", 8) == 0 )
 		return IMAGE_SECONDARY;
-	else if ( memcmp(buf+20, "X-LOADER", 8) == 0 )
+	else if ( size >= 28 && memcmp(buf+20, "X-LOADER", 8) == 0 )
 		return IMAGE_XLOADER;
-	else if ( memcmp(buf+12, "NOLOXldr", 8) == 0 )
+	else if ( size >= 20 && memcmp(buf+12, "NOLOXldr", 8) == 0 )
 		return IMAGE_XLOADER;
-	else if ( memcmp(buf+4, "NOLOXldr", 8) == 0 )
+	else if ( size >= 12 && memcmp(buf+4, "NOLOXldr", 8) == 0 )
 		return IMAGE_2ND;
-	else if ( memcmp(buf+36, "\x18\x28\x6f\x01", 4) == 0 ) /* ARM Linux kernel magic number */
+	else if ( size >= 40 && memcmp(buf+36, "\x18\x28\x6f\x01", 4) == 0 ) /* ARM Linux kernel magic number */
 		return IMAGE_KERNEL;
-	else if ( memcmp(buf, "\x14\x00\x00\xea", 4) == 0 ) /* ARM U-Boot - instruction branch +0x50 */
+	else if ( size >= 4 && memcmp(buf+1, "\x00\x00\xea", 3) == 0 ) /* ARM U-Boot - instruction branch */
 		return IMAGE_KERNEL;
-	else if ( memcmp(buf, "UBI#", 4) == 0 ) /* UBI EC header */
+	else if ( size >= 4 && memcmp(buf, "UBI#", 4) == 0 ) /* UBI EC header */
 		return IMAGE_ROOTFS;
-	else if ( memcmp(buf+510, "\x55\xaa", 2) == 0 ) /* FAT boot sector signature */
+	else if ( size >= 512 && memcmp(buf+510, "\x55\xaa", 2) == 0 ) /* FAT boot sector signature */
 		return IMAGE_MMC;
-	else if ( memcmp(buf, "\xb0\x00\x01\x03\x9d\x00\x00\x00", 8) == 0 )
+	else if ( size >= 8 && memcmp(buf, "\xb0\x00\x01\x03\x9d\x00\x00\x00", 8) == 0 )
 		return IMAGE_CMT_2ND;
-	else if ( memcmp(buf, "\xb1\x00\x00\x00\x82\x00\x00\x00", 8) == 0 )
+	else if ( size >= 8 && memcmp(buf, "\xb1\x00\x00\x00\x82\x00\x00\x00", 8) == 0 )
 		return IMAGE_CMT_ALGO;
-	else if ( memcmp(buf, "\xb2\x00\x00\x01\x44\x00\x00\x00", 8) == 0 )
+	else if ( size >= 8 && memcmp(buf, "\xb2\x00\x00\x01\x44\x00\x00\x00", 8) == 0 )
 		return IMAGE_CMT_MCUSW;
-	else if ( memcmp(buf, "\x45\x3d\xcd\x28", 4) == 0 ) /* CRAMFS MAGIC */
+	else if ( size >= 4 && memcmp(buf, "\x45\x3d\xcd\x28", 4) == 0 ) /* CRAMFS MAGIC */
 		return IMAGE_INITFS;
-	else if ( memcmp(buf, "\x85\x19", 2) == 0 ) { /* JFFS2 MAGIC */
-		if ( image->size < 0x300000 )
+	else if ( size >= 2 && memcmp(buf, "\x85\x19", 2) == 0 ) { /* JFFS2 MAGIC */
+		if ( image->size < 0x1000000 )
 			return IMAGE_INITFS;
 		else
 			return IMAGE_ROOTFS;

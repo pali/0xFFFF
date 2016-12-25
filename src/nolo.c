@@ -22,8 +22,6 @@
 #include <stdlib.h>
 #include <arpa/inet.h>
 
-#include <usb.h>
-
 #include "nolo.h"
 #include "image.h"
 #include "global.h"
@@ -124,7 +122,10 @@ static int nolo_identify_string(struct usb_device_info * dev, const char * str, 
 	if ( ret < 0 )
 		NOLO_ERROR_RETURN("NOLO_IDENTIFY failed", -1);
 
-	ptr = memmem(buf, ret, str, strlen(str));
+	if ( (size_t)ret > sizeof(buf) )
+		ret = sizeof(buf);
+
+	ptr = MEMMEM(buf, ret, str, strlen(str));
 	if ( ! ptr )
 		ERROR_RETURN("Substring was not found", -1);
 
@@ -166,6 +167,9 @@ static int nolo_get_string(struct usb_device_info * dev, char * str, char * out,
 
 	if ( ( ret = usb_control_msg(dev->udev, NOLO_QUERY, NOLO_GET_STRING, 0, 0, out, size-1, 2000) ) < 0 )
 		return -1;
+
+	if ( (size_t)ret > size-1 )
+		ret = size-1;
 
 	out[size-1] = 0;
 	out[ret] = 0;
@@ -247,7 +251,7 @@ static int nolo_send_image(struct usb_device_info * dev, struct image * image, i
 	uint16_t hash;
 	uint32_t size;
 	uint32_t need;
-	uint32_t readed;
+	uint32_t sent;
 	int request;
 	int ret;
 
@@ -320,7 +324,7 @@ static int nolo_send_image(struct usb_device_info * dev, struct image * image, i
 
 			for ( i = 0; bufs[i]; ++i ) {
 				len = ((uint8_t*)bufs[i])[0];
-				if ( memmem(bufs[i]+1, len, buf, strlen(buf)) )
+				if ( MEMMEM(bufs[i]+1, len, buf, strlen(buf)) )
 					break;
 			}
 
@@ -374,22 +378,22 @@ static int nolo_send_image(struct usb_device_info * dev, struct image * image, i
 		printf("Sending image...\n");
 	printf_progressbar(0, image->size);
 	image_seek(image, 0);
-	readed = 0;
-	while ( readed < image->size ) {
-		need = image->size - readed;
+	sent = 0;
+	while ( sent < image->size ) {
+		need = image->size - sent;
 		if ( need > sizeof(buf) )
 			need = sizeof(buf);
 		ret = image_read(image, buf, need);
 		if ( ret == 0 )
 			break;
 		if ( ! simulate ) {
-			if ( usb_bulk_write(dev->udev, 2, buf, ret, 5000) != ret ) {
+			if ( usb_bulk_write(dev->udev, USB_WRITE_DATA_EP, buf, ret, 5000) != ret ) {
 				PRINTF_END();
 				NOLO_ERROR_RETURN("Sending image failed", -1);
 			}
 		}
-		readed += ret;
-		printf_progressbar(readed, image->size);
+		sent += ret;
+		printf_progressbar(sent, image->size);
 	}
 
 	if ( flash ) {
@@ -537,7 +541,7 @@ int nolo_flash_image(struct usb_device_info * dev, struct image * image) {
 
 			}
 
-			usleep(0xc350); // 0.5s
+			SLEEP(0xc350); // 0.5s
 
 		}
 

@@ -36,6 +36,9 @@
 #include "device.h"
 #include "operations.h"
 
+extern char *optarg;
+extern int optind, opterr, optopt;
+
 static void show_title(void) {
 	printf("0xFFFF v%s  // Open Free Fiasco Firmware Flasher\n", VERSION);
 }
@@ -165,7 +168,7 @@ static void parse_image_arg(char * arg, struct image_list ** image_first) {
 	}
 
 	layout_file = strchr(arg, '%');
-	if (layout_file)
+	if ( layout_file )
 		*(layout_file++) = 0;
 
 	type = NULL;
@@ -175,16 +178,16 @@ static void parse_image_arg(char * arg, struct image_list ** image_first) {
 	layout = NULL;
 
 	file = strrchr(arg, ':');
-	if (file) {
+	if ( file ) {
 		*(file++) = 0;
 		type = strrchr(arg, ':');
-		if (type) {
+		if ( type ) {
 			*(type++) = 0;
 			version = strrchr(arg, ':');
-			if (version) {
+			if ( version ) {
 				*(version++) = 0;
 				hwrevs = strchr(arg, ':');
-				if (hwrevs)
+				if ( hwrevs )
 					*(hwrevs++) = 0;
 				device = arg;
 			} else {
@@ -209,14 +212,17 @@ static void parse_image_arg(char * arg, struct image_list ** image_first) {
 			ERROR_INFO("Cannot get size of file %s", layout_file);
 			exit(1);
 		}
-		lseek(fd, 0, SEEK_SET);
+		if ( lseek(fd, 0, SEEK_SET) == (off_t)-1 ) {
+			ERROR_INFO("Cannot seek to begin of file %s", layout_file);
+			exit(1);
+		}
 		layout = malloc(len+1);
 		if ( ! layout ) {
 			ALLOC_ERROR();
 			exit(1);
 		}
 		if ( read(fd, layout, len) != len ) {
-			ERROR_INFO("Cannot read %lu bytes from layout file %s", len, layout_file);
+			ERROR_INFO("Cannot read %ju bytes from layout file %s", (intmax_t)len, layout_file);
 			exit(1);
 		}
 		layout[len] = 0;
@@ -828,9 +834,16 @@ int main(int argc, char **argv) {
 		char * swver = strchr(fiasco_gen_arg, '%');
 		if ( swver )
 			*(swver++) = 0;
+		if ( swver && strlen(swver) >= sizeof(fiasco_out->swver) ) {
+			ERROR("SW rel version is too long");
+			ret = 1;
+			goto clean;
+		}
 		fiasco_out = fiasco_alloc_empty();
 		if ( ! fiasco_out ) {
 			ERROR("Cannot write images to fiasco file %s", fiasco_gen_arg);
+			ret = 1;
+			goto clean;
 		} else {
 			if ( swver )
 				strcpy(fiasco_out->swver, swver);
@@ -987,6 +1000,7 @@ int main(int argc, char **argv) {
 			printf("\n");
 
 			if ( ret == 1 ) {
+				buf[0] = 0;
 				ret = dev_get_rd_flags(dev, buf, sizeof(buf));
 				printf("R&D flags: ");
 				if ( ret < 0 )

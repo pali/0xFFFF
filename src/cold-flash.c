@@ -21,17 +21,13 @@
 #include <stdint.h>
 #include <string.h>
 #include <errno.h>
-#include <usb.h>
 
 #include "global.h"
-
 #include "cold-flash.h"
 #include "image.h"
 #include "usb-device.h"
 #include "printf-utils.h"
 
-#define READ_DEV		0x81
-#define WRITE_DEV		0x01
 #define READ_TIMEOUT		500
 #define WRITE_TIMEOUT		3000
 
@@ -49,7 +45,7 @@ static void crc32_gentab(void) {
 
 		for ( j = 8; j > 0; j-- ) {
 
-			if (crc & 1)
+			if ( crc & 1 )
 				crc = (crc >> 1) ^ poly;
 			else
 				crc >>= 1;
@@ -85,6 +81,8 @@ static uint32_t crc32(unsigned char * bytes, size_t size, uint32_t crc) {
 /* Omap Peripheral boot message */
 static const uint32_t omap_peripheral_msg = 0xF0030002;
 
+/* Unused */
+#if 0
 /* Omap Void (no device) boot message */
 static const uint32_t omap_void_msg = 0xF0030006;
 
@@ -117,6 +115,7 @@ static const uint32_t omap_hsusb_msg = 0xF0031106;
 
 /* Omap next device boot message */
 static const uint32_t omap_next_msg = 0xFFFFFFFF;
+#endif
 
 /* Omap memory boot message */
 static const uint32_t omap_memory_msg = 0;
@@ -138,7 +137,7 @@ struct xloader_msg {
 struct xloader_msg xloader_msg_create(uint32_t type, struct image * image) {
 
 	struct xloader_msg msg;
-	uint32_t need, readed;
+	uint32_t need, sent;
 	int ret;
 	uint8_t buffer[1024];
 
@@ -149,16 +148,16 @@ struct xloader_msg xloader_msg_create(uint32_t type, struct image * image) {
 	if ( image ) {
 		msg.size = image->size;
 		image_seek(image, 0);
-		readed = 0;
-		while ( readed < image->size ) {
-			need = image->size - readed;
+		sent = 0;
+		while ( sent < image->size ) {
+			need = image->size - sent;
 			if ( need > sizeof(buffer) )
 				need = sizeof(buffer);
 			ret = image_read(image, buffer, need);
 			if ( ret == 0 )
 				break;
 			msg.crc1 = crc32(buffer, ret, msg.crc1);
-			readed += ret;
+			sent += ret;
 		}
 	}
 
@@ -173,7 +172,7 @@ static int read_asic(usb_dev_handle * udev, uint8_t * asic_buffer, int size, int
 	int ret;
 
 	printf("Waiting for ASIC ID...\n");
-	ret = usb_bulk_read(udev, READ_DEV, (char *)asic_buffer, size, READ_TIMEOUT);
+	ret = usb_bulk_read(udev, USB_READ_EP, (char *)asic_buffer, size, READ_TIMEOUT);
 	if ( ret != asic_size )
 		ERROR_RETURN("Invalid size of ASIC ID", -1);
 
@@ -184,39 +183,41 @@ static int read_asic(usb_dev_handle * udev, uint8_t * asic_buffer, int size, int
 static int send_2nd(usb_dev_handle * udev, struct image * image) {
 
 	uint8_t buffer[1024];
-	uint32_t need, readed;
+	uint32_t need, sent;
 	int ret;
 
 	printf("Sending OMAP peripheral boot message...\n");
-	ret = usb_bulk_write(udev, WRITE_DEV, (char *)&omap_peripheral_msg, sizeof(omap_peripheral_msg), WRITE_TIMEOUT);
-	usleep(5000);
+	ret = usb_bulk_write(udev, USB_WRITE_EP, (char *)&omap_peripheral_msg, sizeof(omap_peripheral_msg), WRITE_TIMEOUT);
 	if ( ret != sizeof(omap_peripheral_msg) )
 		ERROR_RETURN("Sending OMAP peripheral boot message failed", -1);
 
+	SLEEP(5000);
+
 	printf("Sending 2nd X-Loader image size...\n");
-	ret = usb_bulk_write(udev, WRITE_DEV, (char *)&image->size, 4, WRITE_TIMEOUT);
-	usleep(5000);
+	ret = usb_bulk_write(udev, USB_WRITE_EP, (char *)&image->size, 4, WRITE_TIMEOUT);
 	if ( ret != 4 )
 		ERROR_RETURN("Sending 2nd X-Loader image size failed", -1);
+
+	SLEEP(5000);
 
 	printf("Sending 2nd X-Loader image...\n");
 	printf_progressbar(0, image->size);
 	image_seek(image, 0);
-	readed = 0;
-	while ( readed < image->size ) {
-		need = image->size - readed;
+	sent = 0;
+	while ( sent < image->size ) {
+		need = image->size - sent;
 		if ( need > sizeof(buffer) )
 			need = sizeof(buffer);
 		ret = image_read(image, buffer, need);
 		if ( ret == 0 )
 			break;
-		if ( usb_bulk_write(udev, WRITE_DEV, (char *)buffer, ret, WRITE_TIMEOUT) != ret )
+		if ( usb_bulk_write(udev, USB_WRITE_EP, (char *)buffer, ret, WRITE_TIMEOUT) != ret )
 			PRINTF_ERROR_RETURN("Sending 2nd X-Loader image failed", -1);
-		readed += ret;
-		printf_progressbar(readed, image->size);
+		sent += ret;
+		printf_progressbar(sent, image->size);
 	}
-	usleep(50000);
 
+	SLEEP(50000);
 	return 0;
 
 }
@@ -225,42 +226,42 @@ static int send_secondary(usb_dev_handle * udev, struct image * image) {
 
 	struct xloader_msg init_msg;
 	uint8_t buffer[1024];
-	uint32_t need, readed;
+	uint32_t need, sent;
 	int ret;
 
 	init_msg = xloader_msg_create(XLOADER_MSG_TYPE_SEND, image);
 
 	printf("Sending X-Loader init message...\n");
-	ret = usb_bulk_write(udev, WRITE_DEV, (char *)&init_msg, sizeof(init_msg), WRITE_TIMEOUT);
-	usleep(5000);
+	ret = usb_bulk_write(udev, USB_WRITE_EP, (char *)&init_msg, sizeof(init_msg), WRITE_TIMEOUT);
 	if ( ret != sizeof(init_msg) )
 		ERROR_RETURN("Sending X-Loader init message failed", -1);
 
 	printf("Waiting for X-Loader response...\n");
-	ret = usb_bulk_read(udev, READ_DEV, (char *)&buffer, 4, READ_TIMEOUT); /* 4 bytes - dummy value */
+	SLEEP(5000);
+	ret = usb_bulk_read(udev, USB_READ_EP, (char *)&buffer, 4, READ_TIMEOUT); /* 4 bytes - dummy value */
 	if ( ret != 4 )
 		ERROR_RETURN("No response", -1);
 
 	printf("Sending Secondary image...\n");
 	printf_progressbar(0, image->size);
 	image_seek(image, 0);
-	readed = 0;
-	while ( readed < image->size ) {
-		need = image->size - readed;
+	sent = 0;
+	while ( sent < image->size ) {
+		need = image->size - sent;
 		if ( need > sizeof(buffer) )
 			need = sizeof(buffer);
 		ret = image_read(image, buffer, need);
 		if ( ret == 0 )
 			break;
-		if ( usb_bulk_write(udev, WRITE_DEV, (char *)buffer, ret, WRITE_TIMEOUT) != ret )
+		if ( usb_bulk_write(udev, USB_WRITE_EP, (char *)buffer, ret, WRITE_TIMEOUT) != ret )
 			PRINTF_ERROR_RETURN("Sending Secondary image failed", -1);
-		readed += ret;
-		printf_progressbar(readed, image->size);
+		sent += ret;
+		printf_progressbar(sent, image->size);
 	}
-	usleep(5000);
 
 	printf("Waiting for X-Loader response...\n");
-	ret = usb_bulk_read(udev, READ_DEV, (char *)&buffer, 4, READ_TIMEOUT); /* 4 bytes - dummy value */
+	SLEEP(5000);
+	ret = usb_bulk_read(udev, USB_READ_EP, (char *)&buffer, 4, READ_TIMEOUT); /* 4 bytes - dummy value */
 	if ( ret != 4 )
 		ERROR_RETURN("No response", -1);
 
@@ -280,7 +281,7 @@ static int ping_timeout(usb_dev_handle * udev) {
 		int try_read = 4;
 
 		printf("Sending X-Loader ping message\n");
-		ret = usb_bulk_write(udev, WRITE_DEV, (char *)&ping_msg, sizeof(ping_msg), WRITE_TIMEOUT);
+		ret = usb_bulk_write(udev, USB_WRITE_EP, (char *)&ping_msg, sizeof(ping_msg), WRITE_TIMEOUT);
 		if ( ret != sizeof(ping_msg) )
 			ERROR_RETURN("Sending X-Loader ping message failed", -1);
 
@@ -288,14 +289,14 @@ static int ping_timeout(usb_dev_handle * udev) {
 		while ( try_read > 0 ) {
 
 			uint32_t ping_read;
-			ret = usb_bulk_read(udev, READ_DEV, (char *)&ping_read, sizeof(ping_read), READ_TIMEOUT);
+			ret = usb_bulk_read(udev, USB_READ_EP, (char *)&ping_read, sizeof(ping_read), READ_TIMEOUT);
 			if ( ret == sizeof(ping_read) ) {
 				printf("Got it\n");
 				pong = 1;
 				break;
 			}
 
-			usleep(5000);
+			SLEEP(5000);
 			--try_read;
 
 		}
@@ -308,7 +309,7 @@ static int ping_timeout(usb_dev_handle * udev) {
 
 	}
 
-	if (pong)
+	if ( pong )
 		return 0;
 	else
 		return -1;
@@ -320,6 +321,7 @@ int init_cold_flash(struct usb_device_info * dev) {
 	uint8_t asic_buffer[127];
 	int asic_size = 69;
 	const char * chip = NULL;
+	int revision;
 	int i;
 
 	if ( dev->flash_device->protocol != FLASH_COLD )
@@ -343,11 +345,11 @@ int init_cold_flash(struct usb_device_info * dev) {
 	if ( asic_buffer[0] != 0x05 )
 		ERROR_RETURN("Invalid ASIC ID", -1);
 
-	/* ID Subblock - header */
+	/* 1. ID Subblock - header */
 	if ( memcmp(asic_buffer+1, "\x01\x05\x01", 3) != 0 )
 		ERROR_RETURN("Invalid ASIC ID", -1);
 
-	/* ID Subblock - OMAP chip version (check for OMAP3430 or 3630) */
+	/* 1. ID Subblock - OMAP chip version (check for OMAP3430 or 3630) */
 	if ( memcmp(asic_buffer+4, "\x34\x30\x07", 3) == 0 )
 		chip = "OMAP3430";
 	else if ( memcmp(asic_buffer+4, "\x36\x30\x07", 3) == 0 )
@@ -355,23 +357,26 @@ int init_cold_flash(struct usb_device_info * dev) {
 	else
 		ERROR_RETURN("Invalid ASIC ID", -1);
 
-	/* Reserved1 - header */
+	/* 1. ID Subblock - OMAP chip revision */
+	revision = asic_buffer[7];
+
+	/* 2. Secure Mode Subblock - header */
 	if ( memcmp(asic_buffer+8, "\x13\x02\x01", 3) != 0 )
 		ERROR_RETURN("Invalid ASIC ID", -1);
 
-	/* 2nd ID Subblock - header */
+	/* 3. 2nd ID Subblock - header */
 	if ( memcmp(asic_buffer+12, "\x12\x15\x01", 3) != 0 )
 		ERROR_RETURN("Invalid ASIC ID", -1);
 
-	/* Reserved2 - header */
+	/* 4. Root Key Hash Subblock - header */
 	if ( memcmp(asic_buffer+35, "\x14\x15\x01", 3) != 0 )
 		ERROR_RETURN("Invalid ASIC ID", -1);
 
-	/* Checksum subblock - header */
+	/* 5. Checksum subblock - header */
 	if ( memcmp(asic_buffer+58, "\x15\x09\x01", 3) != 0 )
 		ERROR_RETURN("Invalid ASIC ID", -1);
 
-	printf("Detected %s chip\n", chip);
+	printf("Detected %s chip (revision %d)\n", chip, revision);
 
 	return 0;
 
@@ -404,12 +409,11 @@ int leave_cold_flash(struct usb_device_info * dev) {
 	int ret;
 
 	printf("Sending OMAP memory boot message...\n");
-	ret = usb_bulk_write(dev->udev, WRITE_DEV, (char *)&omap_memory_msg, sizeof(omap_memory_msg), WRITE_TIMEOUT);
-	usleep(5000);
+	ret = usb_bulk_write(dev->udev, USB_WRITE_EP, (char *)&omap_memory_msg, sizeof(omap_memory_msg), WRITE_TIMEOUT);
 	if ( ret != sizeof(omap_memory_msg) )
 		ERROR_RETURN("Sending OMAP memory boot message failed", -1);
 
-	usleep(250000);
+	SLEEP(1000000);
 	return 0;
 
 }

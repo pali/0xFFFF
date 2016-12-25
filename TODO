@@ -4,11 +4,9 @@ cal:
 cold-flash:
  * Detect device from asic id
 
-device:
- * Support for Nokia N950 and Nokia N9
-
 disk:
- * Everything (work with eMMC images in USB Mass storage mode)
+ * Support for flashing mmc images
+ * Badblock checking
 
 fiasco:
  * Support for Harmattan images
@@ -18,17 +16,11 @@ image:
 
 local:
  * Support for flashing (on device)
+ * Write versions
+ * Badblock checking
 
 mkii:
- * Everything (flashing protocol for eMMC images)
+ * Support for flashing
 
 nolo:
- * Support for dumping images (it is possible?)
  * Implement functions for setting nolo, kernel, initfs and content versions (it is possible?)
-
-operations:
- * Enable FLASH_DISK protocol when implemented
-
-usb-device:
- * Autodetect devices from product string
- * Enable FLASH_DISK and FLASH_MKII protocols when implemented

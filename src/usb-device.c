@@ -17,6 +17,11 @@
 
 */
 
+/* Enable RTLD_DEFAULT for glibc */
+#ifndef _GNU_SOURCE
+#define _GNU_SOURCE
+#endif
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
@@ -24,12 +29,7 @@
 #include <errno.h>
 #include <ctype.h>
 #include <signal.h>
-
-#include <usb.h>
-
-#ifdef LIBUSB_HAS_DETACH_KERNEL_DRIVER_NP
-#include <sys/ioctl.h>
-#endif
+#include <dlfcn.h>
 
 #include "global.h"
 #include "device.h"
@@ -39,20 +39,30 @@
 #include "cold-flash.h"
 #include "mkii.h"
 
+#ifdef __linux__
+#ifdef LIBUSB_HAS_DETACH_KERNEL_DRIVER_NP
+#include <sys/ioctl.h>
+#endif
+#endif
+
 static struct usb_flash_device usb_devices[] = {
-	{ 0x0421, 0x0105,  2,  1, -1, FLASH_NOLO, { DEVICE_SU_18, DEVICE_RX_44, DEVICE_RX_48, DEVICE_RX_51, 0 } },
-	{ 0x0421, 0x0106,  0, -1, -1, FLASH_COLD, { DEVICE_RX_51, 0 } },
-/*	{ 0x0421, 0x01c7,  0, -1, -1, FLASH_DISK, { DEVICE_RX_51, 0 } }, */
-/*	{ 0x0421, 0x01c8,  1,  1, -1, FLASH_MKII, { DEVICE_RX_51, 0 } }, */
-/*	{ 0x0421, 0x0431,  0, -1, -1, FLASH_DISK, { DEVICE_SU_18, DEVICE_RX_34, 0 } }, */
+	{ 0x0421, 0x0096, -1, -1, -1, FLASH_DISK, { DEVICE_RX_44, 0 } },
+	{ 0x0421, 0x0105,  2,  1, -1, FLASH_NOLO, { DEVICE_SU_18, DEVICE_RX_44, DEVICE_RX_48, DEVICE_RX_51, DEVICE_RM_680, DEVICE_RM_696, 0 } },
+	{ 0x0421, 0x0106,  0, -1, -1, FLASH_COLD, { DEVICE_RX_51, DEVICE_RM_680, DEVICE_RM_696, 0 } },
+	{ 0x0421, 0x0189, -1, -1, -1, FLASH_DISK, { DEVICE_RX_48, 0 } },
+	{ 0x0421, 0x01c7, -1, -1, -1, FLASH_DISK, { DEVICE_RX_51, 0 } },
+	{ 0x0421, 0x01c8,  1,  1, -1, FLASH_MKII, { DEVICE_RX_51, DEVICE_RM_680, 0 } },
+	{ 0x0421, 0x03d1, -1, -1, -1, FLASH_DISK, { DEVICE_RM_680, 0 } },
+	{ 0x0421, 0x0431, -1, -1, -1, FLASH_DISK, { DEVICE_SU_18, DEVICE_RX_34, 0 } },
+	{ 0x0421, 0x04c3, -1, -1, -1, FLASH_DISK, { DEVICE_RX_34, 0 } },
 	{ 0x0421, 0x3f00,  2,  1, -1, FLASH_NOLO, { DEVICE_RX_34, 0 } },
 };
 
 static const char * usb_flash_protocols[] = {
 	[FLASH_NOLO] = "NOLO",
 	[FLASH_COLD] = "Cold flashing",
-/*	[FLASH_MKII] = "Mk II protocol", */
-/*	[FLASH_DISK] = "RAW disk", */
+	[FLASH_MKII] = "Mk II protocol",
+	[FLASH_DISK] = "RAW disk",
 };
 
 const char * usb_flash_protocol_to_string(enum usb_flash_protocol protocol) {
@@ -79,6 +89,7 @@ static void usb_flash_device_info_print(const struct usb_flash_device * dev) {
 
 static void usb_reattach_kernel_driver(usb_dev_handle * udev, int interface) {
 
+#ifdef __linux__
 #ifdef LIBUSB_HAS_DETACH_KERNEL_DRIVER_NP
 	struct {
 		int ifno;
@@ -90,8 +101,12 @@ static void usb_reattach_kernel_driver(usb_dev_handle * udev, int interface) {
 		.data = NULL,
 	};
 
+	if ( interface < 0 )
+		return;
+
 	usb_release_interface(udev, interface);
 	ioctl(*((int *)udev), _IOWR('U', 18, command), &command);
+#endif
 #endif
 
 }
@@ -159,18 +174,22 @@ static struct usb_device_info * usb_device_is_valid(struct usb_device * dev) {
 
 			usb_descriptor_info_print(udev, dev, product, sizeof(product));
 
+			if ( usb_devices[i].interface >= 0 ) {
+
 #ifdef LIBUSB_HAS_DETACH_KERNEL_DRIVER_NP
-			PRINTF_LINE("Detaching kernel from USB interface...");
-			usb_detach_kernel_driver_np(udev, usb_devices[i].interface);
+				PRINTF_LINE("Detaching kernel from USB interface...");
+				usb_detach_kernel_driver_np(udev, usb_devices[i].interface);
 #endif
 
-			PRINTF_LINE("Claiming USB interface...");
-			if ( usb_claim_interface(udev, usb_devices[i].interface) < 0 ) {
-				PRINTF_ERROR("usb_claim_interface failed");
-				fprintf(stderr, "\n");
-				usb_reattach_kernel_driver(udev, usb_devices[i].interface);
-				usb_close(udev);
-				return NULL;
+				PRINTF_LINE("Claiming USB interface...");
+				if ( usb_claim_interface(udev, usb_devices[i].interface) < 0 ) {
+					PRINTF_ERROR("usb_claim_interface failed");
+					fprintf(stderr, "\n");
+					usb_reattach_kernel_driver(udev, usb_devices[i].interface);
+					usb_close(udev);
+					return NULL;
+				}
+
 			}
 
 			if ( usb_devices[i].alternate >= 0 ) {
@@ -203,12 +222,24 @@ static struct usb_device_info * usb_device_is_valid(struct usb_device * dev) {
 				return NULL;
 			}
 
-			if ( strstr(product, "N900") )
+			if ( strcmp(product, "Nokia 770") == 0 || strcmp(product, "Nokia 770 (Update mode)") == 0 )
+				ret->device = DEVICE_SU_18;
+			else if ( strcmp(product, "Nokia N800 Internet Tablet") == 0 || strcmp(product, "Nokia N800 (Update mode)") == 0 )
+				ret->device = DEVICE_RX_34;
+			else if ( strcmp(product, "Nokia N810 Internet Tablet") == 0 || strcmp(product, "Nokia N810 (Update mode)") == 0 )
+				ret->device = DEVICE_RX_44;
+			else if ( strcmp(product, "Nokia N810 Internet Tablet WiMAX Edition") == 0 || strcmp(product, "Nokia-RX48 (Update mode)") == 0 )
+				ret->device = DEVICE_RX_48;
+			else if ( strcmp(product, "N900 (Storage Mode)") == 0 || strcmp(product, "Nokia N900 (Update mode)") == 0 || strcmp(product, "N900 (PC-Suite Mode)") == 0 )
 				ret->device = DEVICE_RX_51;
+			else if ( strcmp(product, "Nokia N950") == 0 || strcmp(product, "Sync Mode") == 0 || strcmp(product, "N950 (Update mode)") == 0 )
+				ret->device = DEVICE_RM_680;
+			else if ( strcmp(product, "N9 (Update mode)") == 0 || strcmp(product, "Nxy (Update mode)") == 0 )
+				ret->device = DEVICE_RM_696;
+			else if ( strcmp(product, "Nokia USB ROM") == 0 )
+				ret->device = DEVICE_ANY;
 			else
 				ret->device = DEVICE_UNKNOWN;
-
-			/* TODO: Autodetect more devices */
 
 			if ( device_to_string(ret->device) )
 				PRINTF_LINE("Detected USB device: %s", device_to_string(ret->device));
@@ -216,7 +247,16 @@ static struct usb_device_info * usb_device_is_valid(struct usb_device * dev) {
 				PRINTF_LINE("Detected USB device: (not detected)");
 			PRINTF_END();
 
-			if ( ret->device ) {
+			if ( ! noverify && ret->device == DEVICE_UNKNOWN ) {
+				ERROR("Device detection failed");
+				fprintf(stderr, "\n");
+				usb_reattach_kernel_driver(udev, usb_devices[i].interface);
+				usb_close(udev);
+				free(ret);
+				return NULL;
+			}
+
+			if ( ! noverify && ret->device != DEVICE_ANY ) {
 				enum device * device;
 				for ( device = usb_devices[i].devices; *device; ++device )
 					if ( *device == ret->device )
@@ -281,6 +321,9 @@ struct usb_device_info * usb_open_and_wait_for_device(void) {
 	void (*prev)(int);
 	static char progress[] = {'/','-','\\', '|'};
 
+	if ( dlsym(RTLD_DEFAULT, "libusb_init") )
+		ERROR_RETURN("You are trying to use broken libusb-1.0 library (either directly or via wrapper) which has slow listing of usb devices. It cannot be used for flashing or cold-flashing. Please use libusb 0.1.", NULL);
+
 	usb_init();
 	usb_find_busses();
 
@@ -318,7 +361,7 @@ struct usb_device_info * usb_open_and_wait_for_device(void) {
 		if ( ret )
 			break;
 
-		usleep(0xc350); // 0.5s
+		SLEEP(0xc350); // 0.5s
 
 	}
 
@@ -337,7 +380,8 @@ struct usb_device_info * usb_open_and_wait_for_device(void) {
 
 void usb_close_device(struct usb_device_info * dev) {
 
-	usb_reattach_kernel_driver(dev->udev, dev->flash_device->interface);
+	if ( dev->flash_device->protocol != FLASH_COLD )
+		usb_reattach_kernel_driver(dev->udev, dev->flash_device->interface);
 	usb_close(dev->udev);
 	free(dev);
 
@@ -350,7 +394,7 @@ void usb_switch_to_nolo(struct usb_device_info * dev) {
 	if ( dev->flash_device->protocol == FLASH_COLD )
 		leave_cold_flash(dev);
 	else if ( dev->flash_device->protocol == FLASH_MKII )
-		mkii_reboot_device(dev);
+		mkii_reboot_device(dev, 0);
 	else if ( dev->flash_device->protocol == FLASH_DISK )
 		printf_and_wait("Unplug USB cable, turn device off, press ENTER and plug USB cable again");
 
@@ -363,13 +407,13 @@ void usb_switch_to_cold(struct usb_device_info * dev) {
 	if ( dev->flash_device->protocol == FLASH_NOLO )
 		nolo_reboot_device(dev);
 	else if ( dev->flash_device->protocol == FLASH_MKII )
-		mkii_reboot_device(dev);
+		mkii_reboot_device(dev, 0);
 	else if ( dev->flash_device->protocol == FLASH_DISK )
 		printf_and_wait("Unplug USB cable, turn device off, press ENTER and plug USB cable again");
 
 }
 
-void usb_switch_to_mkii(struct usb_device_info * dev) {
+void usb_switch_to_update(struct usb_device_info * dev) {
 
 	printf("\nSwitching to Update mode...\n");
 
@@ -377,6 +421,8 @@ void usb_switch_to_mkii(struct usb_device_info * dev) {
 		leave_cold_flash(dev);
 	else if ( dev->flash_device->protocol == FLASH_NOLO )
 		nolo_boot_device(dev, "update");
+	else if ( dev->flash_device->protocol == FLASH_MKII && ! ( dev->data & MKII_UPDATE_MODE ) )
+		mkii_reboot_device(dev, 1);
 	else if ( dev->flash_device->protocol == FLASH_DISK )
 		printf_and_wait("Unplug USB cable, turn device off, press ENTER and plug USB cable again");
 
@@ -391,7 +437,11 @@ void usb_switch_to_disk(struct usb_device_info * dev) {
 	else if ( dev->flash_device->protocol == FLASH_NOLO ) {
 		nolo_boot_device(dev, NULL);
 		printf_and_wait("Wait until device start, choose USB Mass Storage Mode and press ENTER");
-	} else if ( dev->flash_device->protocol == FLASH_MKII )
-		mkii_reboot_device(dev);
+	} else if ( dev->flash_device->protocol == FLASH_MKII ) {
+		if ( dev->data & MKII_UPDATE_MODE )
+			mkii_reboot_device(dev, 0);
+		else
+			printf_and_wait("Unplug USB cable, plug again, choose USB Mass Storage Mode and press ENTER");
+	}
 
 }

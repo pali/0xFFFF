@@ -30,6 +30,8 @@ enum device {
 	DEVICE_RX_44, /* Nokia N810 */
 	DEVICE_RX_48, /* Nokia N810 WiMax */
 	DEVICE_RX_51, /* Nokia N900 */
+	DEVICE_RM_680, /* Nokia N950 */
+	DEVICE_RM_696, /* Nokia N9 */
 	DEVICE_COUNT,
 };
 

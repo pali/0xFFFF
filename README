@@ -29,10 +29,7 @@ bootloaders to break this tool. USE IT AT YOUR OWN RISK.
 PLEASE. Read carefully all the documentation inside doc/* for more information
 before building or using the flasher to avoid questions, problems or so.
 
-Feel free to join to the mailing list and visit the homepage for more info:
-
-  0xffff@lists.nopcode.org
-  http://www.nopcode.org/0xFFFF
+  https://github.com/pali/0xFFFF
 
 -----------8<---------------------------------------------------------------
 

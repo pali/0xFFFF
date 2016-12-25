@@ -27,14 +27,17 @@
 #include <errno.h>
 #include <string.h>
 
-#include <sys/ioctl.h>
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <unistd.h>
 #include <fcntl.h>
 
+#ifdef __linux__
+#include <sys/ioctl.h>
 #include <linux/fs.h>
 #include <mtd/mtd-user.h>
+#include <sys/sysmacros.h>
+#endif
 
 #include "cal.h"
 
@@ -43,7 +46,6 @@
 #define HDR_MAGIC	"ConF"
 
 struct cal {
-	int fd;
 	ssize_t size;
 	void * mem;
 };
@@ -68,7 +70,11 @@ int cal_init_file(const char * file, struct cal ** cal_out) {
 	void * mem = NULL;
 	struct cal * cal = NULL;
 	struct stat st;
+#ifdef __linux__
 	mtd_info_t mtd_info;
+#else
+	off_t lsize = 0;
+#endif
 
 	if ( stat(file, &st) != 0 )
 		return -1;
@@ -81,17 +87,34 @@ int cal_init_file(const char * file, struct cal ** cal_out) {
 	if ( S_ISREG(st.st_mode) )
 		size = st.st_size;
 	else if ( S_ISBLK(st.st_mode) ) {
+#ifdef __linux__
 		if ( ioctl(fd, BLKGETSIZE64, &blksize) != 0 )
 			goto err;
+#else
+		lsize = lseek(fd, 0, SEEK_END);
+		if ( lsize == (off_t)-1 )
+			goto err;
+		if ( lseek(fd, 0, SEEK_SET) == (off_t)-1 )
+			goto err;
+		blksize = lsize;
+#endif
+#ifdef SSIZE_MAX
 		if ( blksize > SSIZE_MAX )
 			goto err;
+#endif
 		size = blksize;
-	} else if ( S_ISCHR(st.st_mode) && major(st.st_rdev) == 90 ) {
-		if ( ioctl(fd, MEMGETINFO, &mtd_info) != 0 )
-			goto err;
-		size = mtd_info.size;
 	} else {
+#ifdef __linux__
+		if ( S_ISCHR(st.st_mode) && major(st.st_rdev) == 90 ) {
+			if ( ioctl(fd, MEMGETINFO, &mtd_info) != 0 )
+				goto err;
+			size = mtd_info.size;
+		} else {
+			goto err;
+		}
+#else
 		goto err;
+#endif
 	}
 
 	if ( size == 0 || size > MAX_SIZE )
@@ -110,9 +133,10 @@ int cal_init_file(const char * file, struct cal ** cal_out) {
 	if ( ! cal )
 		goto err;
 
-	cal->fd = fd;
 	cal->mem = mem;
 	cal->size = size;
+
+	close(fd);
 
 	*cal_out = cal;
 	return 0;
@@ -120,6 +144,7 @@ int cal_init_file(const char * file, struct cal ** cal_out) {
 err:
 	close(fd);
 	free(mem);
+	free(cal);
 	return -1;
 
 }
@@ -170,8 +195,8 @@ static int is_header(void *data, size_t size) {
 		return 0;
 
 	if ( memcmp(hdr->magic, HDR_MAGIC, sizeof(hdr->magic)) != 0 )
-
 		return 0;
+
 	return 1;
 
 }
@@ -206,10 +231,10 @@ static int64_t find_section(void *start, uint64_t count, int want_index, const c
 		memcpy(sectname, hdr->name, sizeof(hdr->name));
 
 		if ( want_index == INDEX_LAST ) {
-			if ((int)hdr->index <= previous_index)
+			if ( (int)hdr->index <= previous_index )
 				goto next;
 		} else {
-			if (want_index >= 0 && want_index != hdr->index)
+			if ( want_index >= 0 && want_index != hdr->index )
 				goto next;
 		}
 
@@ -239,6 +264,7 @@ int cal_read_block(struct cal * cal, const char * name, void ** ptr, unsigned lo
 	uint64_t filelen = cal->size;
 	uint8_t * data = cal->mem;
 	struct header * hdr;
+	void * offset;
 
 	find_offset = find_section(data, filelen, INDEX_LAST, name);
 	if ( find_offset < 0 )
@@ -252,11 +278,17 @@ int cal_read_block(struct cal * cal, const char * name, void ** ptr, unsigned lo
 	if ( crc32(0, hdr, sizeof(*hdr) - 4) != hdr->hdrsum )
 		return -1;
 
-	*ptr = data + find_offset + sizeof(struct header);
-	*len = hdr->length;
+	offset = data + find_offset + sizeof(struct header);
 
-	if ( crc32(0, *ptr, *len) != hdr->datasum )
+	if ( crc32(0, offset, hdr->length) != hdr->datasum )
 		return -1;
+
+	*ptr = malloc(hdr->length);
+	if (!*ptr)
+		return -1;
+
+	memcpy(*ptr, offset, hdr->length);
+	*len = hdr->length;
 
 	return 0;
 
