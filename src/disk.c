@@ -207,11 +207,6 @@ int disk_dump_dev(int fd, const char * file) {
 
 #endif
 
-	if ( blksize > ULLONG_MAX ) {
-		ERROR("Block device is too big");
-		return -1;
-	}
-
 	if ( blksize == 0 ) {
 		ERROR("Block device has zero size");
 		return -1;
