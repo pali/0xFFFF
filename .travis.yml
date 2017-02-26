@@ -1,29 +1,31 @@
 sudo: false
+
 language: c
+
 compiler:
   - gcc
   - clang
-matrix:
-  include:
-    - compiler: gcc
-      env: COVERITY=1
-before_install:
-  - if [ "$COVERITY" = "1" -a "$TRAVIS_BRANCH" != "master" ]; then exit 0; fi
-  - if [ "$COVERITY" != "1" ]; then make; exit $?; fi
-script: true
 
-env:
-  global:
-   - secure: "JdUp+xFykPZoYA4aRfmYk2CtilLapniQllWPKo2dDdJd1vzdawfTvVxIAKjy7ac9RKwZzg3Chq3RsMEXPv8BtaLbssw266C7RDLMgjacl1eFLcmGRj/Gkk9peDSZ6vVdGEcA2j+6KDSfpCa/XjFjvOufZOgKw6m+3+d0A4G45SI="
-
-addons:
+addons: &addons
   apt:
     packages:
       - libusb-dev
-  coverity_scan:
-    project:
-      name: "pali/0xFFFF"
-      description: "Build submitted via Travis CI"
-    notification_email: pali.rohar@gmail.com
-    build_command: make
-    branch_pattern: master
+
+matrix:
+  include:
+    - compiler: gcc
+      env:
+        - secure: "JdUp+xFykPZoYA4aRfmYk2CtilLapniQllWPKo2dDdJd1vzdawfTvVxIAKjy7ac9RKwZzg3Chq3RsMEXPv8BtaLbssw266C7RDLMgjacl1eFLcmGRj/Gkk9peDSZ6vVdGEcA2j+6KDSfpCa/XjFjvOufZOgKw6m+3+d0A4G45SI="
+      addons:
+        <<: *addons
+        coverity_scan:
+          project:
+            name: "pali/0xFFFF"
+            description: "Build submitted via Travis CI"
+          notification_email: pali.rohar@gmail.com
+          build_command: make
+          branch_pattern: master
+
+script:
+  - if [ "$COVERITY_SCAN_BRANCH" = "1" ]; then exit 0; fi
+  - make
