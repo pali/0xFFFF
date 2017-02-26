@@ -8,8 +8,6 @@ matrix:
       env: COVERITY=1
 before_install:
   - if [ "$COVERITY" = "1" -a "$TRAVIS_BRANCH" != "master" ]; then exit 0; fi
-  - sudo apt-get update -qq
-  - sudo apt-get install -qq -y libusb-dev
   - if [ "$COVERITY" != "1" ]; then make; exit $?; fi
 script: true
 
@@ -18,6 +16,9 @@ env:
    - secure: "JdUp+xFykPZoYA4aRfmYk2CtilLapniQllWPKo2dDdJd1vzdawfTvVxIAKjy7ac9RKwZzg3Chq3RsMEXPv8BtaLbssw266C7RDLMgjacl1eFLcmGRj/Gkk9peDSZ6vVdGEcA2j+6KDSfpCa/XjFjvOufZOgKw6m+3+d0A4G45SI="
 
 addons:
+  apt:
+    packages:
+      - libusb-dev
   coverity_scan:
     project:
       name: "pali/0xFFFF"
