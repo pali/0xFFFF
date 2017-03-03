@@ -27,5 +27,5 @@ matrix:
           branch_pattern: master
 
 script:
-  - if [ "$COVERITY_SCAN_BRANCH" = "1" ]; then exit 0; fi
+  - if [ -n "$COVERITY_SCAN_TOKEN" ]; then exit 0; fi
   - make
