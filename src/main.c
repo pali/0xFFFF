@@ -1319,12 +1319,10 @@ int main(int argc, char **argv) {
 
 				for ( i = 0; i < IMAGE_COUNT; ++i ) {
 
-					struct stat st;
+					int rename_ret;
+					int rename_errno;
 
 					if ( ! image_tmp_name(i) )
-						continue;
-
-					if ( stat(image_tmp_name(i), &st) != 0 )
 						continue;
 
 					switch ( i ) {
@@ -1357,10 +1355,18 @@ int main(int argc, char **argv) {
 
 					buf[0] = 0;
 					snprintf(buf, sizeof(buf), "%s-%s:%hd_%s", image_type_to_string(i), device_to_string(dev->detected_device), dev->detected_hwrev, ptr);
+
+					rename_ret = rename(image_tmp_name(i), buf);
+					rename_errno = errno;
+
+					if ( rename_ret < 0 && rename_errno == ENOENT )
+						continue;
+
 					printf("Renaming %s image file to %s...\n", image_type_to_string(i), buf);
 
-					if ( rename(image_tmp_name(i), buf) < 0 ) {
+					if ( rename_ret < 0 ) {
 
+						errno = rename_errno;
 						ERROR_INFO("Renaming failed");
 
 						buf[0] = 0;
