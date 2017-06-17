@@ -155,16 +155,24 @@ static void parse_image_arg(char * arg, struct image_list ** image_first) {
 	char * version;
 	char * layout;
 	char * layout_file;
+	int fd;
 
 	/* First check if arg is file, then try to parse arg format */
-	if ( stat(arg, &st) == 0 ) {
-		image = image_alloc_from_file(arg, NULL, NULL, NULL, NULL, NULL);
-		if ( ! image ) {
-			ERROR("Cannot load image file %s", arg);
-			exit(1);
+	fd = open(arg, O_RDONLY);
+	if ( fd >= 0 ) {
+		if ( fstat(fd, &st) == 0 && !S_ISDIR(st.st_mode) ) {
+			image = image_alloc_from_fd(fd, arg, NULL, NULL, NULL, NULL, NULL);
+			if ( ! image ) {
+				ERROR("Cannot load image file %s", arg);
+				exit(1);
+			}
+			image_list_add(image_first, image);
+			return;
 		}
-		image_list_add(image_first, image);
-		return;
+		close(fd);
+	} else if ( errno != ENOENT ) {
+		ERROR("Cannot load image file %s", arg);
+		exit(1);
 	}
 
 	layout_file = strchr(arg, '%');
