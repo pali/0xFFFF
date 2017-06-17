@@ -162,8 +162,10 @@ static int image_append(struct image * image, const char * type, const char * de
 	image->hash = image_hash_from_data(image);
 
 	image->devices = calloc(1, sizeof(struct device_list));
-	if ( ! image->devices )
-		return -1;
+	if ( ! image->devices ) {
+		image_free(image);
+		ALLOC_ERROR_RETURN(-1);
+	}
 
 	image->devices->device = DEVICE_ANY;
 
