@@ -127,9 +127,15 @@ int disk_open_dev(int maj, int min, int partition, int readonly) {
 			return -1;
 		}
 
-		memcpy(blkdev+len, "p1", 3);
+		if ( snprintf(blkdev+len, sizeof(blkdev)-len, "p%d", partition) >= (int)(sizeof(blkdev)-len) ) {
+			ERROR("Block device name is too long");
+			return -1;
+		}
 		if ( stat(blkdev, &st) != 0 || ! S_ISBLK(st.st_mode) ) {
-			memcpy(blkdev+len, "1", 2);
+			if ( snprintf(blkdev+len, sizeof(blkdev)-len, "%d", partition) >= (int)(sizeof(blkdev)-len) ) {
+				ERROR("Block device name is too long");
+				return -1;
+			}
 			if ( stat(blkdev, &st) != 0 || ! S_ISBLK(st.st_mode) ) {
 				blkdev[len] = 0;
 				fd = open(blkdev, O_RDONLY);
