@@ -51,6 +51,7 @@ int disk_open_dev(int maj, int min, int partition, int readonly) {
 	DIR * dir;
 	struct dirent * dirent;
 	int found;
+	int old_errno;
 	size_t len;
 	char blkdev[1024];
 
@@ -117,6 +118,19 @@ int disk_open_dev(int maj, int min, int partition, int readonly) {
 
 		blkdev[len] = 0;
 
+		fd = open(blkdev, (readonly ? O_RDONLY : O_RDWR) | O_EXCL);
+		if ( fd < 0 ) {
+			if ( errno != ENOMEDIUM )
+				ERROR_INFO("Cannot open block device %s", blkdev);
+			return -1;
+		} else {
+			if ( fstat(fd, &st) != 0 || ! S_ISBLK(st.st_mode) || makedev(maj, min) != st.st_rdev ) {
+				ERROR("Block device %s does not have id %d:%d\n", blkdev, maj, min);
+				close(fd);
+				return -1;
+			}
+		}
+
 	} else if ( partition > 0 ) {
 
 		/* Select partition */
@@ -131,37 +145,41 @@ int disk_open_dev(int maj, int min, int partition, int readonly) {
 			ERROR("Block device name is too long");
 			return -1;
 		}
-		if ( stat(blkdev, &st) != 0 || ! S_ISBLK(st.st_mode) ) {
+		fd = open(blkdev, (readonly ? O_RDONLY : O_RDWR) | O_EXCL);
+		if ( fd < 0 && errno == ENOENT ) {
 			if ( snprintf(blkdev+len, sizeof(blkdev)-len, "%d", partition) >= (int)(sizeof(blkdev)-len) ) {
 				ERROR("Block device name is too long");
 				return -1;
 			}
-			if ( stat(blkdev, &st) != 0 || ! S_ISBLK(st.st_mode) ) {
-				blkdev[len] = 0;
-				fd = open(blkdev, O_RDONLY);
-				if ( fd < 0 ) {
-					if ( errno != ENOMEDIUM ) {
-						ERROR_INFO("Cannot open block device %s", blkdev);
-						return -1;
-					}
-				} else {
-					close(fd);
-					ERROR("Block device does not have partitions");
-					return -1;
-				}
-			}
+			fd = open(blkdev, (readonly ? O_RDONLY : O_RDWR) | O_EXCL);
 		}
+		if ( fd < 0 && errno == ENOENT ) {
+			blkdev[len] = 0;
+			fd = open(blkdev, O_RDONLY);
+			if ( fd < 0 ) {
+				if ( errno != ENOMEDIUM )
+					ERROR_INFO("Cannot open block device %s", blkdev);
+			} else {
+				close(fd);
+				ERROR("Block device %s does not have partitions", blkdev);
+			}
+			return -1;
+		}
+		if ( fd < 0 )
+			old_errno = errno;
 
 		printf("Found block device %s for partition %d\n", blkdev, partition);
 
-	}
-
-	fd = open(blkdev, (readonly ? O_RDONLY : O_RDWR) | O_EXCL);
-
-	if ( fd < 0 ) {
-		if ( errno != ENOMEDIUM )
+		if ( fd < 0 ) {
+			errno = old_errno;
 			ERROR_INFO("Cannot open block device %s", blkdev);
-		return -1;
+		}
+
+	} else {
+
+		ERROR("Invalid partition %d for block device %s", partition, blkdev);
+		fd = -1;
+
 	}
 
 	return fd;
