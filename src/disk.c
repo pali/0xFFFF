@@ -173,6 +173,10 @@ int disk_open_dev(int maj, int min, int partition, int readonly) {
 		if ( fd < 0 ) {
 			errno = old_errno;
 			ERROR_INFO("Cannot open block device %s", blkdev);
+		} else if ( fstat(fd, &st) != 0 || ! S_ISBLK(st.st_mode) ) {
+			ERROR("Block device %s is not block device\n", blkdev);
+			close(fd);
+			return -1;
 		}
 
 	} else {
