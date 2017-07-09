@@ -24,6 +24,7 @@
 #include "usb-device.h"
 
 int disk_init(struct usb_device_info * dev);
+void disk_exit(struct usb_device_info * dev);
 
 enum device disk_get_device(struct usb_device_info * dev);
 

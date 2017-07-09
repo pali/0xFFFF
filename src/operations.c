@@ -91,8 +91,11 @@ clean:
 
 void dev_free(struct device_info * dev) {
 
-	if ( dev->usb )
+	if ( dev->usb ) {
+		if ( dev->usb->flash_device->protocol == FLASH_DISK )
+			disk_exit(dev->usb);
 		usb_close_device(dev->usb);
+	}
 	free(dev);
 
 }

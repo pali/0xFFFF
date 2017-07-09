@@ -413,6 +413,13 @@ int disk_init(struct usb_device_info * dev) {
 
 }
 
+void disk_exit(struct usb_device_info * dev) {
+
+	if ( dev->data >= 0 )
+		close(dev->data);
+
+}
+
 enum device disk_get_device(struct usb_device_info * dev) {
 
 	return dev->device;
