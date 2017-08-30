@@ -23,7 +23,7 @@ R&D mode, changing HW revision strings, ...).
 by Nokia fiasco-gen.
 
 Use it with CARE. This is an experimental tool and it can brick your device.
-It's not suposed to be stable, so nokia will probably release incompatible
+It's not supposed to be stable, so nokia will probably release incompatible
 bootloaders to break this tool. USE IT AT YOUR OWN RISK.
 
 PLEASE. Read carefully all the documentation inside doc/* for more information
