@@ -1247,6 +1247,8 @@ int main(int argc, char **argv) {
 					if ( chdir(buf) < 0 )
 						ERROR_INFO("Cannot chdir back to %s", buf);
 
+				printf("Done\n");
+
 			}
 
 			/* dump fiasco */
