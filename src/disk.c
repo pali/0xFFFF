@@ -118,10 +118,9 @@ int disk_open_dev(int maj, int min, int partition, int readonly) {
 
 		blkdev[len] = 0;
 
-		fd = open(blkdev, (readonly ? O_RDONLY : O_RDWR) | O_EXCL);
+		fd = open(blkdev, (readonly ? O_RDONLY : O_RDWR) | O_EXCL | O_NONBLOCK);
 		if ( fd < 0 ) {
-			if ( errno != ENOMEDIUM )
-				ERROR_INFO("Cannot open block device %s", blkdev);
+			ERROR_INFO("Cannot open block device %s", blkdev);
 			return -1;
 		} else {
 			if ( fstat(fd, &st) != 0 || ! S_ISBLK(st.st_mode) || makedev(maj, min) != st.st_rdev ) {
@@ -155,10 +154,9 @@ int disk_open_dev(int maj, int min, int partition, int readonly) {
 		}
 		if ( fd < 0 && errno == ENOENT ) {
 			blkdev[len] = 0;
-			fd = open(blkdev, O_RDONLY);
+			fd = open(blkdev, O_RDONLY | O_NONBLOCK);
 			if ( fd < 0 ) {
-				if ( errno != ENOMEDIUM )
-					ERROR_INFO("Cannot open block device %s", blkdev);
+				ERROR_INFO("Cannot open block device %s", blkdev);
 			} else {
 				close(fd);
 				ERROR("Block device %s does not have partitions", blkdev);
