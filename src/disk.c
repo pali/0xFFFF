@@ -410,7 +410,7 @@ int disk_init(struct usb_device_info * dev) {
 	else
 		fd = disk_open_dev(maj1, min1, 1, 1);
 
-	if ( fd < 0 && errno != ENOMEDIUM )
+	if ( fd < 0 )
 		return -1;
 
 	dev->data = fd;
