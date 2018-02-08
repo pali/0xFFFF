@@ -363,8 +363,16 @@ int disk_init(struct usb_device_info * dev) {
 
 		fclose(f);
 
-		if ( devnum != device->devnum || device->bus->location != busnum )
+		if ( device->devnum != devnum )
 			continue;
+
+		if ( device->bus->location ) {
+			if ( device->bus->location != busnum )
+				continue;
+		} else if ( device->bus->dirname[0] ) {
+			if ( atoi(device->bus->dirname) != (int)busnum )
+				continue;
+		}
 
 		if ( sscanf(dirent->d_name, "%d:%d", &maj2, &min2) != 2 ) {
 			maj2 = -1;
