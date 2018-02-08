@@ -304,6 +304,7 @@ int disk_init(struct usb_device_info * dev) {
 	int maj2;
 	int min1;
 	int min2;
+	int tmp;
 
 	maj1 = -1;
 	maj2 = -1;
@@ -388,6 +389,16 @@ int disk_init(struct usb_device_info * dev) {
 	if ( maj1 == -1 || min1 == -1 ) {
 		ERROR("Cannot find id for mmc block disk device");
 		return -1;
+	}
+
+	/* Ensure that maj1:min1 is first device and maj2:min2 is second device */
+	if ( min2 < min1 ) {
+		tmp = min1;
+		min1 = min2;
+		min2 = tmp;
+		tmp = maj1;
+		maj1 = maj2;
+		maj2 = tmp;
 	}
 
 	/* TODO: change 1 to 0 when disk_flash_dev will be implemented */
