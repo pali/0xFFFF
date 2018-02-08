@@ -390,7 +390,7 @@ int disk_init(struct usb_device_info * dev) {
 	}
 
 	/* Ensure that maj1:min1 is first device and maj2:min2 is second device */
-	if ( min2 < min1 ) {
+	if ( min2 != -1 && min2 < min1 ) {
 		tmp = min1;
 		min1 = min2;
 		min2 = tmp;
