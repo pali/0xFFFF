@@ -221,7 +221,7 @@ int disk_dump_dev(int fd, const char * file) {
 #else
 
 	blksize = lseek(fd, 0, SEEK_END);
-	if ( blksize == (off_t)-1 ) {
+	if ( (off_t)blksize == (off_t)-1 ) {
 		ERROR_INFO("Cannot get size of block device");
 		return -1;
 	}
