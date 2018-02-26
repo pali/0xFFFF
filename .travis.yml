@@ -14,6 +14,7 @@ addons: &addons
 matrix:
   include:
     - compiler: gcc
+      if: (branch = master) AND (type != pull_request)
       env:
         - secure: "JdUp+xFykPZoYA4aRfmYk2CtilLapniQllWPKo2dDdJd1vzdawfTvVxIAKjy7ac9RKwZzg3Chq3RsMEXPv8BtaLbssw266C7RDLMgjacl1eFLcmGRj/Gkk9peDSZ6vVdGEcA2j+6KDSfpCa/XjFjvOufZOgKw6m+3+d0A4G45SI="
       addons:
