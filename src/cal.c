@@ -76,13 +76,13 @@ int cal_init_file(const char * file, struct cal ** cal_out) {
 	off_t lsize = 0;
 #endif
 
-	if ( stat(file, &st) != 0 )
-		return -1;
-
 	fd = open(file, O_RDONLY);
 
 	if ( fd < 0 )
 		return -1;
+
+	if ( fstat(fd, &st) != 0 )
+		goto err;
 
 	if ( S_ISREG(st.st_mode) )
 		size = st.st_size;

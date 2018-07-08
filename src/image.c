@@ -162,8 +162,10 @@ static int image_append(struct image * image, const char * type, const char * de
 	image->hash = image_hash_from_data(image);
 
 	image->devices = calloc(1, sizeof(struct device_list));
-	if ( ! image->devices )
-		return -1;
+	if ( ! image->devices ) {
+		image_free(image);
+		ALLOC_ERROR_RETURN(-1);
+	}
 
 	image->devices->device = DEVICE_ANY;
 
@@ -244,22 +246,33 @@ static struct image * image_alloc(void) {
 
 struct image * image_alloc_from_file(const char * file, const char * type, const char * device, const char * hwrevs, const char * version, const char * layout) {
 
-	off_t offset;
-	struct image * image = image_alloc();
-	if ( ! image )
-		return NULL;
+	int fd;
 
-	image->is_shared_fd = 0;
-	image->fd = open(file, O_RDONLY);
-	if ( image->fd < 0 ) {
+	fd = open(file, O_RDONLY);
+	if ( fd < 0 ) {
 		ERROR_INFO("Cannot open image file %s", file);
-		free(image);
 		return NULL;
 	}
 
+	return image_alloc_from_fd(fd, file, type, device, hwrevs, version, layout);
+
+}
+
+struct image * image_alloc_from_fd(int fd, const char * orig_filename, const char * type, const char * device, const char * hwrevs, const char * version, const char * layout) {
+
+	off_t offset;
+	struct image * image = image_alloc();
+	if ( ! image ) {
+		close(fd);
+		return NULL;
+	}
+
+	image->is_shared_fd = 0;
+	image->fd = fd;
+
 	offset = lseek(image->fd, 0, SEEK_END);
 	if ( offset == (off_t)-1 ) {
-		ERROR_INFO("Cannot seek to end of file %s", file);
+		ERROR_INFO("Cannot seek to end of file %s", orig_filename);
 		close(image->fd);
 		free(image);
 		return NULL;
@@ -268,10 +281,10 @@ struct image * image_alloc_from_file(const char * file, const char * type, const
 	image->size = offset;
 	image->offset = 0;
 	image->cur = 0;
-	image->orig_filename = strdup(file);
+	image->orig_filename = strdup(orig_filename);
 
 	if ( lseek(image->fd, 0, SEEK_SET) == (off_t)-1 ) {
-		ERROR_INFO("Cannot seek to begin of file %s", file);
+		ERROR_INFO("Cannot seek to begin of file %s", orig_filename);
 		close(image->fd);
 		free(image->orig_filename);
 		free(image);
@@ -282,7 +295,7 @@ struct image * image_alloc_from_file(const char * file, const char * type, const
 		return NULL;
 
 	if ( ( ! type || ! type[0] ) && ( ! device || ! device[0] ) && ( ! hwrevs || ! hwrevs[0] ) && ( ! version || ! version[0] ) )
-		image_missing_values_from_name(image, file);
+		image_missing_values_from_name(image, orig_filename);
 
 	image_align(image);
 

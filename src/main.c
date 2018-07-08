@@ -155,16 +155,24 @@ static void parse_image_arg(char * arg, struct image_list ** image_first) {
 	char * version;
 	char * layout;
 	char * layout_file;
+	int fd;
 
 	/* First check if arg is file, then try to parse arg format */
-	if ( stat(arg, &st) == 0 ) {
-		image = image_alloc_from_file(arg, NULL, NULL, NULL, NULL, NULL);
-		if ( ! image ) {
-			ERROR("Cannot load image file %s", arg);
-			exit(1);
+	fd = open(arg, O_RDONLY);
+	if ( fd >= 0 ) {
+		if ( fstat(fd, &st) == 0 && !S_ISDIR(st.st_mode) ) {
+			image = image_alloc_from_fd(fd, arg, NULL, NULL, NULL, NULL, NULL);
+			if ( ! image ) {
+				ERROR("Cannot load image file %s", arg);
+				exit(1);
+			}
+			image_list_add(image_first, image);
+			return;
 		}
-		image_list_add(image_first, image);
-		return;
+		close(fd);
+	} else if ( errno != ENOENT ) {
+		ERROR("Cannot load image file %s", arg);
+		exit(1);
 	}
 
 	layout_file = strchr(arg, '%');
@@ -1239,6 +1247,8 @@ int main(int argc, char **argv) {
 					if ( chdir(buf) < 0 )
 						ERROR_INFO("Cannot chdir back to %s", buf);
 
+				printf("Done\n");
+
 			}
 
 			/* dump fiasco */
@@ -1319,12 +1329,10 @@ int main(int argc, char **argv) {
 
 				for ( i = 0; i < IMAGE_COUNT; ++i ) {
 
-					struct stat st;
+					int rename_ret;
+					int rename_errno;
 
 					if ( ! image_tmp_name(i) )
-						continue;
-
-					if ( stat(image_tmp_name(i), &st) != 0 )
 						continue;
 
 					switch ( i ) {
@@ -1357,10 +1365,18 @@ int main(int argc, char **argv) {
 
 					buf[0] = 0;
 					snprintf(buf, sizeof(buf), "%s-%s:%hd_%s", image_type_to_string(i), device_to_string(dev->detected_device), dev->detected_hwrev, ptr);
+
+					rename_ret = rename(image_tmp_name(i), buf);
+					rename_errno = errno;
+
+					if ( rename_ret < 0 && rename_errno == ENOENT )
+						continue;
+
 					printf("Renaming %s image file to %s...\n", image_type_to_string(i), buf);
 
-					if ( rename(image_tmp_name(i), buf) < 0 ) {
+					if ( rename_ret < 0 ) {
 
+						errno = rename_errno;
 						ERROR_INFO("Renaming failed");
 
 						buf[0] = 0;

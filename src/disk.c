@@ -51,6 +51,7 @@ int disk_open_dev(int maj, int min, int partition, int readonly) {
 	DIR * dir;
 	struct dirent * dirent;
 	int found;
+	int old_errno;
 	size_t len;
 	char blkdev[1024];
 
@@ -117,6 +118,18 @@ int disk_open_dev(int maj, int min, int partition, int readonly) {
 
 		blkdev[len] = 0;
 
+		fd = open(blkdev, (readonly ? O_RDONLY : O_RDWR) | O_EXCL | O_NONBLOCK);
+		if ( fd < 0 ) {
+			ERROR_INFO("Cannot open block device %s", blkdev);
+			return -1;
+		} else {
+			if ( fstat(fd, &st) != 0 || ! S_ISBLK(st.st_mode) || makedev(maj, min) != st.st_rdev ) {
+				ERROR("Block device %s does not have id %d:%d\n", blkdev, maj, min);
+				close(fd);
+				return -1;
+			}
+		}
+
 	} else if ( partition > 0 ) {
 
 		/* Select partition */
@@ -127,35 +140,48 @@ int disk_open_dev(int maj, int min, int partition, int readonly) {
 			return -1;
 		}
 
-		memcpy(blkdev+len, "p1", 3);
-		if ( stat(blkdev, &st) != 0 || ! S_ISBLK(st.st_mode) ) {
-			memcpy(blkdev+len, "1", 2);
-			if ( stat(blkdev, &st) != 0 || ! S_ISBLK(st.st_mode) ) {
-				blkdev[len] = 0;
-				fd = open(blkdev, O_RDONLY);
-				if ( fd < 0 ) {
-					if ( errno != ENOMEDIUM ) {
-						ERROR_INFO("Cannot open block device %s", blkdev);
-						return -1;
-					}
-				} else {
-					close(fd);
-					ERROR("Block device does not have partitions");
-					return -1;
-				}
-			}
+		if ( snprintf(blkdev+len, sizeof(blkdev)-len, "p%d", partition) >= (int)(sizeof(blkdev)-len) ) {
+			ERROR("Block device name is too long");
+			return -1;
 		}
+		fd = open(blkdev, (readonly ? O_RDONLY : O_RDWR) | O_EXCL);
+		if ( fd < 0 && errno == ENOENT ) {
+			if ( snprintf(blkdev+len, sizeof(blkdev)-len, "%d", partition) >= (int)(sizeof(blkdev)-len) ) {
+				ERROR("Block device name is too long");
+				return -1;
+			}
+			fd = open(blkdev, (readonly ? O_RDONLY : O_RDWR) | O_EXCL);
+		}
+		if ( fd < 0 && errno == ENOENT ) {
+			blkdev[len] = 0;
+			fd = open(blkdev, O_RDONLY | O_NONBLOCK);
+			if ( fd < 0 ) {
+				ERROR_INFO("Cannot open block device %s", blkdev);
+			} else {
+				close(fd);
+				ERROR("Block device %s does not have partitions", blkdev);
+			}
+			return -1;
+		}
+		if ( fd < 0 )
+			old_errno = errno;
 
 		printf("Found block device %s for partition %d\n", blkdev, partition);
 
-	}
-
-	fd = open(blkdev, (readonly ? O_RDONLY : O_RDWR) | O_EXCL);
-
-	if ( fd < 0 ) {
-		if ( errno != ENOMEDIUM )
+		if ( fd < 0 ) {
+			errno = old_errno;
 			ERROR_INFO("Cannot open block device %s", blkdev);
-		return -1;
+		} else if ( fstat(fd, &st) != 0 || ! S_ISBLK(st.st_mode) ) {
+			ERROR("Block device %s is not block device\n", blkdev);
+			close(fd);
+			return -1;
+		}
+
+	} else {
+
+		ERROR("Invalid partition %d for block device %s", partition, blkdev);
+		fd = -1;
+
 	}
 
 	return fd;
@@ -195,7 +221,7 @@ int disk_dump_dev(int fd, const char * file) {
 #else
 
 	blksize = lseek(fd, 0, SEEK_END);
-	if ( blksize == (off_t)-1 ) {
+	if ( (off_t)blksize == (off_t)-1 ) {
 		ERROR_INFO("Cannot get size of block device");
 		return -1;
 	}
@@ -206,11 +232,6 @@ int disk_dump_dev(int fd, const char * file) {
 	}
 
 #endif
-
-	if ( blksize > ULLONG_MAX ) {
-		ERROR("Block device is too big");
-		return -1;
-	}
 
 	if ( blksize == 0 ) {
 		ERROR("Block device has zero size");
@@ -281,6 +302,7 @@ int disk_init(struct usb_device_info * dev) {
 	int maj2;
 	int min1;
 	int min2;
+	int tmp;
 
 	maj1 = -1;
 	maj2 = -1;
@@ -341,8 +363,16 @@ int disk_init(struct usb_device_info * dev) {
 
 		fclose(f);
 
-		if ( devnum != device->devnum || device->bus->location != busnum )
+		if ( device->devnum != devnum )
 			continue;
+
+		if ( device->bus->location ) {
+			if ( device->bus->location != busnum )
+				continue;
+		} else if ( device->bus->dirname[0] ) {
+			if ( atoi(device->bus->dirname) != (int)busnum )
+				continue;
+		}
 
 		if ( sscanf(dirent->d_name, "%d:%d", &maj2, &min2) != 2 ) {
 			maj2 = -1;
@@ -367,6 +397,16 @@ int disk_init(struct usb_device_info * dev) {
 		return -1;
 	}
 
+	/* Ensure that maj1:min1 is first device and maj2:min2 is second device */
+	if ( min2 != -1 && min2 < min1 ) {
+		tmp = min1;
+		min1 = min2;
+		min2 = tmp;
+		tmp = maj1;
+		maj1 = maj2;
+		maj2 = tmp;
+	}
+
 	/* TODO: change 1 to 0 when disk_flash_dev will be implemented */
 
 	/* RX-51 and RM-680 export MyDocs in first usb device and just first partion, so host system see whole device without MBR table */
@@ -378,7 +418,7 @@ int disk_init(struct usb_device_info * dev) {
 	else
 		fd = disk_open_dev(maj1, min1, 1, 1);
 
-	if ( fd < 0 && errno != ENOMEDIUM )
+	if ( fd < 0 )
 		return -1;
 
 	dev->data = fd;
@@ -391,6 +431,13 @@ int disk_init(struct usb_device_info * dev) {
 	return -1;
 
 #endif
+
+}
+
+void disk_exit(struct usb_device_info * dev) {
+
+	if ( dev->data >= 0 )
+		close(dev->data);
 
 }
 
