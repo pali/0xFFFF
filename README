@@ -10,23 +10,23 @@
                _/ ___|_.|__|
                 '`
 
-0xFFFF is Open Free Fiasco Firmware Flasher for Maemo devices. It support
-generating and unpacking FIASCO images on local computer. Useful for editing
-Maemo firmware package for future flash. It support via USB flashing any image
-type to Maemo device and also \"cold\" flashing which means flashing dead device
+0xFFFF is the Open Free Fiasco Firmware Flasher for Maemo devices. It supports
+generating and unpacking FIASCO images. It is useful for editing
+Maemo firmware packages before flashing. It supports flashing via USB any image
+type to a Maemo device and also \"cold\" flashing which means flashing dead device
 with erased bootloader. There is support for booting kernel via USB without
 flashing to NAND and also changing configuration of Maemo device (enable/disable
 R&D mode, changing HW revision strings, ...).
 
-0xFFFF is alternative tool to proprietary Nokia flasher-3.5 and fiasco-gen.
-0xFFFF generate compatible FIASCO images and also accept FIASCO images generated
+0xFFFF is an alternative tool to proprietary Nokia flasher-3.5 and fiasco-gen.
+0xFFFF generates compatible FIASCO images and also accepts FIASCO images generated
 by Nokia fiasco-gen.
 
 Use it with CARE. This is an experimental tool and it can brick your device.
-It's not supposed to be stable, so nokia will probably release incompatible
+It's not supposed to be stable, so Nokia will probably release incompatible
 bootloaders to break this tool. USE IT AT YOUR OWN RISK.
 
-PLEASE. Read carefully all the documentation inside doc/* for more information
+PLEASE. Read all the documentation inside doc/* carefully
 before building or using the flasher to avoid questions, problems or so.
 
   https://github.com/pali/0xFFFF
