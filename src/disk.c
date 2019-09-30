@@ -270,6 +270,11 @@ int disk_dump_dev(int fd, const char * file) {
 		size = read(fd, global_buf, need);
 		if ( size == 0 )
 			break;
+		if ( size < 0 ) {
+			PRINTF_ERROR("Reading from block device failed");
+			close(fd2);
+			return -1;
+		}
 		if ( write(fd2, global_buf, size) != size ) {
 			PRINTF_ERROR("Dumping image failed");
 			close(fd2);
