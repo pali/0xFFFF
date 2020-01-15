@@ -421,6 +421,8 @@ int main(int argc, char **argv) {
 	enum device detected_device = DEVICE_UNKNOWN;
 	int16_t detected_hwrev = -1;
 
+	struct stat st;
+
 	int i;
 	char buf[512];
 	char * ptr = NULL;
@@ -1259,7 +1261,7 @@ int main(int argc, char **argv) {
 
 				for ( i = 0; i < IMAGE_COUNT; ++i ) {
 
-					if ( ! image_tmp_name(i) )
+					if ( ! image_tmp_name(i) || ( stat(image_tmp_name(i), &st) < 0 && errno == ENOENT ) )
 						continue;
 
 					buf[0] = 0;
