@@ -191,14 +191,14 @@ static int send_2nd(usb_dev_handle * udev, struct image * image) {
 	if ( ret != sizeof(omap_peripheral_msg) )
 		ERROR_RETURN("Sending OMAP peripheral boot message failed", -1);
 
-	SLEEP(5000);
+	MSLEEP(5);
 
 	printf("Sending 2nd X-Loader image size...\n");
 	ret = usb_bulk_write(udev, USB_WRITE_EP, (char *)&image->size, 4, WRITE_TIMEOUT);
 	if ( ret != 4 )
 		ERROR_RETURN("Sending 2nd X-Loader image size failed", -1);
 
-	SLEEP(5000);
+	MSLEEP(5);
 
 	printf("Sending 2nd X-Loader image...\n");
 	printf_progressbar(0, image->size);
@@ -217,7 +217,7 @@ static int send_2nd(usb_dev_handle * udev, struct image * image) {
 		printf_progressbar(sent, image->size);
 	}
 
-	SLEEP(50000);
+	MSLEEP(50);
 	return 0;
 
 }
@@ -237,7 +237,7 @@ static int send_secondary(usb_dev_handle * udev, struct image * image) {
 		ERROR_RETURN("Sending X-Loader init message failed", -1);
 
 	printf("Waiting for X-Loader response...\n");
-	SLEEP(5000);
+	MSLEEP(5);
 	ret = usb_bulk_read(udev, USB_READ_EP, (char *)&buffer, 4, READ_TIMEOUT); /* 4 bytes - dummy value */
 	if ( ret != 4 )
 		ERROR_RETURN("No response", -1);
@@ -260,7 +260,7 @@ static int send_secondary(usb_dev_handle * udev, struct image * image) {
 	}
 
 	printf("Waiting for X-Loader response...\n");
-	SLEEP(5000);
+	MSLEEP(5);
 	ret = usb_bulk_read(udev, USB_READ_EP, (char *)&buffer, 4, READ_TIMEOUT); /* 4 bytes - dummy value */
 	if ( ret != 4 )
 		ERROR_RETURN("No response", -1);
@@ -296,7 +296,7 @@ static int ping_timeout(usb_dev_handle * udev) {
 				break;
 			}
 
-			SLEEP(5000);
+			MSLEEP(5);
 			--try_read;
 
 		}
@@ -413,7 +413,7 @@ int leave_cold_flash(struct usb_device_info * dev) {
 	if ( ret != sizeof(omap_memory_msg) )
 		ERROR_RETURN("Sending OMAP memory boot message failed", -1);
 
-	SLEEP(1000000);
+	MSLEEP(250);
 	return 0;
 
 }

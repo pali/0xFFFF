@@ -361,6 +361,11 @@ int mkii_reboot_device(struct usb_device_info * dev, int update) {
 	if ( ret != 1 || msg->data[0] != 0 )
 		ERROR_RETURN("Cannot send reboot command", -1);
 
+	if (dev->data & MKII_UPDATE_MODE)
+		MSLEEP(100);
+	else
+		MSLEEP(3000);
+
 	return 0;
 
 }

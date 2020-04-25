@@ -22,7 +22,7 @@ extern int verbose;
 #define ALLOC_ERROR() do { ERROR("Cannot allocate memory"); } while (0)
 #define ALLOC_ERROR_RETURN(...) do { ALLOC_ERROR(); return __VA_ARGS__; } while (0)
 
-#define SLEEP(usec) do { struct timespec _t = { 0, (usec) }; nanosleep(&_t, NULL); } while (0)
+#define MSLEEP(msec) do { nanosleep(&(struct timespec){ (msec / 1000), (1000L * 1000L * (msec % 1000)) }, NULL); } while (0)
 
 static inline void * MEMMEM(void *haystack, size_t haystacklen, const void *needle, size_t needlelen) {
 	for ( size_t i = 0; i < haystacklen; ++i ) {

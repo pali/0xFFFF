@@ -361,7 +361,7 @@ struct usb_device_info * usb_open_and_wait_for_device(void) {
 		if ( ret )
 			break;
 
-		SLEEP(0xc350); // 0.5s
+		MSLEEP(50);
 
 	}
 

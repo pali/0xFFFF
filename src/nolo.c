@@ -541,7 +541,7 @@ int nolo_flash_image(struct usb_device_info * dev, struct image * image) {
 
 			}
 
-			SLEEP(0xc350); // 0.5s
+			MSLEEP(50);
 
 		}
 
