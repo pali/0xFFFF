@@ -195,7 +195,7 @@ static struct usb_device_info * usb_device_is_valid(struct usb_device * dev) {
 			if ( usb_devices[i].alternate >= 0 ) {
 				PRINTF_LINE("Setting alternate USB interface...");
 				if ( usb_set_altinterface(udev, usb_devices[i].alternate) < 0 ) {
-					PRINTF_ERROR("usb_claim_interface failed");
+					PRINTF_ERROR("usb_set_altinterface failed");
 					fprintf(stderr, "\n");
 					usb_reattach_kernel_driver(udev, usb_devices[i].interface);
 					usb_close(udev);
