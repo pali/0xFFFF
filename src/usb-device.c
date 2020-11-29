@@ -134,7 +134,7 @@ static void usb_descriptor_info_print(usb_dev_handle * udev, struct usb_device *
 		buf[0] = 0;
 	for ( i = 0; i < ret; i+=2 ) {
 		sscanf(buf+i, "%2x", &x);
-		if ( x > 32 && x < 128 )
+		if ( x > 31 && x < 127 )
 			buf2[i/2] = x;
 		else {
 			buf2[0] = 0;
