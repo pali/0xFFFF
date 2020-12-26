@@ -53,8 +53,12 @@ static struct usb_flash_device usb_devices[] = {
 	{ 0x0421, 0x01c7, -1, -1, -1, FLASH_DISK, { DEVICE_RX_51, 0 } },
 	{ 0x0421, 0x01c8,  1,  1, -1, FLASH_MKII, { DEVICE_RX_51, DEVICE_RM_680, 0 } },
 	{ 0x0421, 0x03d1, -1, -1, -1, FLASH_DISK, { DEVICE_RM_680, 0 } },
+	{ 0x0421, 0x03d2,  1,  1, -1, FLASH_MKII, { DEVICE_RM_680, 0 } },
 	{ 0x0421, 0x0431, -1, -1, -1, FLASH_DISK, { DEVICE_SU_18, DEVICE_RX_34, 0 } },
 	{ 0x0421, 0x04c3, -1, -1, -1, FLASH_DISK, { DEVICE_RX_34, 0 } },
+	{ 0x0421, 0x0518, -1, -1, -1, FLASH_DISK, { DEVICE_RM_696, 0 } },
+	{ 0x0421, 0x0519, -1, -1, -1, FLASH_UNKN, { DEVICE_RM_696, 0 } }, /* RNDIS/Ethernet mode */
+	{ 0x0421, 0x051a,  1,  1, -1, FLASH_MKII, { DEVICE_RM_696, 0 } },
 	{ 0x0421, 0x3f00,  2,  1, -1, FLASH_NOLO, { DEVICE_RX_34, 0 } },
 };
 
@@ -158,6 +162,9 @@ static struct usb_device_info * usb_device_is_valid(struct usb_device * dev) {
 
 		if ( dev->descriptor.idVendor == usb_devices[i].vendor && dev->descriptor.idProduct == usb_devices[i].product ) {
 
+			if ( usb_devices[i].protocol == FLASH_UNKN )
+				continue;
+
 			printf("\b\b  ");
 			PRINTF_END();
 			PRINTF_ADD("Found ");
@@ -232,11 +239,11 @@ static struct usb_device_info * usb_device_is_valid(struct usb_device * dev) {
 				ret->device = DEVICE_RX_48;
 			else if ( strcmp(product, "N900 (Storage Mode)") == 0 || strcmp(product, "Nokia N900 (Update mode)") == 0 || strcmp(product, "N900 (PC-Suite Mode)") == 0 )
 				ret->device = DEVICE_RX_51;
-			else if ( strcmp(product, "Nokia N950") == 0 || strcmp(product, "Sync Mode") == 0 || strcmp(product, "N950 (Update mode)") == 0 )
+			else if ( strcmp(product, "Nokia N950") == 0 || strcmp(product, "N950 (Update mode)") == 0 )
 				ret->device = DEVICE_RM_680;
-			else if ( strcmp(product, "N9 (Update mode)") == 0 || strcmp(product, "Nxy (Update mode)") == 0 )
+			else if ( strcmp(product, "Nokia N9") == 0 || strcmp(product, "N9 (Update mode)") == 0 || strcmp(product, "Nokia N9 RNDIS/Ethernet") == 0 )
 				ret->device = DEVICE_RM_696;
-			else if ( strcmp(product, "Nokia USB ROM") == 0 )
+			else if ( strcmp(product, "Nokia USB ROM") == 0 || strcmp(product, "Sync Mode") == 0 || strcmp(product, "Nxy (Update mode)") == 0 )
 				ret->device = DEVICE_ANY;
 			else
 				ret->device = DEVICE_UNKNOWN;
