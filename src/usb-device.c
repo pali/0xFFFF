@@ -58,7 +58,7 @@ static struct usb_flash_device usb_devices[] = {
 	{ 0x0421, 0x04c3, -1, -1, -1, FLASH_DISK, { DEVICE_RX_34, 0 } },
 	{ 0x0421, 0x0518, -1, -1, -1, FLASH_DISK, { DEVICE_RM_696, 0 } },
 	{ 0x0421, 0x0519, -1, -1, -1, FLASH_UNKN, { DEVICE_RM_696, 0 } }, /* RNDIS/Ethernet mode */
-	{ 0x0421, 0x051a,  1,  1, -1, FLASH_MKII, { DEVICE_RM_696, 0 } },
+	{ 0x0421, 0x051a,  2,  1, -1, FLASH_UNKN, { DEVICE_RM_696, 0 } }, /* Sync mode (ADL protocol) */
 	{ 0x0421, 0x3f00,  2,  1, -1, FLASH_NOLO, { DEVICE_RX_34, 0 } },
 };
 
