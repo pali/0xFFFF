@@ -154,11 +154,11 @@ static void usb_descriptor_info_print(usb_dev_handle * udev, struct usb_device *
 
 static struct usb_device_info * usb_device_is_valid(struct usb_device * dev) {
 
-	int i;
+	size_t i;
 	char product[1024];
 	struct usb_device_info * ret = NULL;
 
-	for ( i = 0; usb_devices[i].vendor; ++i ) {
+	for ( i = 0; i < sizeof(usb_devices)/sizeof(usb_devices[0]); ++i ) {
 
 		if ( dev->descriptor.idVendor == usb_devices[i].vendor && dev->descriptor.idProduct == usb_devices[i].product ) {
 
