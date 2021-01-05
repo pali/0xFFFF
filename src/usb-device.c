@@ -165,6 +165,18 @@ static struct usb_device_info * usb_device_is_valid(struct usb_device * dev) {
 			if ( usb_devices[i].protocol == FLASH_UNKN )
 				continue;
 
+			if ( dev->descriptor.bNumConfigurations < 1 )
+				continue;
+
+			if ( usb_devices[i].interface != -1 ) {
+				if ( usb_devices[i].interface >= dev->config[0].bNumInterfaces )
+					continue;
+				if ( usb_devices[i].alternate != -1 ) {
+					if ( usb_devices[i].alternate >= dev->config[0].interface[usb_devices[i].interface].num_altsetting )
+						continue;
+				}
+			}
+
 			printf("\b\b  ");
 			PRINTF_END();
 			PRINTF_ADD("Found ");
