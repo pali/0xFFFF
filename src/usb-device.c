@@ -53,6 +53,7 @@ static struct usb_flash_device usb_devices[] = {
 	{ 0x0421, 0x0189, -1, -1, FLASH_DISK, { DEVICE_RX_48, 0 } },
 	{ 0x0421, 0x01c7, -1, -1, FLASH_DISK, { DEVICE_RX_51, 0 } },
 	{ 0x0421, 0x01c8,  1,  1, FLASH_MKII, { DEVICE_RX_51, DEVICE_RM_680, 0 } },
+	{ 0x0421, 0x01c8,  1,  0, FLASH_UNKN, { DEVICE_RX_51, 0 } }, /* U-Boot mode (TTY via USB) */
 	{ 0x0421, 0x03d1, -1, -1, FLASH_DISK, { DEVICE_RM_680, 0 } },
 	{ 0x0421, 0x03d2,  1,  1, FLASH_MKII, { DEVICE_RM_680, 0 } },
 	{ 0x0421, 0x0431, -1, -1, FLASH_DISK, { DEVICE_SU_18, DEVICE_RX_34, 0 } },
@@ -238,7 +239,7 @@ static struct usb_device_info * usb_device_is_valid(struct usb_device * dev) {
 				ret->device = DEVICE_RX_44;
 			else if ( strcmp(product, "Nokia N810 Internet Tablet WiMAX Edition") == 0 || strcmp(product, "Nokia-RX48 (Update mode)") == 0 )
 				ret->device = DEVICE_RX_48;
-			else if ( strcmp(product, "N900 (Storage Mode)") == 0 || strcmp(product, "Nokia N900 (Update mode)") == 0 || strcmp(product, "N900 (PC-Suite Mode)") == 0 )
+			else if ( strcmp(product, "N900 (Storage Mode)") == 0 || strcmp(product, "Nokia N900 (Update mode)") == 0 || strcmp(product, "N900 (PC-Suite Mode)") == 0 || strcmp(product, "N900 (U-Boot)") == 0 )
 				ret->device = DEVICE_RX_51;
 			else if ( strcmp(product, "Nokia N950") == 0 || strcmp(product, "N950 (Update mode)") == 0 )
 				ret->device = DEVICE_RM_680;
