@@ -414,8 +414,8 @@ int disk_init(struct usb_device_info * dev) {
 
 	/* TODO: change 1 to 0 when disk_flash_dev will be implemented */
 
-	/* RX-51 and RM-680 export MyDocs in first usb device and just first partion, so host system see whole device without MBR table */
-	if ( dev->device == DEVICE_RX_51 || dev->device == DEVICE_RM_680 )
+	/* RX-51, RM-680 and RM-696 export MyDocs in first usb device and just first partion, so host system see whole device without MBR table */
+	if ( dev->device == DEVICE_RX_51 || dev->device == DEVICE_RM_680 || dev->device == DEVICE_RM_696 )
 		fd = disk_open_dev(maj1, min1, -1, 1);
 	/* Other devices can export SD card as first partition and export whole mmc device, so host system will see MBR table */
 	else if ( maj2 != -1 && min2 != -1 )
