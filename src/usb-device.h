@@ -49,7 +49,6 @@ struct usb_flash_device {
 	uint16_t product;
 	int interface;
 	int alternate;
-	int configuration;
 	enum usb_flash_protocol protocol;
 	enum device devices[DEVICE_COUNT];
 };

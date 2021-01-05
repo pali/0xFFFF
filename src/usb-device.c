@@ -46,19 +46,20 @@
 #endif
 
 static struct usb_flash_device usb_devices[] = {
-	{ 0x0421, 0x0096, -1, -1, -1, FLASH_DISK, { DEVICE_RX_44, 0 } },
-	{ 0x0421, 0x0105,  2,  1, -1, FLASH_NOLO, { DEVICE_SU_18, DEVICE_RX_34, DEVICE_RX_44, DEVICE_RX_48, DEVICE_RX_51, DEVICE_RM_680, DEVICE_RM_696, 0 } },
-	{ 0x0421, 0x0106,  0, -1, -1, FLASH_COLD, { DEVICE_RX_51, DEVICE_RM_680, DEVICE_RM_696, 0 } },
-	{ 0x0421, 0x0189, -1, -1, -1, FLASH_DISK, { DEVICE_RX_48, 0 } },
-	{ 0x0421, 0x01c7, -1, -1, -1, FLASH_DISK, { DEVICE_RX_51, 0 } },
-	{ 0x0421, 0x01c8,  1,  1, -1, FLASH_MKII, { DEVICE_RX_51, DEVICE_RM_680, 0 } },
-	{ 0x0421, 0x03d1, -1, -1, -1, FLASH_DISK, { DEVICE_RM_680, 0 } },
-	{ 0x0421, 0x03d2,  1,  1, -1, FLASH_MKII, { DEVICE_RM_680, 0 } },
-	{ 0x0421, 0x0431, -1, -1, -1, FLASH_DISK, { DEVICE_SU_18, DEVICE_RX_34, 0 } },
-	{ 0x0421, 0x04c3, -1, -1, -1, FLASH_DISK, { DEVICE_RX_34, 0 } },
-	{ 0x0421, 0x0518, -1, -1, -1, FLASH_DISK, { DEVICE_RM_696, 0 } },
-	{ 0x0421, 0x0519, -1, -1, -1, FLASH_UNKN, { DEVICE_RM_696, 0 } }, /* RNDIS/Ethernet mode */
-	{ 0x0421, 0x051a,  2,  1, -1, FLASH_UNKN, { DEVICE_RM_696, 0 } }, /* Sync mode (ADL protocol) */
+	/* vend    prod    i   a   protocol     devices */
+	{ 0x0421, 0x0096, -1, -1, FLASH_DISK, { DEVICE_RX_44, 0 } },
+	{ 0x0421, 0x0105,  2,  1, FLASH_NOLO, { DEVICE_SU_18, DEVICE_RX_34, DEVICE_RX_44, DEVICE_RX_48, DEVICE_RX_51, DEVICE_RM_680, DEVICE_RM_696, 0 } },
+	{ 0x0421, 0x0106,  0, -1, FLASH_COLD, { DEVICE_RX_51, DEVICE_RM_680, DEVICE_RM_696, 0 } },
+	{ 0x0421, 0x0189, -1, -1, FLASH_DISK, { DEVICE_RX_48, 0 } },
+	{ 0x0421, 0x01c7, -1, -1, FLASH_DISK, { DEVICE_RX_51, 0 } },
+	{ 0x0421, 0x01c8,  1,  1, FLASH_MKII, { DEVICE_RX_51, DEVICE_RM_680, 0 } },
+	{ 0x0421, 0x03d1, -1, -1, FLASH_DISK, { DEVICE_RM_680, 0 } },
+	{ 0x0421, 0x03d2,  1,  1, FLASH_MKII, { DEVICE_RM_680, 0 } },
+	{ 0x0421, 0x0431, -1, -1, FLASH_DISK, { DEVICE_SU_18, DEVICE_RX_34, 0 } },
+	{ 0x0421, 0x04c3, -1, -1, FLASH_DISK, { DEVICE_RX_34, 0 } },
+	{ 0x0421, 0x0518, -1, -1, FLASH_DISK, { DEVICE_RM_696, 0 } },
+	{ 0x0421, 0x0519, -1, -1, FLASH_UNKN, { DEVICE_RM_696, 0 } }, /* RNDIS/Ethernet mode */
+	{ 0x0421, 0x051a,  2,  1, FLASH_UNKN, { DEVICE_RM_696, 0 } }, /* Sync mode (ADL protocol) */
 };
 
 static const char * usb_flash_protocols[] = {
@@ -202,17 +203,6 @@ static struct usb_device_info * usb_device_is_valid(struct usb_device * dev) {
 				PRINTF_LINE("Setting alternate USB interface...");
 				if ( usb_set_altinterface(udev, usb_devices[i].alternate) < 0 ) {
 					PRINTF_ERROR("usb_set_altinterface failed");
-					fprintf(stderr, "\n");
-					usb_reattach_kernel_driver(udev, usb_devices[i].interface);
-					usb_close(udev);
-					return NULL;
-				}
-			}
-
-			if ( usb_devices[i].configuration >= 0 ) {
-				PRINTF_LINE("Setting USB configuration...");
-				if ( usb_set_configuration(udev, usb_devices[i].configuration) < 0 ) {
-					PRINTF_ERROR("usb_set_configuration failed");
 					fprintf(stderr, "\n");
 					usb_reattach_kernel_driver(udev, usb_devices[i].interface);
 					usb_close(udev);
