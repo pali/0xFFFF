@@ -19,6 +19,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <signal.h>
 
 #include <sys/statvfs.h>
 #include <sys/types.h>
@@ -198,14 +199,6 @@ enum device local_get_device(void) {
 
 }
 
-int local_flash_image(struct image * image) {
-
-	ERROR("Not implemented yet");
-	(void)image;
-	return -1;
-
-}
-
 static int local_nanddump(const char * file, int mtd, int offset, int length) {
 
 	struct statvfs buf;
@@ -240,6 +233,31 @@ static int local_nanddump(const char * file, int mtd, int offset, int length) {
 	free(command);
 
 	return ret;
+
+}
+
+static FILE * local_nandwrite(int mtd, int offset) {
+
+	char * command;
+	FILE * stream;
+	size_t size;
+
+	size = snprintf(NULL, 0, "nandwrite -a -s %d -p /dev/mtd%d -", offset, mtd);
+
+	command = malloc(size+1);
+	if ( ! command )
+		return NULL;
+
+	snprintf(command, size+1, "nandwrite -a -s %d -p /dev/mtd%d -", offset, mtd);
+
+	if ( ! simulate )
+		stream = popen(command, "w");
+	else
+		stream = NULL;
+
+	free(command);
+
+	return stream;
 
 }
 
@@ -511,6 +529,142 @@ clean:
 		close(fd);
 
 	printf("\n");
+	return ret;
+
+}
+
+int local_flash_image(struct image * image) {
+
+	unsigned char buf[0x20000];
+	unsigned int remaining, size;
+	void (*sighandler)(int);
+	int min, maj, fd;
+	FILE * stream;
+	int ret;
+
+	printf("Flash image:\n");
+	image_print_info(image);
+
+	if ( image->type == IMAGE_MMC ) {
+
+		maj = -1;
+		min = -1;
+
+		local_find_internal_mydocs(&maj, &min);
+		if ( maj == -1 || min == -1 )
+			ERROR_RETURN("Cannot find MyDocs mmc device: Slot 'internal' was not found", -1);
+
+		VERBOSE("Detected internal MyDocs mmc device: major=%d minor=%d\n", maj, min);
+
+		fd = disk_open_dev(maj, min, 1, simulate ? 1 : 0);
+		if ( fd < 0 )
+			ERROR_RETURN("Cannot open MyDocs mmc device in /dev/", -1);
+
+		ret = disk_flash_dev(fd, image);
+
+		close(fd);
+
+	} else {
+
+		if ( device >= sizeof(nand_device)/sizeof(nand_device[0]) )
+			ERROR_RETURN("Unsupported device", -1);
+
+		if ( image->type >= nand_device[device].count ) {
+			ERROR("Unsupported image type: %s", image_type_to_string(image->type));
+			return -1;
+		}
+
+		if ( image->size > nand_device[device].args[image->type].length - nand_device[device].args[image->type].header )
+			ERROR_RETURN("Image is too big", -1);
+
+		printf("Using nandwrite for flashing %s image...\n", image_type_to_string(image->type));
+
+		stream = local_nandwrite(nand_device[device].args[image->type].mtd, nand_device[device].args[image->type].offset);
+		if ( ! simulate && ! stream )
+			ERROR_RETURN("Cannot start nandwrite process", -1);
+
+		ret = 0;
+		sighandler = signal(SIGPIPE, SIG_IGN);
+
+		/* Write NOLO!img header with size */
+		if ( nand_device[device].args[image->type].header > 0 ) {
+			memcpy(buf, "NOLO!img\x02\x00\x00\x00\x00\x00\x00\x00", 16);
+			buf[16] = (image->size >>  0) & 0xFF;
+			buf[17] = (image->size >>  8) & 0xFF;
+			buf[18] = (image->size >> 16) & 0xFF;
+			buf[19] = (image->size >> 24) & 0xFF;
+			if ( ! simulate ) {
+				if ( fwrite(buf, 20, 1, stream) != 1 ) {
+					ret = -1;
+					goto clean;
+				}
+			}
+
+			memset(buf, 0, sizeof(buf));
+			remaining = nand_device[device].args[image->type].header - 20;
+			while ( remaining > 0 ) {
+				size = remaining < sizeof(buf) ? remaining : sizeof(buf);
+				if ( ! simulate ) {
+					if ( fwrite(buf, size, 1, stream) != 1 ) {
+						ret = -1;
+						goto clean;
+					}
+				}
+				remaining -= size;
+			}
+		}
+
+		/* Write image data */
+		image_seek(image, 0);
+		remaining = image->size;
+		while ( remaining > 0 ) {
+			size = remaining < sizeof(buf) ? remaining : sizeof(buf);
+			size = image_read(image, buf, size);
+			if ( size == 0 ) {
+				ERROR("Failed to read image");
+				ret = -1;
+				goto clean;
+			}
+			if ( ! simulate ) {
+				if ( fwrite(buf, size, 1, stream) != 1 ) {
+					ret = -1;
+					goto clean;
+				}
+			}
+			remaining -= size;
+		}
+
+		/* Write filler zeros to clear previous data */
+		memset(buf, 0, sizeof(buf));
+		remaining = nand_device[device].args[image->type].length - (image->size + nand_device[device].args[image->type].header);
+		while ( remaining > 0 ) {
+			size = remaining < sizeof(buf) ? remaining : sizeof(buf);
+			if ( ! simulate ) {
+				if ( fwrite(buf, size, 1, stream) != 1 ) {
+					ret = -1;
+					goto clean;
+				}
+			}
+			remaining -= size;
+		}
+
+clean:
+		if ( ! simulate ) {
+			if ( ret == 0 )
+				ret = pclose(stream);
+			else
+				pclose(stream);
+		}
+
+		signal(SIGPIPE, sighandler);
+
+		if ( ret != 0 )
+			ERROR("Flashing failed");
+	}
+
+	if ( ret == 0 )
+		printf("Done\n");
+
 	return ret;
 
 }
