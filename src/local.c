@@ -244,36 +244,36 @@ static int local_nanddump(const char * file, int mtd, int offset, int length) {
 }
 
 struct nanddump_args {
-	int valid;
 	int mtd;
 	int offset;
 	int length;
+	int header;
 };
 
 static struct nanddump_args nanddump_rx51[] = {
-	[IMAGE_XLOADER]   = { 1, 0, 0x00000000, 0x00004000 },
-	[IMAGE_SECONDARY] = { 1, 0, 0x00004000, 0x0001C000 },
-	[IMAGE_KERNEL]    = { 1, 3, 0x00000800, 0x001FF800 },
-	[IMAGE_INITFS]    = { 1, 4, 0x00000000, 0x00200000 },
-	[IMAGE_ROOTFS]    = { 1, 5, 0x00000000, 0x0fb40000 },
+	[IMAGE_XLOADER]   = { 0, 0x00000000, 0x00004000, 0x00000000 },
+	[IMAGE_SECONDARY] = { 0, 0x00004000, 0x0001C000, 0x00000000 },
+	[IMAGE_KERNEL]    = { 3, 0x00000000, 0x00200000, 0x00000800 },
+	[IMAGE_INITFS]    = { 4, 0x00000000, 0x00200000, 0x00000000 },
+	[IMAGE_ROOTFS]    = { 5, 0x00000000, 0x0fb40000, 0x00000000 },
 };
 
 /* FIXME: Is this table correct? */
 static struct nanddump_args nanddump_rx4x[] = {
-	[IMAGE_XLOADER]   = { 1, 0, 0x00000200, 0x00003E00 },
-	[IMAGE_SECONDARY] = { 1, 0, 0x00004000, 0x0001C000 },
-	[IMAGE_KERNEL]    = { 1, 2, 0x00000800, 0x0021F800 },
-	[IMAGE_INITFS]    = { 1, 3, 0x00000000, 0x00400000 },
-	[IMAGE_ROOTFS]    = { 1, 4, 0x00000000, 0x0f960000 },
+	[IMAGE_XLOADER]   = { 0, 0x00000200, 0x00003E00, 0x00000000 },
+	[IMAGE_SECONDARY] = { 0, 0x00004000, 0x0001C000, 0x00000000 },
+	[IMAGE_KERNEL]    = { 2, 0x00000000, 0x00220000, 0x00000800 },
+	[IMAGE_INITFS]    = { 3, 0x00000000, 0x00400000, 0x00000000 },
+	[IMAGE_ROOTFS]    = { 4, 0x00000000, 0x0f960000, 0x00000000 },
 };
 
 /* FIXME: Is this table correct? */
 static struct nanddump_args nanddump_old[] = {
-	[IMAGE_XLOADER]   = { 1, 0, 0x00000200, 0x00003E00 },
-	[IMAGE_SECONDARY] = { 1, 0, 0x00004000, 0x0001C000 },
-	[IMAGE_KERNEL]    = { 1, 2, 0x00000800, 0x001FF800 },
-	[IMAGE_INITFS]    = { 1, 3, 0x00000000, 0x00200000 },
-	[IMAGE_ROOTFS]    = { 1, 4, 0x00000000, 0x0fb80000 },
+	[IMAGE_XLOADER]   = { 0, 0x00000200, 0x00003E00, 0x00000000 },
+	[IMAGE_SECONDARY] = { 0, 0x00004000, 0x0001C000, 0x00000000 },
+	[IMAGE_KERNEL]    = { 2, 0x00000000, 0x00200000, 0x00000800 },
+	[IMAGE_INITFS]    = { 3, 0x00000000, 0x00200000, 0x00000000 },
+	[IMAGE_ROOTFS]    = { 4, 0x00000000, 0x0fb80000, 0x00000000 },
 };
 
 struct nanddump_device {
@@ -380,10 +380,13 @@ static void local_find_internal_mydocs(int * maj, int * min) {
 
 int local_dump_image(enum image_type image, const char * file) {
 
+	unsigned char buf[20];
 	int ret = -1;
 	int fd = -1;
+	int header = 0;
 	unsigned char * addr = NULL;
-	off_t nlen, len;
+	off_t nlen = (off_t)-1;
+	off_t len;
 	int align;
 	int maj, min;
 
@@ -425,7 +428,28 @@ int local_dump_image(enum image_type image, const char * file) {
 			goto clean;
 		}
 
-		ret = local_nanddump(file, nanddump[device].args[image].mtd, nanddump[device].args[image].offset, nanddump[device].args[image].length);
+		header = nanddump[device].args[image].header;
+
+		if ( header > 0 ) {
+
+			ret = local_nanddump(file, nanddump[device].args[image].mtd, nanddump[device].args[image].offset, header);
+			if ( ret != 0 ) {
+				unlink(file);
+				ret = -1;
+				goto clean;
+			}
+
+			fd = open(file, O_RDONLY);
+			if ( fd >= 0 ) {
+				if ( read(fd, buf, 20) == 20 && memcmp(buf, "NOLO!img\x02\x00\x00\x00\x00\x00\x00\x00", 16) == 0 )
+					nlen = (buf[16] << 0) | (buf[17] << 8) | (buf[18] << 16) | (buf[19] << 24);
+				close(fd);
+			}
+
+			unlink(file);
+		}
+
+		ret = local_nanddump(file, nanddump[device].args[image].mtd, nanddump[device].args[image].offset + header, nanddump[device].args[image].length - header);
 
 	}
 
@@ -442,31 +466,35 @@ int local_dump_image(enum image_type image, const char * file) {
 	if ( len == (off_t)-1 || len == 0 )
 		goto clean;
 
-	addr = (unsigned char *)mmap(NULL, len, PROT_READ, MAP_PRIVATE, fd, 0);
+	if ( header <= 0 || nlen == (off_t)-1 ) {
 
-	if ( addr == MAP_FAILED )
-		addr = NULL;
+		addr = (unsigned char *)mmap(NULL, len, PROT_READ, MAP_PRIVATE, fd, 0);
 
-	if ( ! addr )
-		goto clean;
+		if ( addr == MAP_FAILED )
+			addr = NULL;
 
-	for ( nlen = len; nlen > 0; --nlen )
-		if ( addr[nlen-1] != 0xFF )
-			break;
+		if ( ! addr )
+			goto clean;
 
-	for ( ; nlen > 0; --nlen )
-		if ( addr[nlen-1] != 0x00 )
-			break;
+		for ( nlen = len; nlen > 0; --nlen )
+			if ( addr[nlen-1] != 0xFF )
+				break;
 
-	if ( image == IMAGE_MMC )
-		align = 8;
-	else
-		align = 7;
+		for ( ; nlen > 0; --nlen )
+			if ( addr[nlen-1] != 0x00 )
+				break;
 
-	if ( ( nlen & ( ( 1ULL << align ) - 1 ) ) != 0 )
-		nlen = ((nlen >> align) + 1) << align;
+		if ( image == IMAGE_MMC )
+			align = 8;
+		else
+			align = 7;
 
-	if ( nlen == 0 ) {
+		if ( ( nlen & ( ( 1ULL << align ) - 1 ) ) != 0 )
+			nlen = ((nlen >> align) + 1) << align;
+
+	}
+
+	if ( header <= 0 && nlen == 0 ) {
 		printf("File %s is empty, removing it...\n", file);
 		unlink(file);
 	} else if ( nlen != len ) {
