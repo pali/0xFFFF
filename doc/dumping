@@ -30,11 +30,10 @@ Technical details:
 For dumping mtd partition is used tool nanddump. Here is example how to dump
 kernel image without padding to file zImage:
 
- $ nanddump -o -b -s 0x00000800 -l 0x001FF800 -f zImage /dev/mtd2
+ $ nanddump --omitoob -s 0x00000800 -l 0x001FF800 -f zImage /dev/mtd2
 
 Params means:
--o - "Omit oob data"
--b - "Omit bad blocks"
+--omitoob - "Omit oob data"
 -s - "Start address"
 -l - "Length"
 -f - "Output file"
