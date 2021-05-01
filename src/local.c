@@ -228,7 +228,10 @@ static int local_nanddump(const char * file, int mtd, int offset, int length) {
 
 	snprintf(command, size+1, "nanddump --omitoob -s %d -l %d -f %s /dev/mtd%d", offset, length, file, mtd);
 
-	ret = system(command);
+	if ( ! simulate )
+		ret = system(command);
+	else
+		ret = 0;
 
 	free(command);
 
@@ -452,19 +455,25 @@ int local_dump_image(enum image_type image, const char * file) {
 
 			ret = local_nanddump(file, nand_device[device].args[image].mtd, nand_device[device].args[image].offset, header);
 			if ( ret != 0 ) {
-				unlink(file);
+				if ( ! simulate )
+					unlink(file);
 				ret = -1;
 				goto clean;
 			}
 
-			fd = open(file, O_RDONLY);
-			if ( fd >= 0 ) {
-				if ( read(fd, buf, 20) == 20 && memcmp(buf, "NOLO!img\x02\x00\x00\x00\x00\x00\x00\x00", 16) == 0 )
-					nlen = (buf[16] << 0) | (buf[17] << 8) | (buf[18] << 16) | (buf[19] << 24);
-				close(fd);
+			if ( ! simulate ) {
+
+				fd = open(file, O_RDONLY);
+				if ( fd >= 0 ) {
+					if ( read(fd, buf, 20) == 20 && memcmp(buf, "NOLO!img\x02\x00\x00\x00\x00\x00\x00\x00", 16) == 0 )
+						nlen = (buf[16] << 0) | (buf[17] << 8) | (buf[18] << 16) | (buf[19] << 24);
+					close(fd);
+				}
+
+				unlink(file);
+
 			}
 
-			unlink(file);
 		}
 
 		ret = local_nanddump(file, nand_device[device].args[image].mtd, nand_device[device].args[image].offset + header, nand_device[device].args[image].length - header);
@@ -475,6 +484,9 @@ int local_dump_image(enum image_type image, const char * file) {
 		ret = -1;
 		goto clean;
 	}
+
+	if ( simulate )
+		goto clean;
 
 	fd = open(file, O_RDWR);
 	if ( fd < 0 )
