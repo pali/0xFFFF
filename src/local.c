@@ -466,8 +466,9 @@ int local_dump_image(enum image_type image, const char * file) {
 				fd = open(file, O_RDONLY);
 				if ( fd >= 0 ) {
 					if ( read(fd, buf, 20) == 20 && memcmp(buf, "NOLO!img\x02\x00\x00\x00\x00\x00\x00\x00", 16) == 0 )
-						nlen = (buf[16] << 0) | (buf[17] << 8) | (buf[18] << 16) | (buf[19] << 24);
+						nlen = ((unsigned int)buf[16] << 0) | ((unsigned int)buf[17] << 8) | ((unsigned int)buf[18] << 16) | ((unsigned int)buf[19] << 24);
 					close(fd);
+					fd = -1;
 				}
 
 				unlink(file);
