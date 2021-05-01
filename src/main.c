@@ -1096,7 +1096,7 @@ int main(int argc, char **argv) {
 			if ( dev_load ) {
 				if ( image_kernel ) {
 					ret = dev_load_image(dev, image_kernel->image);
-					if ( ret < 0 )
+					if ( ret == -EAGAIN )
 						goto again;
 
 					if ( image_kernel == image_first )
@@ -1110,7 +1110,7 @@ int main(int argc, char **argv) {
 
 				if ( image_initfs ) {
 					ret = dev_load_image(dev, image_initfs->image);
-					if ( ret < 0 )
+					if ( ret == -EAGAIN )
 						goto again;
 
 					if ( image_initfs == image_first )
@@ -1129,7 +1129,7 @@ int main(int argc, char **argv) {
 				while ( image_ptr ) {
 					struct image_list * next = image_ptr->next;
 					ret = dev_flash_image(dev, image_ptr->image);
-					if ( ret < 0 )
+					if ( ret == -EAGAIN )
 						goto again;
 
 					if ( image_ptr == image_first )
