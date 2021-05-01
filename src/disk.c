@@ -118,7 +118,7 @@ int disk_open_dev(int maj, int min, int partition, int readonly) {
 
 		blkdev[len] = 0;
 
-		fd = open(blkdev, (readonly ? O_RDONLY : O_RDWR) | O_EXCL | O_NONBLOCK);
+		fd = open(blkdev, ((simulate || readonly) ? O_RDONLY : O_RDWR) | O_EXCL | O_NONBLOCK);
 		if ( fd < 0 ) {
 			ERROR_INFO("Cannot open block device %s", blkdev);
 			return -1;
@@ -144,13 +144,13 @@ int disk_open_dev(int maj, int min, int partition, int readonly) {
 			ERROR("Block device name is too long");
 			return -1;
 		}
-		fd = open(blkdev, (readonly ? O_RDONLY : O_RDWR) | O_EXCL);
+		fd = open(blkdev, ((simulate || readonly) ? O_RDONLY : O_RDWR) | O_EXCL);
 		if ( fd < 0 && errno == ENOENT ) {
 			if ( snprintf(blkdev+len, sizeof(blkdev)-len, "%d", partition) >= (int)(sizeof(blkdev)-len) ) {
 				ERROR("Block device name is too long");
 				return -1;
 			}
-			fd = open(blkdev, (readonly ? O_RDONLY : O_RDWR) | O_EXCL);
+			fd = open(blkdev, ((simulate || readonly) ? O_RDONLY : O_RDWR) | O_EXCL);
 		}
 		if ( fd < 0 && errno == ENOENT ) {
 			blkdev[len] = 0;
@@ -201,7 +201,7 @@ int disk_open_dev(int maj, int min, int partition, int readonly) {
 
 int disk_dump_dev(int fd, const char * file) {
 
-	int fd2;
+	int fd2 = -1;
 	int ret;
 	char * path;
 	uint64_t blksize;
@@ -253,11 +253,15 @@ int disk_dump_dev(int fd, const char * file) {
 		return -1;
 	}
 
-	fd2 = creat(file, S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH);
+	if ( ! simulate ) {
 
-	if ( fd2 < 0 ) {
-		ERROR_INFO("Cannot create file %s", file);
-		return -1;
+		fd2 = creat(file, S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH);
+
+		if ( fd2 < 0 ) {
+			ERROR_INFO("Cannot create file %s", file);
+			return -1;
+		}
+
 	}
 
 	sent = 0;
@@ -272,19 +276,23 @@ int disk_dump_dev(int fd, const char * file) {
 			break;
 		if ( size < 0 ) {
 			PRINTF_ERROR("Reading from block device failed");
-			close(fd2);
+			if ( ! simulate )
+				close(fd2);
 			return -1;
 		}
-		if ( write(fd2, global_buf, size) != size ) {
-			PRINTF_ERROR("Dumping image failed");
-			close(fd2);
-			return -1;
+		if ( ! simulate ) {
+			if ( write(fd2, global_buf, size) != size ) {
+				PRINTF_ERROR("Dumping image failed");
+				close(fd2);
+				return -1;
+			}
 		}
 		sent += size;
 		printf_progressbar(sent, blksize);
 	}
 
-	close(fd2);
+	if ( ! simulate )
+		close(fd2);
 	return 0;
 
 }
