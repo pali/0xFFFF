@@ -243,14 +243,14 @@ static int local_nanddump(const char * file, int mtd, int offset, int length) {
 
 }
 
-struct nanddump_args {
-	int mtd;
-	int offset;
-	int length;
-	int header;
+struct nandpart_args {
+	unsigned int mtd;
+	unsigned int offset;
+	unsigned int length;
+	unsigned int header;
 };
 
-static struct nanddump_args nanddump_rx51[] = {
+static struct nandpart_args nandpart_rx51[] = {
 	[IMAGE_XLOADER]   = { 0, 0x00000000, 0x00004000, 0x00000000 },
 	[IMAGE_SECONDARY] = { 0, 0x00004000, 0x0001C000, 0x00000000 },
 	[IMAGE_KERNEL]    = { 3, 0x00000000, 0x00200000, 0x00000800 },
@@ -259,7 +259,7 @@ static struct nanddump_args nanddump_rx51[] = {
 };
 
 /* FIXME: Is this table correct? */
-static struct nanddump_args nanddump_rx4x[] = {
+static struct nandpart_args nandpart_rx4x[] = {
 	[IMAGE_XLOADER]   = { 0, 0x00000200, 0x00003E00, 0x00000000 },
 	[IMAGE_SECONDARY] = { 0, 0x00004000, 0x0001C000, 0x00000000 },
 	[IMAGE_KERNEL]    = { 2, 0x00000000, 0x00220000, 0x00000800 },
@@ -268,7 +268,7 @@ static struct nanddump_args nanddump_rx4x[] = {
 };
 
 /* FIXME: Is this table correct? */
-static struct nanddump_args nanddump_old[] = {
+static struct nandpart_args nandpart_old[] = {
 	[IMAGE_XLOADER]   = { 0, 0x00000200, 0x00003E00, 0x00000000 },
 	[IMAGE_SECONDARY] = { 0, 0x00004000, 0x0001C000, 0x00000000 },
 	[IMAGE_KERNEL]    = { 2, 0x00000000, 0x00200000, 0x00000800 },
@@ -276,19 +276,19 @@ static struct nanddump_args nanddump_old[] = {
 	[IMAGE_ROOTFS]    = { 4, 0x00000000, 0x0fb80000, 0x00000000 },
 };
 
-struct nanddump_device {
+struct nand_device {
 	size_t count;
-	struct nanddump_args * args;
+	struct nandpart_args * args;
 };
 
-#define NANDDUMP(device, array) [device] = { .count = sizeof(array)/sizeof(array[0]), .args = array }
+#define NAND_DEVICE(device, array) [device] = { .count = sizeof(array)/sizeof(array[0]), .args = array }
 
-static struct nanddump_device nanddump[] = {
-	NANDDUMP(DEVICE_SU_18, nanddump_old),
-	NANDDUMP(DEVICE_RX_34, nanddump_old),
-	NANDDUMP(DEVICE_RX_44, nanddump_rx4x),
-	NANDDUMP(DEVICE_RX_48, nanddump_rx4x),
-	NANDDUMP(DEVICE_RX_51, nanddump_rx51),
+static struct nand_device nand_device[] = {
+	NAND_DEVICE(DEVICE_SU_18, nandpart_old),
+	NAND_DEVICE(DEVICE_RX_34, nandpart_old),
+	NAND_DEVICE(DEVICE_RX_44, nandpart_rx4x),
+	NAND_DEVICE(DEVICE_RX_48, nandpart_rx4x),
+	NAND_DEVICE(DEVICE_RX_51, nandpart_rx51),
 };
 
 #undef NANDDUMP
@@ -418,21 +418,21 @@ int local_dump_image(enum image_type image, const char * file) {
 
 	} else {
 
-		if ( device >= sizeof(nanddump)/sizeof(nanddump[0]) ) {
+		if ( device >= sizeof(nand_device)/sizeof(nand_device[0]) ) {
 			ERROR("Unsupported device");
 			goto clean;
 		}
 
-		if ( image >= nanddump[device].count ) {
+		if ( image >= nand_device[device].count ) {
 			ERROR("Unsupported image type: %s", image_type_to_string(image));
 			goto clean;
 		}
 
-		header = nanddump[device].args[image].header;
+		header = nand_device[device].args[image].header;
 
 		if ( header > 0 ) {
 
-			ret = local_nanddump(file, nanddump[device].args[image].mtd, nanddump[device].args[image].offset, header);
+			ret = local_nanddump(file, nand_device[device].args[image].mtd, nand_device[device].args[image].offset, header);
 			if ( ret != 0 ) {
 				unlink(file);
 				ret = -1;
@@ -449,7 +449,7 @@ int local_dump_image(enum image_type image, const char * file) {
 			unlink(file);
 		}
 
-		ret = local_nanddump(file, nanddump[device].args[image].mtd, nanddump[device].args[image].offset + header, nanddump[device].args[image].length - header);
+		ret = local_nanddump(file, nand_device[device].args[image].mtd, nand_device[device].args[image].offset + header, nand_device[device].args[image].length - header);
 
 	}
 
