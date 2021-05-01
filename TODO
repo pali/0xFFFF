@@ -5,7 +5,6 @@ cold-flash:
  * Detect device from asic id
 
 disk:
- * Support for flashing mmc images
  * Badblock checking
 
 fiasco:
@@ -15,7 +14,6 @@ image:
  * Support for Harmattan images
 
 local:
- * Support for flashing (on device)
  * Write versions
  * Badblock checking
 
