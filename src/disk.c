@@ -289,12 +289,68 @@ int disk_dump_dev(int fd, const char * file) {
 
 }
 
-int disk_flash_dev(int fd, const char * file) {
+int disk_flash_dev(int fd, struct image * image) {
 
-	ERROR("Not implemented yet");
-	(void)fd;
-	(void)file;
-	return -1;
+	uint64_t blksize;
+	size_t need, sent;
+	ssize_t size;
+
+	if ( image->type != IMAGE_MMC )
+		ERROR_RETURN("Only mmc images are supported", -1);
+
+	printf("Writing image to block device...\n");
+
+#ifdef __linux__
+
+	if ( ioctl(fd, BLKGETSIZE64, &blksize) != 0 ) {
+		ERROR_INFO("Cannot get size of block device");
+		return -1;
+	}
+
+#else
+
+	blksize = lseek(fd, 0, SEEK_END);
+	if ( (off_t)blksize == (off_t)-1 ) {
+		ERROR_INFO("Cannot get size of block device");
+		return -1;
+	}
+
+	if ( lseek(fd, 0, SEEK_SET) == (off_t)-1 ) {
+		ERROR_INFO("Cannot seek to begin of block device");
+		return -1;
+	}
+
+#endif
+
+	if ( blksize == 0 )
+		ERROR_RETURN("Block device has zero size", -1);
+
+	if ( image->size > blksize )
+		ERROR_RETURN("Image is too big", -1);
+
+	sent = 0;
+	printf_progressbar(0, image->size);
+
+	while ( sent < image->size ) {
+		need = image->size - sent;
+		if ( need > sizeof(global_buf) )
+			need = sizeof(global_buf);
+		size = image_read(image, global_buf, need);
+		if ( size == 0 ) {
+			PRINTF_ERROR("Failed to read image");
+			return -1;
+		}
+		if ( ! simulate ) {
+			if ( write(fd, global_buf, size) != size ) {
+				PRINTF_ERROR("Writing image failed");
+				return -1;
+			}
+		}
+		sent += size;
+		printf_progressbar(sent, image->size);
+	}
+
+	return 0;
 
 }
 
@@ -412,16 +468,14 @@ int disk_init(struct usb_device_info * dev) {
 		maj2 = tmp;
 	}
 
-	/* TODO: change 1 to 0 when disk_flash_dev will be implemented */
-
 	/* RX-51, RM-680 and RM-696 export MyDocs in first usb device and just first partion, so host system see whole device without MBR table */
 	if ( dev->device == DEVICE_RX_51 || dev->device == DEVICE_RM_680 || dev->device == DEVICE_RM_696 )
-		fd = disk_open_dev(maj1, min1, -1, 1);
+		fd = disk_open_dev(maj1, min1, -1, simulate ? 1 : 0);
 	/* Other devices can export SD card as first partition and export whole mmc device, so host system will see MBR table */
 	else if ( maj2 != -1 && min2 != -1 )
-		fd = disk_open_dev(maj2, min2, 1, 1);
+		fd = disk_open_dev(maj2, min2, 1, simulate ? 1 : 0);
 	else
-		fd = disk_open_dev(maj1, min1, 1, 1);
+		fd = disk_open_dev(maj1, min1, 1, simulate ? 1 : 0);
 
 	if ( fd < 0 )
 		return -1;
@@ -454,10 +508,16 @@ enum device disk_get_device(struct usb_device_info * dev) {
 
 int disk_flash_image(struct usb_device_info * dev, struct image * image) {
 
-	ERROR("Not implemented yet");
-	(void)dev;
-	(void)image;
-	return -1;
+	int ret;
+
+	printf("Flash image:\n");
+	image_print_info(image);
+
+	ret = disk_flash_dev(dev->data, image);
+	if ( ret == 0 )
+		printf("Done\n");
+
+	return ret;
 
 }
 

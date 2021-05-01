@@ -30,7 +30,7 @@ enum device disk_get_device(struct usb_device_info * dev);
 
 int disk_open_dev(int maj, int min, int partition, int readonly);
 int disk_dump_dev(int fd, const char * file);
-int disk_flash_dev(int fd, const char * file);
+int disk_flash_dev(int fd, struct image * image);
 
 int disk_flash_image(struct usb_device_info * dev, struct image * image);
 int disk_dump_image(struct usb_device_info * dev, enum image_type image, const char * file);
