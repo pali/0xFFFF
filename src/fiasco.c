@@ -349,6 +349,7 @@ int fiasco_write_to_file(struct fiasco * fiasco, const char * file) {
 	const char * str;
 	const char * type;
 	struct image_list * image_list;
+	struct image_part * image_part;
 	struct image * image;
 	unsigned char buf[4096];
 
@@ -449,7 +450,7 @@ int fiasco_write_to_file(struct fiasco * fiasco, const char * file) {
 		checksum = 0x00;
 
 		/* number of subsections */
-		length8 = device_count+1;
+		length8 = device_count+2;
 		if ( image->version )
 			++length8;
 		if ( image->layout )
@@ -513,6 +514,39 @@ int fiasco_write_to_file(struct fiasco * fiasco, const char * file) {
 			CHECKSUM(checksum, "3", 1);
 			CHECKSUM(checksum, &length8, 1);
 			CHECKSUM(checksum, image->layout, length8);
+		}
+
+		if ( image->parts ) {
+			/* for each image part append subsection */
+			for ( image_part = image->parts; image_part; image_part = image_part->next ) {
+				WRITE_OR_FAIL(file, fd, "4", 1); /* 4 - image data part */
+				CHECKSUM(checksum, "4", 1);
+				length = 16 + (image_part->name ? strlen(image_part->name) : 0);
+				length8 = length <= UINT8_MAX ? length : UINT8_MAX;
+				WRITE_OR_FAIL(file, fd, &length8, 1);
+				CHECKSUM(checksum, &length8, 1);
+				WRITE_OR_FAIL(file, fd, "\x00\x00\x00\x00", 4); /* unknown */
+				CHECKSUM(checksum, "\x00\x00\x00\x00", 4);
+				size = htonl(image_part->offset);
+				WRITE_OR_FAIL(file, fd, &size, 4);
+				CHECKSUM(checksum, &size, 4);
+				WRITE_OR_FAIL(file, fd, "\x00\x00\x00\x00", 4); /* unknown */
+				CHECKSUM(checksum, "\x00\x00\x00\x00", 4);
+				size = htonl(image_part->size);
+				WRITE_OR_FAIL(file, fd, &size, 4);
+				CHECKSUM(checksum, &size, 4);
+				if ( image_part->name ) {
+					WRITE_OR_FAIL(file, fd, image_part->name, length-16);
+					CHECKSUM(checksum, image_part->name, length-16);
+				}
+			}
+		} else {
+			/* append one image data part subsection */;
+			WRITE_OR_FAIL(file, fd, "4\x10\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", 14);
+			CHECKSUM(checksum, "4\x10\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", 14);
+			size = htonl(image->size);
+			WRITE_OR_FAIL(file, fd, &size, 4);
+			CHECKSUM(checksum, &size, 4);
 		}
 
 		/* checksum of header */
