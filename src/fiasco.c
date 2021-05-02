@@ -128,6 +128,7 @@ struct fiasco * fiasco_alloc_from_file(const char * file) {
 	while ( 1 ) {
 
 		/* If end of file, return fiasco image */
+		checksum = 0x00;
 		READ_OR_RETURN(fiasco, checksum, buf, 1);
 
 		/* Header of next image (0x54) */
@@ -617,6 +618,8 @@ int fiasco_unpack(struct fiasco * fiasco, const char * dir) {
 
 	while ( image_list ) {
 
+		fd = -1;
+
 		image = image_list->image;
 
 		printf("\n");
@@ -660,8 +663,10 @@ int fiasco_unpack(struct fiasco * fiasco, const char * dir) {
 
 			free(layout_name);
 
-			if ( ! simulate )
+			if ( ! simulate ) {
 				close(fd);
+				fd = -1;
+			}
 
 		}
 
@@ -713,8 +718,10 @@ int fiasco_unpack(struct fiasco * fiasco, const char * dir) {
 
 			free(name);
 
-			if ( ! simulate )
+			if ( ! simulate ) {
 				close(fd);
+				fd = -1;
+			}
 
 			if ( image_part ) {
 				image_part = image_part->next;
