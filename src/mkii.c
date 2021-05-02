@@ -213,13 +213,17 @@ int mkii_flash_image(struct usb_device_info * dev, struct image * image) {
 	msg1 = (struct mkii_message *)buf1;
 	ptr = msg->data;
 
-	/* Signature */
-	memcpy(ptr, "\x2E\x19\x01\x01", 4);
-	ptr += 4;
-
-	/* Space */
-	memcpy(ptr, "\x00", 1);
+	/* File data header */
+	memcpy(ptr, "\x2E", 1);
 	ptr += 1;
+
+	/* Length of file data */
+	memcpy(ptr, "\x19", 1);
+	ptr += 1;
+
+	/* File data (ignored): asic index: APE (0x01), device type: NAND (0x01), device index: 0 */
+	memcpy(ptr, "\x01\x01\x00", 3);
+	ptr += 3;
 
 	/* Hash */
 	hash = htons(image->hash);
@@ -239,7 +243,7 @@ int mkii_flash_image(struct usb_device_info * dev, struct image * image) {
 	memcpy(ptr, &size, 4);
 	ptr += 4;
 
-	/* Space */
+	/* Load address (ignored) */
 	memcpy(ptr, "\x00\x00\x00\x00", 4);
 	ptr += 4;
 
