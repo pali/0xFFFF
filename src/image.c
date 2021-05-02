@@ -100,7 +100,7 @@ static void image_missing_values_from_name(struct image * image, const char * na
 }
 
 /* format: type-device:hwrevs_version */
-char * image_name_alloc_from_values(struct image * image) {
+char * image_name_alloc_from_values(struct image * image, int part_num) {
 
 	char * name;
 	char * ptr;
@@ -108,6 +108,8 @@ char * image_name_alloc_from_values(struct image * image) {
 	size_t length;
 	const char * type;
 	const char * device;
+	struct image_part * part;
+	int i;
 
 	type = image_type_to_string(image->type);
 
@@ -124,6 +126,14 @@ char * image_name_alloc_from_values(struct image * image) {
 	else
 		hwrevs = NULL;
 
+	part = image->parts;
+
+	if ( part && ( !part->next || part_num < 0 ) )
+		part = NULL;
+
+	for ( i = 0; i < part_num && part; i++ )
+		part = part->next;
+
 	length = 1 + strlen(type);
 
 	if ( device )
@@ -132,6 +142,10 @@ char * image_name_alloc_from_values(struct image * image) {
 		length += 1 + strlen(hwrevs);
 	if ( image->version )
 		length += 1 + strlen(image->version);
+	if ( part )
+		length += 4 + 3; /* 3 <= strlen(part_num) */
+	if ( part && part->name )
+		length += 1 + strlen(part->name);
 
 	name = calloc(1, length);
 	if ( ! name ) {
@@ -149,13 +163,19 @@ char * image_name_alloc_from_values(struct image * image) {
 	if ( image->version )
 		ptr += sprintf(ptr, "_%s", image->version);
 
+	if ( part ) {
+		ptr += sprintf(ptr, "_part%d", part_num+1);
+		if ( part->name )
+			ptr += sprintf(ptr, "_%s", part->name);
+	}
+
 	free(hwrevs);
 
 	return name;
 
 }
 
-static int image_append(struct image * image, const char * type, const char * device, const char * hwrevs, const char * version, const char * layout) {
+static int image_append(struct image * image, const char * type, const char * device, const char * hwrevs, const char * version, const char * layout, struct image_part * parts) {
 
 	enum image_type detected_type;
 
@@ -210,6 +230,8 @@ static int image_append(struct image * image, const char * type, const char * de
 	else
 		image->layout = NULL;
 
+	image->parts = parts;
+
 	return 0;
 
 }
@@ -244,7 +266,7 @@ static struct image * image_alloc(void) {
 
 }
 
-struct image * image_alloc_from_file(const char * file, const char * type, const char * device, const char * hwrevs, const char * version, const char * layout) {
+struct image * image_alloc_from_file(const char * file, const char * type, const char * device, const char * hwrevs, const char * version, const char * layout, struct image_part * parts) {
 
 	int fd;
 
@@ -254,11 +276,11 @@ struct image * image_alloc_from_file(const char * file, const char * type, const
 		return NULL;
 	}
 
-	return image_alloc_from_fd(fd, file, type, device, hwrevs, version, layout);
+	return image_alloc_from_fd(fd, file, type, device, hwrevs, version, layout, parts);
 
 }
 
-struct image * image_alloc_from_fd(int fd, const char * orig_filename, const char * type, const char * device, const char * hwrevs, const char * version, const char * layout) {
+struct image * image_alloc_from_fd(int fd, const char * orig_filename, const char * type, const char * device, const char * hwrevs, const char * version, const char * layout, struct image_part * parts) {
 
 	off_t offset;
 	struct image * image = image_alloc();
@@ -291,7 +313,7 @@ struct image * image_alloc_from_fd(int fd, const char * orig_filename, const cha
 		return NULL;
 	}
 
-	if ( image_append(image, type, device, hwrevs, version, layout) < 0 )
+	if ( image_append(image, type, device, hwrevs, version, layout, parts) < 0 )
 		return NULL;
 
 	if ( ( ! type || ! type[0] ) && ( ! device || ! device[0] ) && ( ! hwrevs || ! hwrevs[0] ) && ( ! version || ! version[0] ) )
@@ -303,7 +325,7 @@ struct image * image_alloc_from_fd(int fd, const char * orig_filename, const cha
 
 }
 
-struct image * image_alloc_from_shared_fd(int fd, size_t size, size_t offset, uint16_t hash, const char * type, const char * device, const char * hwrevs, const char * version, const char * layout) {
+struct image * image_alloc_from_shared_fd(int fd, size_t size, size_t offset, uint16_t hash, const char * type, const char * device, const char * hwrevs, const char * version, const char * layout, struct image_part * parts) {
 
 	struct image * image = image_alloc();
 	if ( ! image )
@@ -315,7 +337,7 @@ struct image * image_alloc_from_shared_fd(int fd, size_t size, size_t offset, ui
 	image->offset = offset;
 	image->cur = 0;
 
-	if ( image_append(image, type, device, hwrevs, version, layout) < 0 )
+	if ( image_append(image, type, device, hwrevs, version, layout, parts) < 0 )
 		return NULL;
 
 	if ( ! noverify && image->hash != hash ) {
@@ -345,6 +367,13 @@ void image_free(struct image * image) {
 		free(image->devices->hwrevs);
 		free(image->devices);
 		image->devices = next;
+	}
+
+	while ( image->parts ) {
+		struct image_part * next = image->parts->next;
+		free(image->parts->name);
+		free(image->parts);
+		image->parts = next;
 	}
 
 	free(image->version);

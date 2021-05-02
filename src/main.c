@@ -143,7 +143,7 @@ int simulate;
 int noverify;
 int verbose;
 
-/* arg = [[[dev:[hw:]]ver:]type:]file[%%lay] */
+/* arg = [[[dev:[hw:]]ver:]type:]file[%file2%file3...%lay] */
 static void parse_image_arg(char * arg, struct image_list ** image_first) {
 
 	struct stat st;
@@ -154,14 +154,16 @@ static void parse_image_arg(char * arg, struct image_list ** image_first) {
 	char * hwrevs;
 	char * version;
 	char * layout;
+	char * parts;
 	char * layout_file;
+	char * ptr;
 	int fd;
 
 	/* First check if arg is file, then try to parse arg format */
 	fd = open(arg, O_RDONLY);
 	if ( fd >= 0 ) {
 		if ( fstat(fd, &st) == 0 && !S_ISDIR(st.st_mode) ) {
-			image = image_alloc_from_fd(fd, arg, NULL, NULL, NULL, NULL, NULL);
+			image = image_alloc_from_fd(fd, arg, NULL, NULL, NULL, NULL, NULL, NULL);
 			if ( ! image ) {
 				ERROR("Cannot load image file %s", arg);
 				exit(1);
@@ -175,9 +177,13 @@ static void parse_image_arg(char * arg, struct image_list ** image_first) {
 		exit(1);
 	}
 
-	layout_file = strchr(arg, '%');
-	if ( layout_file )
-		*(layout_file++) = 0;
+	parts = strchr(arg, '%');
+	if ( parts )
+		*(parts++) = 0;
+
+	layout_file = parts;
+	while ( ( ptr = strchr(layout_file, '%') ) )
+		layout_file = ptr+1;
 
 	type = NULL;
 	device = NULL;
@@ -237,7 +243,9 @@ static void parse_image_arg(char * arg, struct image_list ** image_first) {
 		close(fd);
 	}
 
-	image = image_alloc_from_file(file, type, device, hwrevs, version, layout);
+	/* TODO: alloc parts */
+
+	image = image_alloc_from_file(file, type, device, hwrevs, version, layout, NULL);
 
 	if ( layout )
 		free(layout);
@@ -1298,7 +1306,9 @@ int main(int argc, char **argv) {
 							break;
 					}
 
-					image_dump = image_alloc_from_file(image_tmp_name(i), image_type_to_string(i), device_to_string(dev->detected_device), buf, ptr, NULL);
+					/* TODO: add support for dumping mmc layout and also other mmc partitions as image data parts */
+
+					image_dump = image_alloc_from_file(image_tmp_name(i), image_type_to_string(i), device_to_string(dev->detected_device), buf, ptr, NULL, NULL);
 
 					if ( ! image_dump )
 						continue;

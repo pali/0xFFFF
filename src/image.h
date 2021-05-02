@@ -40,6 +40,13 @@ enum image_type {
 	IMAGE_COUNT,
 };
 
+struct image_part {
+	struct image_part * next;
+	uint32_t offset;
+	uint32_t size;
+	char * name;
+};
+
 struct image {
 	enum image_type type;
 	struct device_list * devices;
@@ -47,6 +54,7 @@ struct image {
 	char * layout;
 	uint16_t hash;
 	uint32_t size;
+	struct image_part * parts;
 
 	int fd;
 	int is_shared_fd;
@@ -63,9 +71,9 @@ struct image_list {
 	struct image_list * next;
 };
 
-struct image * image_alloc_from_file(const char * file, const char * type, const char * device, const char * hwrevs, const char * version, const char * layout);
-struct image * image_alloc_from_fd(int fd, const char * orig_filename, const char * type, const char * device, const char * hwrevs, const char * version, const char * layout);
-struct image * image_alloc_from_shared_fd(int fd, size_t size, size_t offset, uint16_t hash, const char * type, const char * device, const char * hwrevs, const char * version, const char * layout);
+struct image * image_alloc_from_file(const char * file, const char * type, const char * device, const char * hwrevs, const char * version, const char * layout, struct image_part * parts);
+struct image * image_alloc_from_fd(int fd, const char * orig_filename, const char * type, const char * device, const char * hwrevs, const char * version, const char * layout, struct image_part * parts);
+struct image * image_alloc_from_shared_fd(int fd, size_t size, size_t offset, uint16_t hash, const char * type, const char * device, const char * hwrevs, const char * version, const char * layout, struct image_part * parts);
 void image_free(struct image * image);
 void image_seek(struct image * image, size_t whence);
 size_t image_read(struct image * image, void * buf, size_t count);
@@ -76,7 +84,7 @@ void image_list_unlink(struct image_list * list);
 
 uint16_t image_hash_from_data(struct image * image);
 enum image_type image_type_from_data(struct image * image);
-char * image_name_alloc_from_values(struct image * image);
+char * image_name_alloc_from_values(struct image * image, int part_num);
 enum image_type image_type_from_string(const char * type);
 const char * image_type_to_string(enum image_type type);
 int image_hwrev_is_valid(struct image * image, int16_t hwrev);

@@ -74,6 +74,8 @@ struct fiasco * fiasco_alloc_from_file(const char * file) {
 	uint16_t hash;
 	off_t offset;
 	struct image * image;
+	struct image_part * image_part;
+	struct image_part * image_parts;
 
 	char hwrev[9];
 	unsigned char buf[512];
@@ -188,6 +190,8 @@ struct fiasco * fiasco_alloc_from_file(const char * file) {
 		memset(hwrevs, 0, sizeof(hwrevs));
 		memset(version, 0, sizeof(version));
 		memset(layout, 0, sizeof(layout));
+		image_part = NULL;
+		image_parts = NULL;
 
 		while ( count8 > 0 ) {
 
@@ -237,6 +241,36 @@ struct fiasco * fiasco_alloc_from_file(const char * file) {
 				memset(layout, 0, sizeof(layout));
 				strncpy(layout, (char *)buf, length8);
 				VERBOSE("layout\n");
+			} else if ( byte == '4' ) {
+				VERBOSE("data part\n");
+				if ( length8 < 16 ) {
+					VERBOSE("       (damaged)\n");
+				} else {
+					if ( image_parts ) {
+						image_part->next = calloc(1, sizeof(struct image_part));
+						if ( ! image_part->next )
+							FIASCO_READ_ERROR(fiasco, "Cannot allocate image");
+						image_part = image_part->next;
+					} else {
+						image_parts = calloc(1, sizeof(struct image_part));
+						if ( ! image_parts )
+							FIASCO_READ_ERROR(fiasco, "Cannot allocate image");
+						image_part = image_parts;
+					}
+					image_part->offset = ntohl(*(uint32_t *)&buf[4]);
+					image_part->size = ntohl(*(uint32_t *)&buf[12]);
+					if ( length8 > 16 ) {
+						image_part->name = calloc(1, length8-16+1);
+						if ( image_part->name )
+							memcpy(image_part->name, &buf[16], length8-16);
+					}
+					VERBOSE("       unknown: 0x%02x 0x%02x 0x%02x 0x%02x\n", buf[0], buf[1], buf[2], buf[3]);
+					VERBOSE("       offset: %u bytes\n", image_part->offset);
+					VERBOSE("       unknown: 0x%02x 0x%02x 0x%02x 0x%02x\n", buf[8], buf[9], buf[10], buf[11]);
+					VERBOSE("       size: %u bytes\n", image_part->size);
+					if ( image_part->name )
+						VERBOSE("       partition name: %s\n", image_part->name);
+				}
 			} else {
 				VERBOSE("unknown ('%c':%#x)\n", byte, byte);
 			}
@@ -262,7 +296,7 @@ struct fiasco * fiasco_alloc_from_file(const char * file) {
 		VERBOSE("   hwrevs: %s\n", hwrevs);
 		VERBOSE("   data at: %#08x\n", (unsigned int)offset);
 
-		image = image_alloc_from_shared_fd(fiasco->fd, length, offset, hash, type, device, hwrevs, version, layout);
+		image = image_alloc_from_shared_fd(fiasco->fd, length, offset, hash, type, device, hwrevs, version, layout, image_parts);
 
 		if ( ! image )
 			FIASCO_READ_ERROR(fiasco, "Cannot allocate image");
@@ -516,8 +550,10 @@ int fiasco_unpack(struct fiasco * fiasco, const char * dir) {
 	char * name;
 	char * layout_name;
 	struct image * image;
+	struct image_part * image_part;
 	struct image_list * image_list;
-	uint32_t size;
+	uint32_t offset, size, need, total_size, written;
+	int part_num;
 	char cwd[256];
 	unsigned char buf[4096];
 
@@ -543,15 +579,7 @@ int fiasco_unpack(struct fiasco * fiasco, const char * dir) {
 
 	while ( image_list ) {
 
-		fd = -1;
-		name = NULL;
-		layout_name = NULL;
-
 		image = image_list->image;
-
-		name = image_name_alloc_from_values(image);
-		if ( ! name )
-			return -1;
 
 		printf("\n");
 		printf("Unpacking image...\n");
@@ -559,52 +587,20 @@ int fiasco_unpack(struct fiasco * fiasco, const char * dir) {
 
 		if ( image->layout ) {
 
-			layout_name = calloc(1, strlen(name) + sizeof(".layout")-1 + 1);
+			name = image_name_alloc_from_values(image, -1);
+			if ( ! name )
+				ALLOC_ERROR_RETURN(-1);
+
+			layout_name = calloc(1, strlen(name) + sizeof("_layout")-1 + 1);
 			if ( ! layout_name ) {
 				free(name);
 				ALLOC_ERROR_RETURN(-1);
 			}
 
-			sprintf(layout_name, "%s.layout", name);
+			sprintf(layout_name, "%s_layout", name);
+			free(name);
 
 			printf("    Layout file: %s\n", layout_name);
-
-		}
-
-		printf("    Output file: %s\n", name);
-
-		if ( ! simulate ) {
-			fd = open(name, O_RDWR|O_CREAT|O_TRUNC, 0644);
-			if ( fd < 0 ) {
-				ERROR_INFO("Cannot create output file %s", name);
-				free(name);
-				free(layout_name);
-				return -1;
-			}
-		}
-
-		image_seek(image, 0);
-		while ( 1 ) {
-			size = image_read(image, buf, sizeof(buf));
-			if ( size == 0 )
-				break;
-			if ( ! simulate ) {
-				if ( write(fd, buf, size) != (ssize_t)size ) {
-					ERROR_INFO_STR(name, "Cannot write %d bytes", size);
-					close(fd);
-					free(name);
-					free(layout_name);
-					return -1;
-				}
-			}
-		}
-
-		free(name);
-
-		if ( ! simulate )
-			close(fd);
-
-		if ( image->layout ) {
 
 			if ( ! simulate ) {
 				fd = open(layout_name, O_RDWR|O_CREAT|O_TRUNC, 0644);
@@ -630,6 +626,64 @@ int fiasco_unpack(struct fiasco * fiasco, const char * dir) {
 				close(fd);
 
 		}
+
+		part_num = 0;
+		image_part = image->parts;
+
+		do {
+
+			offset = image_part ? image_part->offset : 0;
+			total_size = image_part ? image_part->size : image->size;
+
+			name = image_name_alloc_from_values(image, image_part ? part_num : -1);
+			if ( ! name )
+				ALLOC_ERROR_RETURN(-1);
+
+			if ( image_part && ( part_num > 0 || image_part->next ) )
+				printf("    Output file part %d: %s\n", part_num+1, name);
+			else
+				printf("    Output file: %s\n", name);
+
+			if ( ! simulate ) {
+				fd = open(name, O_RDWR|O_CREAT|O_TRUNC, 0644);
+				if ( fd < 0 ) {
+					ERROR_INFO("Cannot create output file %s", name);
+					free(name);
+					return -1;
+				}
+			}
+
+			written = 0;
+			image_seek(image, offset);
+			while ( written < total_size ) {
+				need = total_size - written;
+				if ( need > sizeof(buf) )
+					need = sizeof(buf);
+				size = image_read(image, buf, need);
+				if ( size == 0 )
+					break;
+				if ( ! simulate ) {
+					if ( write(fd, buf, size) != (ssize_t)size ) {
+						ERROR_INFO_STR(name, "Cannot write %d bytes", size);
+						close(fd);
+						free(name);
+						return -1;
+					}
+				}
+				written += size;
+			}
+
+			free(name);
+
+			if ( ! simulate )
+				close(fd);
+
+			if ( image_part ) {
+				image_part = image_part->next;
+				part_num++;
+			}
+
+		} while ( image_part );
 
 		image_list = image_list->next;
 
