@@ -182,8 +182,10 @@ static void parse_image_arg(char * arg, struct image_list ** image_first) {
 		*(parts++) = 0;
 
 	layout_file = parts;
-	while ( ( ptr = strchr(layout_file, '%') ) )
-		layout_file = ptr+1;
+	if ( layout_file ) {
+		while ( ( ptr = strchr(layout_file, '%') ) )
+			layout_file = ptr+1;
+	}
 
 	type = NULL;
 	device = NULL;
