@@ -38,24 +38,64 @@ IMAGE
 
    1 byte = 0x54    --  signature
    1 byte           --  number of subsection blocks
-                        (start of data block)
-   1 byte           --  type of subsection block (data - always 0x2e)
-   1 byte           --  length of subsection block (data - always 25)
-   3 bytes          --  unknown (always 0x01 0x01 0x00)
-   2 bytes          --  checksum for the image contents (xorpair) (big endian)
-  12 bytes          --  image name type (first byte is FF if is the last image)
-   4 bytes          --  length of image data (big endian)
-   4 bytes          --  unknown (always 0x00 0x00 0x00 0x00)
-                        (end of data block)
              block {
    1 byte           --  type of subsection block
-                          '1' - version
-                          '2' - device & hw revisions (size of device is 16, hw revision 8)
-                          '3' - layout
-                          '4' - unknown
-                          '/' - unknown
+                          0x2E - file data
+                          0x2F - partition info
+                          0x31 - version
+                          0x32 - device & hw revisions (size of device is 16, hw revision 8)
+                          0x33 - layout
+                          0x34 - image data part block (one block for one data part)
    1 byte           --  length of subsection block
    N bytes          --  subsection block data
              }
-   1 byte           --  unknown (0x00 is accepted, maybe end of subsections?)
+   1 byte           --  checksum of subsection data without signature (0xFF - xorpair)
    N bytes          --  image data
+
+
+FILE DATA BLOCK
+
+   1 byte           --  asic index (always APE - 0x01)
+   1 byte           --  device type (always NAND - 0x01)
+   1 byte           --  device index (always 0x00)
+   2 bytes          --  checksum for the image contents (xorpair) (big endian)
+  12 bytes          --  image name type (first byte is FF if is the last image)
+   4 bytes          --  length of image data (big endian)
+   4 bytes          --  load address of image data (big endian, unused always zero)
+
+
+PARTITION INFO BLOCK
+
+   N bytes          --  unknown
+
+
+IMAGE DATA PART BLOCK
+
+   4 bytes          --  unknown (always 0x00 0x00 0x00 0x00)
+   4 bytes          --  offset (big endian)
+   4 bytes          --  unknown (always 0x00 0x00 0x00 0x00)
+   4 bytes          --  size (big endian)
+   N bytes          --  partition name (prefix) in layout (may be omitted)
+
+
+LAYOUT DATA BLOCK
+
+   N bytes of text data, e.g.:
+
+mmc {
+        name = "internal";
+        partition {
+                fs_type = "vfat";
+                prefix = "mydocs";
+                no_create = true;
+        }
+        partition {
+                size = 2048;
+                fs_type = "ext3";
+                prefix = "home";
+        }
+        partition {
+                size = 768;
+                fs_type = "swap";
+        }
+}
