@@ -426,6 +426,8 @@ int main(int argc, char **argv) {
 	int i;
 	char buf[512];
 	char * ptr = NULL;
+	char * ptr1 = NULL;
+	char * ptr2 = NULL;
 	char * tmp = NULL;
 
 	char nolo_ver[512];
@@ -1036,9 +1038,9 @@ int main(int argc, char **argv) {
 			/* filter images by device & hwrev */
 			if ( detected_device )
 				filter_images_by_device(dev->detected_device, &image_first);
-			if ( detected_hwrev )
+			if ( detected_hwrev > 0 )
 				filter_images_by_hwrev(dev->detected_hwrev, &image_first);
-			if ( fiasco_in && ( detected_device || detected_hwrev ) )
+			if ( fiasco_in && ( detected_device || detected_hwrev > 0 ) )
 				fiasco_in->first = image_first;
 
 			/* set kernel and initfs images for loading */
@@ -1265,7 +1267,8 @@ int main(int argc, char **argv) {
 						continue;
 
 					buf[0] = 0;
-					snprintf(buf, sizeof(buf), "%hd", dev->detected_hwrev);
+					if ( dev->detected_hwrev > 0 )
+						snprintf(buf, sizeof(buf), "%hd", dev->detected_hwrev);
 
 					switch ( i ) {
 						case IMAGE_2ND:
@@ -1366,7 +1369,20 @@ int main(int argc, char **argv) {
 					}
 
 					buf[0] = 0;
-					snprintf(buf, sizeof(buf), "%s-%s:%hd_%s", image_type_to_string(i), device_to_string(dev->detected_device), dev->detected_hwrev, ptr);
+					snprintf(buf, sizeof(buf), "%s", image_type_to_string(i));
+					ptr1 = buf + strlen(buf);
+
+					if ( dev->detected_device ) {
+						snprintf(ptr1, sizeof(buf)-(ptr1-buf), "-%s", device_to_string(dev->detected_device));
+						ptr1 += strlen(ptr1);
+					}
+
+					if ( dev->detected_hwrev > 0 )
+						snprintf(ptr1, sizeof(buf)-(ptr1-buf), ":%hd", dev->detected_hwrev);
+					ptr2 = ptr1 + strlen(ptr1);
+
+					if ( ptr && ptr[0] )
+						snprintf(ptr2, sizeof(buf)-(ptr2-buf), "_%s", ptr);
 
 					rename_ret = rename(image_tmp_name(i), buf);
 					rename_errno = errno;
@@ -1381,12 +1397,20 @@ int main(int argc, char **argv) {
 						errno = rename_errno;
 						ERROR_INFO("Renaming failed");
 
-						buf[0] = 0;
-						snprintf(buf, sizeof(buf), "%s-%s_%s", image_type_to_string(i), device_to_string(dev->detected_device), ptr);
+						*ptr2 = 0;
 						printf("Trying to rename %s image file to %s...\n", image_type_to_string(i), buf);
 
-						if ( rename(image_tmp_name(i), buf) < 0 )
+						if ( rename(image_tmp_name(i), buf) < 0 ) {
+
 							ERROR_INFO("Renaming failed");
+
+							*ptr1 = 0;
+							printf("Trying to rename %s image file to %s...\n", image_type_to_string(i), buf);
+
+							if ( rename(image_tmp_name(i), buf) < 0 )
+								ERROR_INFO("Renaming failed");
+
+						}
 
 					}
 
