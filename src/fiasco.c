@@ -38,7 +38,7 @@
 #define FIASCO_READ_ERROR(fiasco, ...) do { ERROR_INFO(__VA_ARGS__); fiasco_free(fiasco); return NULL; } while (0)
 #define FIASCO_WRITE_ERROR(file, fd, ...) do { ERROR_INFO_STR(file, __VA_ARGS__); if ( fd >= 0 ) close(fd); return -1; } while (0)
 #define READ_OR_FAIL(fiasco, buf, size) do { if ( read(fiasco->fd, buf, size) != size ) { FIASCO_READ_ERROR(fiasco, "Cannot read %d bytes", size); } } while (0)
-#define READ_OR_RETURN(fiasco, buf, size) do { if ( read(fiasco->fd, buf, size) != size ) return fiasco; } while (0)
+#define READ_OR_RETURN(fiasco, checksum, buf, size) do { if ( read(fiasco->fd, buf, size) != size ) return fiasco; CHECKSUM(checksum, buf, size); } while (0)
 #define WRITE_OR_FAIL_FREE(file, fd, buf, size, var) do { if ( ! simulate ) { if ( write(fd, buf, size) != (ssize_t)size ) { free(var); FIASCO_WRITE_ERROR(file, fd, "Cannot write %d bytes", size); } } } while (0)
 #define WRITE_OR_FAIL(file, fd, buf, size) WRITE_OR_FAIL_FREE(file, fd, buf, size, NULL)
 
@@ -69,6 +69,7 @@ struct fiasco * fiasco_alloc_from_file(const char * file) {
 	uint8_t asicidx;
 	uint8_t devicetype;
 	uint8_t deviceidx;
+	uint8_t checksum;
 	uint32_t address;
 	uint16_t hash;
 	off_t offset;
@@ -125,7 +126,7 @@ struct fiasco * fiasco_alloc_from_file(const char * file) {
 	while ( 1 ) {
 
 		/* If end of file, return fiasco image */
-		READ_OR_RETURN(fiasco, buf, 1);
+		READ_OR_RETURN(fiasco, checksum, buf, 1);
 
 		/* Header of next image (0x54) */
 		if ( buf[0] != 0x54 ) {
@@ -133,14 +134,16 @@ struct fiasco * fiasco_alloc_from_file(const char * file) {
 			return fiasco;
 		}
 
-		READ_OR_RETURN(fiasco, &count8, 1);
+		checksum = 0x00;
+
+		READ_OR_RETURN(fiasco, checksum, &count8, 1);
 
 		if ( count8 == 0 ) {
 			ERROR("No section in image header");
 			return fiasco;
 		}
 
-		READ_OR_RETURN(fiasco, buf, 2);
+		READ_OR_RETURN(fiasco, checksum, buf, 2);
 
 		/* File data section (0x2E) with length of 25 bytes */
 		if ( buf[0] != 0x2E || buf[1] != 25 ) {
@@ -148,15 +151,15 @@ struct fiasco * fiasco_alloc_from_file(const char * file) {
 			return fiasco;
 		}
 
-		READ_OR_RETURN(fiasco, &asicidx, 1);
-		READ_OR_RETURN(fiasco, &devicetype, 1);
-		READ_OR_RETURN(fiasco, &deviceidx, 1);
+		READ_OR_RETURN(fiasco, checksum, &asicidx, 1);
+		READ_OR_RETURN(fiasco, checksum, &devicetype, 1);
+		READ_OR_RETURN(fiasco, checksum, &deviceidx, 1);
 
-		READ_OR_RETURN(fiasco, &hash, 2);
+		READ_OR_RETURN(fiasco, checksum, &hash, 2);
 		hash = ntohs(hash);
 
 		memset(type, 0, sizeof(type));
-		READ_OR_RETURN(fiasco, type, 12);
+		READ_OR_RETURN(fiasco, checksum, type, 12);
 
 		byte = type[0];
 		if ( byte == 0xFF )
@@ -164,11 +167,11 @@ struct fiasco * fiasco_alloc_from_file(const char * file) {
 
 		VERBOSE(" %s\n", type);
 
-		READ_OR_RETURN(fiasco, &length, 4);
+		READ_OR_RETURN(fiasco, checksum, &length, 4);
 		length = ntohl(length);
 
 		/* load address (unused) */
-		READ_OR_RETURN(fiasco, &address, 4);
+		READ_OR_RETURN(fiasco, checksum, &address, 4);
 
 		/* end of file data section */
 		--count8;
@@ -188,9 +191,9 @@ struct fiasco * fiasco_alloc_from_file(const char * file) {
 
 		while ( count8 > 0 ) {
 
-			READ_OR_RETURN(fiasco, &byte, 1);
-			READ_OR_RETURN(fiasco, &length8, 1);
-			READ_OR_RETURN(fiasco, buf, length8);
+			READ_OR_RETURN(fiasco, checksum, &byte, 1);
+			READ_OR_RETURN(fiasco, checksum, &length8, 1);
+			READ_OR_RETURN(fiasco, checksum, buf, length8);
 
 			VERBOSE("   subinfo\n");
 			VERBOSE("     length: %d\n", length8);
@@ -242,8 +245,13 @@ struct fiasco * fiasco_alloc_from_file(const char * file) {
 		}
 
 		/* checksum */
-		READ_OR_RETURN(fiasco, buf, 1);
+		READ_OR_RETURN(fiasco, checksum, buf, 1);
 		VERBOSE("   subinfo checksum: 0x%02x\n", buf[0]);
+
+		if ( ! noverify && buf[0] != 0x00 && checksum != 0xFF ) {
+			ERROR("Image header subinfo checksum mishmash (counted 0x%02x, got 0x%02x)", (0xFF - checksum + buf[0]) & 0xFF, buf[0]);
+			return fiasco;
+		}
 
 		offset = lseek(fiasco->fd, 0, SEEK_CUR);
 		if ( offset == (off_t)-1 )
