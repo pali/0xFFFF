@@ -184,9 +184,11 @@ char ** device_list_alloc_to_bufs(const struct device_list * device_list) {
 			continue;
 		}
 
-		for ( i = 0; device_first->hwrevs[i] != -1; ++i )
-			if ( device_first->hwrevs[i] >= 0 && device_first->hwrevs[i] <= 9999 )
-				++local;
+		if ( device_first->hwrevs ) {
+			for ( i = 0; device_first->hwrevs[i] != -1; ++i )
+				if ( device_first->hwrevs[i] >= 0 && device_first->hwrevs[i] <= 9999 )
+					++local;
+		}
 
 		size += (1+16+(MAX_HWREVS+1)*8)*(local/MAX_HWREVS+1);
 		count += local/MAX_HWREVS;
@@ -215,7 +217,7 @@ char ** device_list_alloc_to_bufs(const struct device_list * device_list) {
 			continue;
 		}
 
-		while ( device_first->hwrevs[i+1] != -1 ) {
+		do {
 
 			uint8_t len = 0;
 			ret[j] = ++last_ptr;
@@ -228,7 +230,7 @@ char ** device_list_alloc_to_bufs(const struct device_list * device_list) {
 
 			for ( k = 0; k < MAX_HWREVS; ++k ) {
 
-				if ( device_first->hwrevs[i+1] == -1 )
+				if ( ! device_first->hwrevs || device_first->hwrevs[i+1] == -1 )
 					break;
 
 				++i;
@@ -246,7 +248,7 @@ char ** device_list_alloc_to_bufs(const struct device_list * device_list) {
 
 			++j;
 
-		}
+		} while ( device_first->hwrevs && device_first->hwrevs[i+1] != -1 );
 
 		device_first = device_first->next;
 
