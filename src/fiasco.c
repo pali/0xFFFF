@@ -272,7 +272,11 @@ struct fiasco * fiasco_alloc_from_file(const char * file) {
 						VERBOSE("       partition name: %s\n", image_part->name);
 				}
 			} else {
-				VERBOSE("unknown ('%c':%#x)\n", byte, byte);
+				int i;
+				VERBOSE("unknown (%#x)\n", byte);
+				VERBOSE("       hexdump:");
+				for ( i = 0; i < length8; i++ ) VERBOSE(" 0x%02x", buf[i]);
+				VERBOSE("\n");
 			}
 
 			--count8;
