@@ -269,13 +269,17 @@ static int nolo_send_image(struct usb_device_info * dev, struct image * image, i
 
 	ptr = buf;
 
-	/* Signature */
-	memcpy(ptr, "\x2E\x19\x01\x01", 4);
-	ptr += 4;
-
-	/* Space */
-	memcpy(ptr, "\x00", 1);
+	/* File data header */
+	memcpy(ptr, "\x2E", 1);
 	ptr += 1;
+
+	/* Length of file data */
+	memcpy(ptr, "\x19", 1);
+	ptr += 1;
+
+	/* File data (ignored by NOLO): asic index: APE (0x01), device type: NAND (0x01), device index: 0 */
+	memcpy(ptr, "\x01\x01\x00", 3);
+	ptr += 3;
 
 	/* Hash */
 	hash = htons(image->hash);
@@ -295,7 +299,7 @@ static int nolo_send_image(struct usb_device_info * dev, struct image * image, i
 	memcpy(ptr, &size, 4);
 	ptr += 4;
 
-	/* Space */
+	/* Load address (ignored by NOLO) */
 	memcpy(ptr, "\x00\x00\x00\x00", 4);
 	ptr += 4;
 
