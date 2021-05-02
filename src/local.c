@@ -465,8 +465,12 @@ int local_dump_image(enum image_type image, const char * file) {
 
 				fd = open(file, O_RDONLY);
 				if ( fd >= 0 ) {
-					if ( read(fd, buf, 20) == 20 && memcmp(buf, "NOLO!img\x02\x00\x00\x00\x00\x00\x00\x00", 16) == 0 )
-						nlen = ((unsigned int)buf[16] << 0) | ((unsigned int)buf[17] << 8) | ((unsigned int)buf[18] << 16) | ((unsigned int)buf[19] << 24);
+					if ( read(fd, buf, 20) == 20 ) {
+						if ( memcmp(buf, "NOLO!img\x02\x00\x00\x00\x00\x00\x00\x00", 16) == 0 )
+							nlen = ((unsigned int)buf[16] << 0) | ((unsigned int)buf[17] << 8) | ((unsigned int)buf[18] << 16) | ((unsigned int)buf[19] << 24);
+						else if ( memcmp(buf, "NOLO img", 8) == 0 )
+							nlen = ((unsigned int)buf[8] << 0) | ((unsigned int)buf[9] << 8) | ((unsigned int)buf[10] << 16) | ((unsigned int)buf[11] << 24);
+					}
 					close(fd);
 					fd = -1;
 				}
@@ -599,22 +603,33 @@ int local_flash_image(struct image * image) {
 		ret = 0;
 		sighandler = signal(SIGPIPE, SIG_IGN);
 
-		/* Write NOLO!img header with size */
+		/* Write NOLO!img or NOLO img header with size */
 		if ( nand_device[device].args[image->type].header > 0 ) {
-			memcpy(buf, "NOLO!img\x02\x00\x00\x00\x00\x00\x00\x00", 16);
-			buf[16] = (image->size >>  0) & 0xFF;
-			buf[17] = (image->size >>  8) & 0xFF;
-			buf[18] = (image->size >> 16) & 0xFF;
-			buf[19] = (image->size >> 24) & 0xFF;
+			if ( device == DEVICE_RX_51 ) {
+				memcpy(buf, "NOLO!img\x02\x00\x00\x00\x00\x00\x00\x00", 16);
+				buf[16] = (image->size >>  0) & 0xFF;
+				buf[17] = (image->size >>  8) & 0xFF;
+				buf[18] = (image->size >> 16) & 0xFF;
+				buf[19] = (image->size >> 24) & 0xFF;
+				size = 20;
+			} else {
+				memcpy(buf, "NOLO img", 8);
+				buf[ 8] = (image->size >>  0) & 0xFF;
+				buf[ 9] = (image->size >>  8) & 0xFF;
+				buf[10] = (image->size >> 16) & 0xFF;
+				buf[11] = (image->size >> 24) & 0xFF;
+				size = 12;
+			}
+
 			if ( ! simulate ) {
-				if ( fwrite(buf, 20, 1, stream) != 1 ) {
+				if ( fwrite(buf, size, 1, stream) != 1 ) {
 					ret = -1;
 					goto clean;
 				}
 			}
 
 			memset(buf, 0, sizeof(buf));
-			remaining = nand_device[device].args[image->type].header - 20;
+			remaining = nand_device[device].args[image->type].header - size;
 			while ( remaining > 0 ) {
 				size = remaining < sizeof(buf) ? remaining : sizeof(buf);
 				if ( ! simulate ) {
