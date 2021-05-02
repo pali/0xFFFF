@@ -34,6 +34,7 @@
 #include "image.h"
 #include "fiasco.h"
 
+#define CHECKSUM(checksum, buf, size) do { size_t _i; for ( _i = 0; _i < size; _i++ ) checksum += ((unsigned char *)buf)[_i]; } while (0)
 #define FIASCO_READ_ERROR(fiasco, ...) do { ERROR_INFO(__VA_ARGS__); fiasco_free(fiasco); return NULL; } while (0)
 #define FIASCO_WRITE_ERROR(file, fd, ...) do { ERROR_INFO_STR(file, __VA_ARGS__); if ( fd >= 0 ) close(fd); return -1; } while (0)
 #define READ_OR_FAIL(fiasco, buf, size) do { if ( read(fiasco->fd, buf, size) != size ) { FIASCO_READ_ERROR(fiasco, "Cannot read %d bytes", size); } } while (0)
@@ -301,6 +302,7 @@ int fiasco_write_to_file(struct fiasco * fiasco, const char * file) {
 	uint32_t length;
 	uint16_t hash;
 	uint8_t length8;
+	uint8_t checksum;
 	char ** device_hwrevs_bufs;
 	const char * str;
 	const char * type;
@@ -402,6 +404,8 @@ int fiasco_write_to_file(struct fiasco * fiasco, const char * file) {
 		/* signature */
 		WRITE_OR_FAIL_FREE(file, fd, "T", 1, device_hwrevs_bufs);
 
+		checksum = 0x00;
+
 		/* number of subsections */
 		length8 = device_count+1;
 		if ( image->version )
@@ -409,25 +413,31 @@ int fiasco_write_to_file(struct fiasco * fiasco, const char * file) {
 		if ( image->layout )
 			++length8;
 		WRITE_OR_FAIL_FREE(file, fd, &length8, 1, device_hwrevs_bufs);
+		CHECKSUM(checksum, &length8, 1);
 
 		/* file data: asic index: APE (0x01), device type: NAND (0x01), device index: 0 */
 		WRITE_OR_FAIL_FREE(file, fd, "\x2e\x19\x01\x01\x00", 5, device_hwrevs_bufs);
+		CHECKSUM(checksum, "\x2e\x19\x01\x01\x00", 5);
 
 		/* checksum */
 		hash = htons(image->hash);
 		WRITE_OR_FAIL_FREE(file, fd, &hash, 2, device_hwrevs_bufs);
+		CHECKSUM(checksum, &hash, 2);
 
 		/* image type name */
 		memset(buf, 0, 12);
 		strncpy((char *)buf, type, 12);
 		WRITE_OR_FAIL_FREE(file, fd, buf, 12, device_hwrevs_bufs);
+		CHECKSUM(checksum, buf, 12);
 
 		/* image size */
 		size = htonl(image->size);
 		WRITE_OR_FAIL_FREE(file, fd, &size, 4, device_hwrevs_bufs);
+		CHECKSUM(checksum, &size, 4);
 
 		/* image load address (unused always zero) */
 		WRITE_OR_FAIL_FREE(file, fd, "\x00\x00\x00\x00", 4, device_hwrevs_bufs);
+		CHECKSUM(checksum, "\x00\x00\x00\x00", 4);
 
 		/* append version subsection */
 		if ( image->version ) {
@@ -435,6 +445,9 @@ int fiasco_write_to_file(struct fiasco * fiasco, const char * file) {
 			length8 = strlen(image->version)+1; /* +1 for NULL term */
 			WRITE_OR_FAIL_FREE(file, fd, &length8, 1, device_hwrevs_bufs);
 			WRITE_OR_FAIL_FREE(file, fd, image->version, length8, device_hwrevs_bufs);
+			CHECKSUM(checksum, "1", 1);
+			CHECKSUM(checksum, &length8, 1);
+			CHECKSUM(checksum, image->version, length8);
 		}
 
 		/* append device & hwrevs subsection */
@@ -443,6 +456,9 @@ int fiasco_write_to_file(struct fiasco * fiasco, const char * file) {
 			length8 = ((uint8_t *)(device_hwrevs_bufs[i]))[0];
 			WRITE_OR_FAIL_FREE(file, fd, &length8, 1, device_hwrevs_bufs);
 			WRITE_OR_FAIL_FREE(file, fd, device_hwrevs_bufs[i]+1, length8, device_hwrevs_bufs);
+			CHECKSUM(checksum, "2", 1);
+			CHECKSUM(checksum, &length8, 1);
+			CHECKSUM(checksum, device_hwrevs_bufs[i]+1, length8);
 		}
 		free(device_hwrevs_bufs);
 
@@ -452,10 +468,14 @@ int fiasco_write_to_file(struct fiasco * fiasco, const char * file) {
 			length8 = strlen(image->layout);
 			WRITE_OR_FAIL(file, fd, &length8, 1);
 			WRITE_OR_FAIL(file, fd, image->layout, length8);
+			CHECKSUM(checksum, "3", 1);
+			CHECKSUM(checksum, &length8, 1);
+			CHECKSUM(checksum, image->layout, length8);
 		}
 
 		/* checksum of header */
-		WRITE_OR_FAIL(file, fd, "\x00", 1);
+		checksum = 0xFF - checksum;
+		WRITE_OR_FAIL(file, fd, &checksum, 1);
 
 		printf("Writing image data...\n");
 
