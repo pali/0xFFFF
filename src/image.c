@@ -545,6 +545,9 @@ static const char * image_types[] = {
 	[IMAGE_CMT_2ND] = "cmt-2nd",
 	[IMAGE_CMT_ALGO] = "cmt-algo",
 	[IMAGE_CMT_MCUSW] = "cmt-mcusw",
+	[IMAGE_1ST] = "1st",
+	[IMAGE_CERT_SW] = "cert-sw",
+	[IMAGE_APE_ALGO] = "ape-algo",
 };
 
 enum image_type image_type_from_data(struct image * image) {
