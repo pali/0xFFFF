@@ -314,6 +314,12 @@ static void parse_image_arg(char * arg, struct image_list ** image_first) {
 
 	image = image_alloc_from_files(files, count, type, device, hwrevs, version, layout, image_parts);
 	free(files);
+	free(layout);
+
+	if ( ! image ) {
+		ERROR("Cannot load image file %s", file);
+		exit(1);
+	}
 
 	image_part = image_parts;
 	image_fd = image->fds;
@@ -324,14 +330,6 @@ static void parse_image_arg(char * arg, struct image_list ** image_first) {
 		offset += image_part->size;
 		image_part = image_part->next;
 		image_fd = image_fd->next;
-	}
-
-	if ( layout )
-		free(layout);
-
-	if ( ! image ) {
-		ERROR("Cannot load image file %s", file);
-		exit(1);
 	}
 
 	image_list_add(image_first, image);
