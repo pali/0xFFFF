@@ -77,12 +77,14 @@ static void show_usage(void) {
 		"Input image specification:\n"
 		" -M file         specify fiasco image\n"
 		" -m arg          specify normal image\n"
-		"                 arg is [[[dev:[hw:]]ver:]type:]file[%%lay]\n"
+		"                 arg is [[[dev:[hw:]]ver:]type:]file[@name][#file2[@name2]...][%%lay]\n"
 		"                   dev is device name string (default: empty)\n"
 		"                   hw are comma separated list of HW revisions (default: empty)\n"
 		"                   ver is image version string (default: empty)\n"
 		"                   type is image type (default: autodetect)\n"
 		"                   file is image file name\n"
+		"                   fileN is file name of the Nth image part\n"
+		"                   nameN is name of the Nth image part (default: none)\n"
 		"                   lay is layout file name (default: none)\n"
 		"\n"
 
@@ -143,20 +145,27 @@ int simulate;
 int noverify;
 int verbose;
 
-/* arg = [[[dev:[hw:]]ver:]type:]file[%file2%file3...%lay] */
+/* arg = [[[dev:[hw:]]ver:]type:]file[@name][#file2[@name2][#file3[@name3]...]][%lay] */
 static void parse_image_arg(char * arg, struct image_list ** image_first) {
 
 	struct stat st;
 	struct image * image;
+	struct image_fd * image_fd;
+	struct image_part * image_part;
+	struct image_part * image_parts;
 	char * file;
+	const char ** files;
 	char * type;
 	char * device;
 	char * hwrevs;
 	char * version;
 	char * layout;
-	char * parts;
+	char * part_files;
 	char * layout_file;
+	char * name;
 	char * ptr;
+	uint32_t offset;
+	int count;
 	int fd;
 
 	/* First check if arg is file, then try to parse arg format */
@@ -177,15 +186,14 @@ static void parse_image_arg(char * arg, struct image_list ** image_first) {
 		exit(1);
 	}
 
-	parts = strchr(arg, '%');
-	if ( parts )
-		*(parts++) = 0;
+	part_files = strchr(arg, '#');
+	if ( part_files )
+		*(part_files++) = 0;
 
-	layout_file = parts;
-	if ( layout_file ) {
-		while ( ( ptr = strchr(layout_file, '%') ) )
-			layout_file = ptr+1;
-	}
+	layout_file = part_files ? part_files : arg;
+	layout_file = strchr(layout_file, '%');
+	if ( layout_file )
+		*(layout_file++) = 0;
 
 	type = NULL;
 	device = NULL;
@@ -245,9 +253,78 @@ static void parse_image_arg(char * arg, struct image_list ** image_first) {
 		close(fd);
 	}
 
-	/* TODO: alloc parts */
+	count = 0;
+	ptr = part_files;
+	while ( ptr ) {
+		count++;
+		ptr = strchr(ptr, '#');
+		if ( ptr )
+			ptr++;
+	}
 
-	image = image_alloc_from_file(file, type, device, hwrevs, version, layout, NULL);
+	files = calloc(count+1, sizeof(*files));
+	if ( ! files ) {
+		ALLOC_ERROR();
+		exit(1);
+	}
+
+	name = strchr(file, '@');
+	if ( name ) {
+		*name = 0;
+		name++;
+	}
+
+	if ( count > 0 || name ) {
+		image_part = calloc(1, sizeof(*image_part));
+		if ( ! image_part ) {
+			ALLOC_ERROR();
+			exit(1);
+		}
+		image_part->name = name ? strdup(name) : NULL;
+		image_parts = image_part;
+	} else {
+		image_part = NULL;
+		image_parts = NULL;
+	}
+
+	count = 0;
+	files[count++] = file;
+
+	while ( part_files ) {
+		ptr = strchr(part_files, '#');
+		if ( ptr ) {
+			*ptr = 0;
+			ptr++;
+		}
+		name = strchr(part_files, '@');
+		if ( name ) {
+			*name = 0;
+			name++;
+		}
+		image_part->next = calloc(1, sizeof(*image_part));
+		if ( ! image_part->next ) {
+			ALLOC_ERROR();
+			exit(1);
+		}
+		image_part = image_part->next;
+		image_part->name = name ? strdup(name) : NULL;
+		files[count++] = part_files;
+		part_files = ptr;
+	}
+
+	image = image_alloc_from_files(files, count, type, device, hwrevs, version, layout, image_parts);
+	free(files);
+
+	image_part = image_parts;
+	image_fd = image->fds;
+	offset = 0;
+	while ( image_part && image_fd ) {
+		image_part->offset = offset;
+		image_part->size = image_fd->size;
+		offset += image_part->size;
+		image_part = image_part->next;
+		image_fd = image_fd->next;
+	}
 
 	if ( layout )
 		free(layout);
