@@ -112,11 +112,11 @@ struct fiasco * fiasco_alloc_from_file(const char * file) {
 		READ_OR_FAIL(fiasco, buf, length8);
 		if ( byte == 0xe8 ) {
 			memset(fiasco->name, 0, sizeof(fiasco->name));
-			strncpy(fiasco->name, (char *)buf, length8);
+			memcpy(fiasco->name, buf, length8);
 			VERBOSE("Fiasco name: %s\n", fiasco->name);
 		} else if ( byte == 0x31 ) {
 			memset(fiasco->swver, 0, sizeof(fiasco->swver));
-			strncpy(fiasco->swver, (char *)buf, length8);
+			memcpy(fiasco->swver, buf, length8);
 			VERBOSE("SW version: %s\n", fiasco->swver);
 		} else {
 			VERBOSE("Unknown header %#x\n", byte);
@@ -206,14 +206,14 @@ struct fiasco * fiasco_alloc_from_file(const char * file) {
 
 			if ( byte == '1' ) {
 				memset(version, 0, sizeof(version));
-				strncpy(version, (char *)buf, length8);
+				memcpy(version, buf, length8);
 				VERBOSE("version string\n");
 				VERBOSE("       version: %s\n", version);
 			} else if ( byte == '2' ) {
 				int tmp = length8;
 				if ( tmp > 16 ) tmp = 16;
 				memset(device, 0, sizeof(device));
-				strncpy(device, (char *)buf, tmp);
+				memcpy(device, buf, tmp);
 				VERBOSE("hw revision\n");
 				VERBOSE("       device: %s\n", device);
 				pbuf = buf + strlen(device) + 1;
@@ -224,7 +224,7 @@ struct fiasco * fiasco_alloc_from_file(const char * file) {
 					tmp = buf + length8 - pbuf;
 					if ( tmp > 8 ) tmp = 8;
 					memset(hwrev, 0, sizeof(hwrev));
-					strncpy(hwrev, (char *)pbuf, tmp);
+					memcpy(hwrev, pbuf, tmp);
 					if ( ! hwrevs[0] )
 						strcpy(hwrevs, hwrev);
 					else {
@@ -240,7 +240,7 @@ struct fiasco * fiasco_alloc_from_file(const char * file) {
 				}
 			} else if ( byte == '3' ) {
 				memset(layout, 0, sizeof(layout));
-				strncpy(layout, (char *)buf, length8);
+				memcpy(layout, buf, length8);
 				VERBOSE("layout\n");
 			} else if ( byte == '4' ) {
 				VERBOSE("data part\n");
