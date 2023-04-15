@@ -20,7 +20,7 @@ matrix:
     - compiler: gcc
       if: (branch = master) AND (type != pull_request)
       env:
-        - secure: "JdUp+xFykPZoYA4aRfmYk2CtilLapniQllWPKo2dDdJd1vzdawfTvVxIAKjy7ac9RKwZzg3Chq3RsMEXPv8BtaLbssw266C7RDLMgjacl1eFLcmGRj/Gkk9peDSZ6vVdGEcA2j+6KDSfpCa/XjFjvOufZOgKw6m+3+d0A4G45SI="
+        - secure: "f+qBVyDcDe/9IUmWcqlhL81s4QdY/eHeJW81Zfkfulu0Iai20Ro/lnj0PxVHeSo12cldUTG0XhY1GURYLe2RNdtB2ooe3d9JGn9uFrkyDNhmHcOuJQKY/g2XQ0gJQ9tpWkZhSzENl2C9H/uz87oGqSqwlCLdwixekk8vrmH5kpnNXtbgfK3EKWbhGN0Zub70+qeLa7jTShMN3HgJbrkDYgxUPMofqOCHp8W1xPIvUjNS4yQtN/Ahl6g7z79xopgCvGI91ZkAigSHJGBeHoq3rxG+ecoK+AprhiXuIZ8tD8bHv5IpKEi6mFGf4Fo0mQw+1b8g0HLBwWoiR5Yz7fv6fRgDhuK2AqZZmK8J6q13Lxl/DZS93hTeSJPk9FBEvJsPRwDUgy0P6HObmmEnmclERd9aqcK4RxrQkTjWK+rhHtoRg1kB2QiLz0dNpXQ/CTImv5jooYibo2TCyH6nBcEKzIxSQABvorEwpn7rx7UqL+rFqCQgLrqcRgCna615XpxpS+/W8VeScp2y1MzClwuudBaOiEAK5b6xa6HWk7RDQPkUAYmsnlFZ3zDbTiMzpKRYp/I2N6CPD50PX8lRJpxDSn6qL0HC0qCaYZqlKA+kKxl+OWbtUWM9mE9MJE3V8RRQO8g5p1mJ8NpjdOx7wwYk09BIp6YYPLXLj32hKn4kfXo="
       addons:
         <<: *addons
         coverity_scan:
