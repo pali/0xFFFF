@@ -632,13 +632,13 @@ int fiasco_unpack(struct fiasco * fiasco, const char * dir) {
 			if ( ! name )
 				ALLOC_ERROR_RETURN(-1);
 
-			layout_name = calloc(1, strlen(name) + sizeof("_layout")-1 + 1);
+			layout_name = calloc(1, strlen(name) + sizeof("_layout.txt")-1 + 1);
 			if ( ! layout_name ) {
 				free(name);
 				ALLOC_ERROR_RETURN(-1);
 			}
 
-			sprintf(layout_name, "%s_layout", name);
+			sprintf(layout_name, "%s_layout.txt", name);
 			free(name);
 
 			printf("    Layout file: %s\n", layout_name);
