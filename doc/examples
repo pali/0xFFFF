@@ -38,3 +38,6 @@ $ 0xFFFF -M <file> -u
 
 Generate new FIASCO image image.fiasco from files xloader.bin, nolo.bin, zImage, rootfs and append device&version information (xloader for RX-51 hw revision: 2101 and 2102, version 1.0)
 $ 0xFFFF -m RX-51:2101,2102:1.0:xloader:xloader.bin -m RX-51:2101,2102:1.0:secondary:nolo.bin -m 2.6.28:kernel:zImage -m rootfs -g image.fiasco
+
+Generate new FIASCO mmc image mmc_image.fiasco from layout file layout.txt and two partition files mydocs_fat32.bin (with name mydocs) and home.tar (without name) for device RX-51 with image version 1.0
+$ 0xFFFF -m RX-51:1.0:mmc:mydocs_fat32.bin@mydocs#home.tar%layout.txt -g mmc_image.fiasco
