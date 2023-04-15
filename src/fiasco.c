@@ -455,11 +455,17 @@ int fiasco_write_to_file(struct fiasco * fiasco, const char * file) {
 		checksum = 0x00;
 
 		/* number of subsections */
-		length8 = device_count+2;
+		length8 = device_count+1;
 		if ( image->version )
 			++length8;
 		if ( image->layout )
 			++length8;
+		if ( image->parts ) {
+			for ( image_part = image->parts; image_part; image_part = image_part->next )
+				++length8;
+		} else {
+			++length;
+		}
 		WRITE_OR_FAIL_FREE(file, fd, &length8, 1, device_hwrevs_bufs);
 		CHECKSUM(checksum, &length8, 1);
 
@@ -541,8 +547,8 @@ int fiasco_write_to_file(struct fiasco * fiasco, const char * file) {
 				WRITE_OR_FAIL(file, fd, &size, 4);
 				CHECKSUM(checksum, &size, 4);
 				if ( image_part->name ) {
-					WRITE_OR_FAIL(file, fd, image_part->name, length-16);
-					CHECKSUM(checksum, image_part->name, length-16);
+					WRITE_OR_FAIL(file, fd, image_part->name, length8-16);
+					CHECKSUM(checksum, image_part->name, (size_t)length8-16);
 				}
 			}
 		} else {
