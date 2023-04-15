@@ -30,9 +30,6 @@
 #include "device.h"
 #include "image.h"
 
-#define IMAGE_STORE_CUR(image) do { if ( image->is_shared_fd ) { image->cur = lseek(image->fd, 0, SEEK_CUR) - image->offset; if ( image->cur > image->size ) image->cur = image->size; } } while (0)
-#define IMAGE_RESTORE_CUR(image) do { if ( image->is_shared_fd ) { if ( image->cur <= image->size ) lseek(image->fd, image->offset + image->cur, SEEK_SET); else lseek(image->fd, image->offset + image->size, SEEK_SET); } } while (0)
-
 /* format: type-device:hwrevs_version */
 static void image_missing_values_from_name(struct image * image, const char * name) {
 
@@ -238,20 +235,34 @@ static int image_append(struct image * image, const char * type, const char * de
 
 static void image_align(struct image * image) {
 
-	size_t align;
+	struct image_fd * image_fd = image->fds;
+	size_t align, aligned_size;
+	uint32_t total_size;
 
 	if ( image->type == IMAGE_MMC )
 		align = 8;
 	else
 		align = 7;
 
-	if ( ( image->size & ( ( 1ULL << align ) - 1 ) ) == 0 )
+	if ( image_fd && ! image_fd->next && image->size == image_fd->size && ( image->size & ( ( 1ULL << align ) - 1 ) ) == 0 )
 		return;
 
-	align = ((image->size >> align) + 1) << align;
+	total_size = 0;
 
-	image->align = align - image->size;
-	image->size = align;
+	while ( image_fd ) {
+
+		if ( ( image_fd->size & ( ( 1ULL << align ) - 1 ) ) != 0 ) {
+			aligned_size = ((image_fd->size >> align) + 1) << align;
+			image_fd->align = aligned_size - image_fd->size;
+			image_fd->size = aligned_size;
+		}
+
+		total_size += image_fd->size;
+		image_fd = image_fd->next;
+
+	}
+
+	image->size = total_size;
 
 	image->hash = image_hash_from_data(image);
 
@@ -268,56 +279,98 @@ static struct image * image_alloc(void) {
 
 struct image * image_alloc_from_file(const char * file, const char * type, const char * device, const char * hwrevs, const char * version, const char * layout, struct image_part * parts) {
 
-	int fd;
+	return image_alloc_from_files(&file, 1, type, device, hwrevs, version, layout, parts);
 
-	fd = open(file, O_RDONLY);
-	if ( fd < 0 ) {
-		ERROR_INFO("Cannot open image file %s", file);
-		return NULL;
+}
+
+struct image * image_alloc_from_files(const char ** files, int count, const char * type, const char * device, const char * hwrevs, const char * version, const char * layout, struct image_part * parts) {
+
+	struct image * image;
+	int i;
+	int * fds = calloc(count, sizeof(int));
+	if ( ! fds )
+		ALLOC_ERROR_RETURN(NULL);
+
+	for ( i = 0; i < count; ++i ) {
+		fds[i] = open(files[i], O_RDONLY);
+		if ( fds[i] < 0 ) {
+			ERROR_INFO("Cannot open image file %s", files[i]);
+			free(fds);
+			return NULL;
+		}
 	}
 
-	return image_alloc_from_fd(fd, file, type, device, hwrevs, version, layout, parts);
+	image = image_alloc_from_fds(fds, files, count, type, device, hwrevs, version, layout, parts);
+	free(fds);
+	return image;
 
 }
 
 struct image * image_alloc_from_fd(int fd, const char * orig_filename, const char * type, const char * device, const char * hwrevs, const char * version, const char * layout, struct image_part * parts) {
 
-	off_t offset;
+	return image_alloc_from_fds(&fd, &orig_filename, 1, type, device, hwrevs, version, layout, parts);
+
+}
+
+struct image * image_alloc_from_fds(int * fds, const char ** orig_filenames, int count, const char * type, const char * device, const char * hwrevs, const char * version, const char * layout, struct image_part * parts) {
+
+	int i;
 	struct image * image = image_alloc();
 	if ( ! image ) {
-		close(fd);
+		for ( i = 0; i < count; ++i )
+			close(fds[i]);
 		return NULL;
 	}
 
-	image->is_shared_fd = 0;
-	image->fd = fd;
+	for ( i = 0; i < count; ++i ) {
 
-	offset = lseek(image->fd, 0, SEEK_END);
-	if ( offset == (off_t)-1 ) {
-		ERROR_INFO("Cannot seek to end of file %s", orig_filename);
-		close(image->fd);
-		free(image);
-		return NULL;
-	}
+		off_t offset;
+		struct image_fd * image_fds = image->fds;
+		struct image_fd * image_fd = calloc(1, sizeof(struct image_fd));
+		if ( ! image_fd ) {
+			image_free(image);
+			return NULL;
+		}
 
-	image->size = offset;
-	image->offset = 0;
-	image->cur = 0;
-	image->orig_filename = strdup(orig_filename);
+		if ( ! image_fds ) {
+			image->fds = image_fd;
+		} else {
+			while ( image_fds->next )
+				image_fds = image_fds->next;
+			image_fds->next = image_fd;
+		}
 
-	if ( lseek(image->fd, 0, SEEK_SET) == (off_t)-1 ) {
-		ERROR_INFO("Cannot seek to begin of file %s", orig_filename);
-		close(image->fd);
-		free(image->orig_filename);
-		free(image);
-		return NULL;
+		image_fd->is_shared_fd = 0;
+		image_fd->fd = fds[i];
+
+		offset = lseek(image_fd->fd, 0, SEEK_END);
+		if ( offset == (off_t)-1 ) {
+			ERROR_INFO("Cannot seek to end of file %s", orig_filenames[i]);
+			image_free(image);
+			return NULL;
+		}
+
+		image_fd->size = offset;
+		image_fd->offset = 0;
+		image_fd->is_shared_fd = 0;
+		image_fd->shared_cur = 0;
+		image_fd->orig_filename = strdup(orig_filenames[i]);
+
+		image->size += image_fd->size;
+
+		if ( lseek(image_fd->fd, 0, SEEK_SET) == (off_t)-1 ) {
+			ERROR_INFO("Cannot seek to begin of file %s", orig_filenames[i]);
+			image_free(image);
+			return NULL;
+		}
+
 	}
 
 	if ( image_append(image, type, device, hwrevs, version, layout, parts) < 0 )
 		return NULL;
 
 	if ( ( ! type || ! type[0] ) && ( ! device || ! device[0] ) && ( ! hwrevs || ! hwrevs[0] ) && ( ! version || ! version[0] ) )
-		image_missing_values_from_name(image, orig_filename);
+		image_missing_values_from_name(image, count > 0 ? orig_filenames[0] : NULL);
 
 	image_align(image);
 
@@ -328,14 +381,20 @@ struct image * image_alloc_from_fd(int fd, const char * orig_filename, const cha
 struct image * image_alloc_from_shared_fd(int fd, size_t size, size_t offset, uint16_t hash, const char * type, const char * device, const char * hwrevs, const char * version, const char * layout, struct image_part * parts) {
 
 	struct image * image = image_alloc();
-	if ( ! image )
+	struct image_fd * image_fd = calloc(1, sizeof(struct image_fd));
+	if ( ! image || ! image_fd ) {
+		free(image);
+		free(image_fd);
 		return NULL;
+	}
 
-	image->is_shared_fd = 1;
-	image->fd = fd;
-	image->size = size;
-	image->offset = offset;
-	image->cur = 0;
+	image_fd->is_shared_fd = 1;
+	image_fd->fd = fd;
+	image_fd->size = size;
+	image_fd->offset = offset;
+	image_fd->shared_cur = 0;
+	image->fds = image_fd;
+	image->size = image_fd->size;
 
 	if ( image_append(image, type, device, hwrevs, version, layout, parts) < 0 )
 		return NULL;
@@ -357,9 +416,13 @@ void image_free(struct image * image) {
 	if ( ! image )
 		return;
 
-	if ( ! image->is_shared_fd ) {
-		close(image->fd);
-		image->fd = -1;
+	while ( image->fds ) {
+		struct image_fd * next = image->fds->next;
+		if ( ! image->fds->is_shared_fd )
+			close(image->fds->fd);
+		free(image->fds->orig_filename);
+		free(image->fds);
+		image->fds = next;
 	}
 
 	while ( image->devices ) {
@@ -378,7 +441,6 @@ void image_free(struct image * image) {
 
 	free(image->version);
 	free(image->layout);
-	free(image->orig_filename);
 
 	free(image);
 
@@ -387,74 +449,119 @@ void image_free(struct image * image) {
 void image_seek(struct image * image, size_t whence) {
 
 	off_t offset;
+	size_t start = 0;
+	struct image_fd * image_fd = image->fds;
 
-	if ( whence > image->size )
+	image->cur = whence;
+
+	if ( whence > image->size ) {
+		ERROR("Seek in image failed: Position end of the image");
 		return;
+	}
 
-	if ( whence >= image->size - image->align ) {
-		offset = lseek(image->fd, image->size - image->align - 1, SEEK_SET);
-		image->acur = whence - ( image->size - image->align );
+	while ( image_fd ) {
+		if ( ( whence >= start && whence < start + image_fd->size ) || ! image_fd->next )
+			break;
+		start += image_fd->size;
+		image_fd = image_fd->next;
+	}
+
+	if ( whence - start >= image_fd->size - image_fd->align ) {
+		offset = lseek(image_fd->fd, image_fd->size - image_fd->align, SEEK_SET);
 	} else {
-		offset = lseek(image->fd, image->offset + whence, SEEK_SET);
-		image->acur = 0;
+		offset = lseek(image_fd->fd, image_fd->offset + whence - start, SEEK_SET);
 	}
 
 	if ( offset == (off_t)-1 )
-		ERROR_INFO("Seek in file %s failed", (image->orig_filename ? image->orig_filename : "(unknown)"));
-
-	IMAGE_STORE_CUR(image);
+		ERROR_INFO("Seek in file %s failed", (image_fd->orig_filename ? image_fd->orig_filename : "(unknown)"));
+	else if ( image_fd->is_shared_fd )
+		image_fd->shared_cur = offset;
 
 }
 
 size_t image_read(struct image * image, void * buf, size_t count) {
 
-	size_t cur;
 	ssize_t ret;
 	off_t offset;
 	size_t new_count = 0;
 	size_t ret_count = 0;
+	size_t start = 0;
+	struct image_fd * image_fd = image->fds;
 
-	IMAGE_RESTORE_CUR(image);
+	while ( image_fd ) {
+		if ( ( image->cur >= start && image->cur < start + image_fd->size ) || ! image_fd->next )
+			break;
+		start += image_fd->size;
+		image_fd = image_fd->next;
+	}
 
-	if ( ! image->is_shared_fd || image->cur < image->size - image->align ) {
-
-		if ( image->is_shared_fd && image->cur + count > image->size - image->align )
-			new_count = image->size - image->align - image->cur;
-		else
-			new_count = count;
-
-		ret = read(image->fd, buf, new_count);
-		if ( ret > 0 )
-			ret_count += ret;
-
-		IMAGE_STORE_CUR(image);
-
-		if ( ret < 0 )
+	if ( image_fd->is_shared_fd ) {
+		if ( lseek(image_fd->fd, image_fd->shared_cur, SEEK_SET) != image_fd->shared_cur ) {
+			ERROR_INFO("Cannot restore offset of file %s", (image_fd->orig_filename ? image_fd->orig_filename : "(unknown)"));
 			return 0;
-
+		}
 	}
 
-	if ( ret_count == count )
-		return ret_count;
+	while ( count > 0 ) {
 
-	offset = lseek(image->fd, 0, SEEK_CUR);
-	if ( offset == (off_t)-1 ) {
-		ERROR_INFO("Cannot get offset of file %s", (image->orig_filename ? image->orig_filename : "(unknown)"));
-		return 0;
-	}
+		if ( image->cur < start + image_fd->size - image_fd->align ) {
 
-	cur = offset - image->offset;
+			if ( image->cur + count > start + image_fd->size - image_fd->align )
+				new_count = start + image_fd->size - image_fd->align - image->cur;
+			else
+				new_count = count;
 
-	if ( image->align && cur == image->size - image->align && image->acur < image->align ) {
+			ret = read(image_fd->fd, buf, new_count);
+			if ( ret <= 0 )
+				break;
 
-		if ( image->acur + count - ret_count > image->align )
-			new_count = image->align - image->acur;
-		else
-			new_count = count - ret_count;
+			count -= ret;
+			buf = (unsigned char *)buf + ret;
+			ret_count += ret;
+			image->cur += ret;
 
-		memset((unsigned char *)buf+ret_count, 0xFF, new_count);
-		ret_count += new_count;
-		image->acur += new_count;
+			if ( image_fd->is_shared_fd )
+				image_fd->shared_cur += ret;
+
+			if ( (size_t)ret != new_count )
+				continue;
+
+		}
+
+		if ( image_fd->align > 0 && count > 0 ) {
+
+			if ( count > image_fd->align )
+				new_count = image_fd->align;
+			else
+				new_count = count;
+
+			memset(buf, 0xFF, new_count);
+			ret = new_count;
+
+			count -= ret;
+			buf = (unsigned char *)buf + ret;
+			ret_count += ret;
+			image->cur += ret;
+
+		}
+
+		if ( image->cur == start + image_fd->size ) {
+
+			start += image_fd->size;
+			image_fd = image_fd->next;
+
+			if ( ! image_fd )
+				break;
+
+			offset = lseek(image_fd->fd, image_fd->offset, SEEK_SET);
+			if ( offset == (off_t)-1 ) {
+				ERROR_INFO("Seek in file %s failed", (image_fd->orig_filename ? image_fd->orig_filename : "(unknown)"));
+				break;
+			} else if ( image_fd->is_shared_fd ) {
+				image_fd->shared_cur = offset;
+			}
+
+		}
 
 	}
 
@@ -638,11 +745,18 @@ int image_hwrev_is_valid(struct image * image, int16_t hwrev) {
 
 void image_print_info(struct image * image) {
 
+	int i = 0;
 	const char * str;
+	struct image_fd * image_fd = image->fds;
+	struct image_part * part = image->parts;
 	struct device_list * device = image->devices;
 
-	if ( image->orig_filename )
-		printf("File: %s\n", image->orig_filename);
+	if ( image->fds && image->fds->orig_filename ) {
+		if ( image->fds->next )
+			printf("Multifile image:\n");
+		else
+			printf("File: %s\n", image->fds->orig_filename);
+	}
 
 	str = image_type_to_string(image->type);
 	printf("    Image type: %s\n", str ? str : "unknown");
@@ -653,6 +767,20 @@ void image_print_info(struct image * image) {
 
 	if ( image->layout )
 		printf("    Image layout: included\n");
+
+	while ( part ) {
+
+		if ( image->fds && image->fds->orig_filename && image->fds->next )
+			printf("File: %s\n", (image_fd && image_fd->orig_filename) ? image_fd->orig_filename : "(unknown)");
+
+		printf("    Image part %d name: %s\n", i, part->name ? part->name : "(empty)");
+		printf("    Image part %d size: %d bytes\n", i, part->size);
+
+		part = part->next;
+		image_fd = image_fd ? image_fd->next : NULL;
+		++i;
+
+	}
 
 	while ( device ) {
 

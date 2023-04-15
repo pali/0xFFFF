@@ -50,6 +50,17 @@ struct image_part {
 	char * name;
 };
 
+struct image_fd {
+	struct image_fd * next;
+	int fd;
+	int is_shared_fd;
+	off_t shared_cur;
+	uint32_t size;
+	uint32_t align;
+	size_t offset;
+	char * orig_filename;
+};
+
 struct image {
 	enum image_type type;
 	struct device_list * devices;
@@ -58,14 +69,8 @@ struct image {
 	uint16_t hash;
 	uint32_t size;
 	struct image_part * parts;
-
-	int fd;
-	int is_shared_fd;
-	uint32_t align;
-	size_t offset;
+	struct image_fd * fds;
 	size_t cur;
-	size_t acur;
-	char * orig_filename;
 };
 
 struct image_list {
@@ -75,7 +80,9 @@ struct image_list {
 };
 
 struct image * image_alloc_from_file(const char * file, const char * type, const char * device, const char * hwrevs, const char * version, const char * layout, struct image_part * parts);
+struct image * image_alloc_from_files(const char ** files, int count, const char * type, const char * device, const char * hwrevs, const char * version, const char * layout, struct image_part * parts);
 struct image * image_alloc_from_fd(int fd, const char * orig_filename, const char * type, const char * device, const char * hwrevs, const char * version, const char * layout, struct image_part * parts);
+struct image * image_alloc_from_fds(int * fds, const char ** orig_filenames, int count, const char * type, const char * device, const char * hwrevs, const char * version, const char * layout, struct image_part * parts);
 struct image * image_alloc_from_shared_fd(int fd, size_t size, size_t offset, uint16_t hash, const char * type, const char * device, const char * hwrevs, const char * version, const char * layout, struct image_part * parts);
 void image_free(struct image * image);
 void image_seek(struct image * image, size_t whence);

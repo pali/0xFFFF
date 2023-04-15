@@ -837,7 +837,7 @@ int main(int argc, char **argv) {
 	while ( image_ptr ) {
 		struct image_list * next = image_ptr->next;
 		if ( image_ptr->image->type == IMAGE_UNKNOWN ) {
-			WARNING("Removing unknown image (specified by %s %s)", image_ptr->image->orig_filename ? "file" : "fiasco", image_ptr->image->orig_filename ? image_ptr->image->orig_filename : "image");
+			WARNING("Removing unknown image (specified by %s %s)", (image_ptr->image->fds && image_ptr->image->fds->orig_filename) ? "file" : "fiasco", (image_ptr->image->fds && image_ptr->image->fds->orig_filename) ? image_ptr->image->fds->orig_filename : "image");
 			if ( image_ptr == image_first )
 				image_first = next;
 			if ( fiasco_in && image_ptr == fiasco_in->first )
