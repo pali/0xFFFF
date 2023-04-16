@@ -66,7 +66,17 @@ FILE DATA BLOCK
 
 PARTITION INFO BLOCK
 
-   N bytes          --  unknown
+   1 byte           --  asic index (always APE - 0x01)
+   1 byte           --  device type (always NAND - 0x01)
+   1 byte           --  device index (always 0x00)
+   4 bytes          --  partition version (always 0x00 0x00 0x00 0x00)
+   4 bytes          --  spare (always 0xFF 0xFF 0xFF 0xFF)
+   4 bytes          --  number of partition blocks (big endian)
+             block {
+   1 byte           --  partition type (0x03 - kernel, 0x04 - initfs, 0x05 - rootfs)
+   1 byte           --  partition attribute (0x01 - read/write, 0x02 - read-only)
+   4 bytes          --  partition size (big endian, 0 - remaining space)
+             }
 
 
 IMAGE DATA PART BLOCK

@@ -272,6 +272,39 @@ struct fiasco * fiasco_alloc_from_file(const char * file) {
 					if ( image_part->name )
 						VERBOSE("       partition name: %s\n", image_part->name);
 				}
+			} else if ( byte == 0x2F ) {
+				VERBOSE("partition info\n");
+				if ( length8 < 15 ) {
+					VERBOSE("       (damaged)\n");
+				} else {
+					unsigned int i;
+					unsigned int part_type;
+					unsigned int part_attr;
+					unsigned int part_size;
+					unsigned int num_parts = ((unsigned)buf[11] << 24) | ((unsigned)buf[12] << 16) | ((unsigned)buf[13] << 8) | ((unsigned)buf[14] << 0);
+					VERBOSE("       asic idx:    %d\n", buf[0]);
+					VERBOSE("       device type: %d\n", buf[1]);
+					VERBOSE("       device idx:  %d\n", buf[2]);
+					VERBOSE("       version:     0x%02x%02x%02x%02x\n", buf[3], buf[4], buf[5], buf[6]);
+					VERBOSE("       spare:       0x%02x%02x%02x%02x\n", buf[7], buf[8], buf[9], buf[10]);
+					VERBOSE("       partitions:  %d\n", num_parts);
+					for ( i = 0; i < num_parts; i++ ) {
+						VERBOSE("       partition\n");
+						if ( 20 + i*6 >= length8 ) {
+							VERBOSE("          (damaged)\n");
+							continue;
+						}
+						part_type = buf[15 + i*6];
+						part_attr = buf[16 + i*6];
+						part_size = ((unsigned)buf[17 + i*6] << 24) | ((unsigned)buf[18 + i*6] << 16) | ((unsigned)buf[19 + i*6] << 8) | ((unsigned)buf[20 + i*6] << 0);
+						VERBOSE("          type: 0x%02x (%s)\n", part_type, part_type == 0x03 ? "kernel" : part_type == 0x04 ? "initfs" : part_type == 0x05 ? "rootfs" : "unknown");
+						VERBOSE("          attribute: 0x%02x (%s)\n", part_attr, part_attr == 0x1 ? "read/write" : part_attr == 0x2 ? "read-only" : "unknown");
+						if ( part_size == 0 )
+							VERBOSE("          size: remaining space\n");
+						else
+							VERBOSE("          size: %u bytes\n", part_size);
+					}
+				}
 			} else {
 				int i;
 				VERBOSE("unknown (%#x)\n", byte);
