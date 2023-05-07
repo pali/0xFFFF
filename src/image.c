@@ -528,12 +528,15 @@ size_t image_read(struct image * image, void * buf, size_t count) {
 
 		}
 
-		if ( image_fd->align > 0 && count > 0 ) {
+		if ( image_fd->align > 0 && count > 0 && image->cur < start + image_fd->size ) {
 
 			if ( count > image_fd->align )
 				new_count = image_fd->align;
 			else
 				new_count = count;
+
+			if ( image->cur + new_count > start + image_fd->size )
+				new_count = start + image_fd->size - image->cur;
 
 			memset(buf, 0xFF, new_count);
 			ret = new_count;
