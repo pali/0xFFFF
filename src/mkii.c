@@ -48,7 +48,7 @@ struct mkii_message {
 } __attribute__((__packed__));
 
 
-static int mkii_send_receive(usb_dev_handle * udev, uint8_t type, struct mkii_message * in_msg, size_t data_size, struct mkii_message * out_msg, size_t out_size) {
+static int mkii_send_receive(libusb_device_handle * udev, uint8_t type, struct mkii_message * in_msg, size_t data_size, struct mkii_message * out_msg, size_t out_size) {
 
 	int ret;
 	static uint8_t number = 0;
@@ -59,13 +59,13 @@ static int mkii_send_receive(usb_dev_handle * udev, uint8_t type, struct mkii_me
 	in_msg->num = number++;
 	in_msg->type = type;
 
-	ret = usb_bulk_write(udev, USB_WRITE_EP, (char *)in_msg, data_size + sizeof(*in_msg), 5000);
+	ret = usb_bulk_send(udev, USB_WRITE_EP, in_msg, data_size + sizeof(*in_msg), 5000);
 	if ( ret < 0 )
 		return ret;
 	if ( (size_t)ret != data_size + sizeof(*in_msg) )
 		return -1;
 
-	ret = usb_bulk_read(udev, USB_READ_EP, (char *)out_msg, out_size, 5000);
+	ret = usb_bulk_recv(udev, USB_READ_EP, out_msg, out_size, 5000);
 	if ( ret < 0 )
 		return ret;
 
@@ -89,6 +89,7 @@ int mkii_init(struct usb_device_info * dev) {
 
 	char buf[2048];
 	struct mkii_message * msg;
+	struct libusb_config_descriptor * config;
 	enum device device;
 	int ret;
 	char * newptr;
@@ -159,8 +160,10 @@ int mkii_init(struct usb_device_info * dev) {
 	printf("\n");
 
 	memset(buf, 0, sizeof(buf));
-	if ( usb_device(dev->udev)->descriptor.bNumConfigurations >= 1 )
-		usb_get_string_simple(dev->udev, usb_device(dev->udev)->config[0].iConfiguration, buf, sizeof(buf));
+	if ( libusb_get_config_descriptor(libusb_get_device(dev->udev), 0, &config) == 0 ) {
+		libusb_get_string_descriptor_ascii(dev->udev, config->iConfiguration, (unsigned char *)buf, sizeof(buf));
+		libusb_free_config_descriptor(config);
+	}
 	if ( strncmp(buf, "Firmware Upgrade Configuration", sizeof("Firmware Upgrade Configuration")) == 0 )
 		dev->data |= MKII_UPDATE_MODE;
 

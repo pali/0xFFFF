@@ -13,7 +13,8 @@ compiler:
 addons: &addons
   apt:
     packages:
-      - libusb-dev
+      - libusb-1.0-0-dev
+      - pkg-config
 
 matrix:
   include:
