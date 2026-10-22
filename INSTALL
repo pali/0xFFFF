@@ -1,9 +1,15 @@
 Installation instructions:
 ==========================
 
-To build the flasher you will need gcc, make and libusb. For crosscompiling
-to arm you can use scratchbox. But you will probably need the libusb.so of
-the scratchbox environment to the device.
+To build the flasher you will need gcc, make and libusb-1.0 (version 1.0.16
+or newer). Compiler and linker flags for libusb-1.0 are detected by pkg-config;
+without it set LIBUSB_CFLAGS and LIBUSB_LIBS manually (see config.mk), e.g.:
+
+  $ make LIBUSB_CFLAGS=-I/opt/homebrew/opt/libusb/include/libusb-1.0 \
+         LIBUSB_LIBS="-L/opt/homebrew/opt/libusb/lib -lusb-1.0"
+
+For crosscompiling to arm you can use scratchbox. But you will probably need
+the libusb-1.0.so of the scratchbox environment to the device.
 
 Just type:
 

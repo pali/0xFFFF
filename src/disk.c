@@ -385,13 +385,9 @@ int disk_init(struct usb_device_info * dev) {
 	unsigned int devnum;
 	unsigned int busnum;
 
-	struct usb_device * device;
+	libusb_device * device;
 
-	device = usb_device(dev->udev);
-	if ( ! device || ! device->bus ) {
-		ERROR_INFO("Cannot read usb devnum and busnum");
-		return -1;
-	}
+	device = libusb_get_device(dev->udev);
 
 	dir = opendir("/sys/dev/block/");
 	if ( ! dir ) {
@@ -432,16 +428,11 @@ int disk_init(struct usb_device_info * dev) {
 
 		fclose(f);
 
-		if ( device->devnum != devnum )
+		if ( (unsigned int)libusb_get_device_address(device) != devnum )
 			continue;
 
-		if ( device->bus->location ) {
-			if ( device->bus->location != busnum )
-				continue;
-		} else if ( device->bus->dirname[0] ) {
-			if ( atoi(device->bus->dirname) != (int)busnum )
-				continue;
-		}
+		if ( (unsigned int)libusb_get_bus_number(device) != busnum )
+			continue;
 
 		if ( sscanf(dirent->d_name, "%d:%d", &maj2, &min2) != 2 ) {
 			maj2 = -1;

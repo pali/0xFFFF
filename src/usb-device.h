@@ -22,16 +22,11 @@
 
 #include <stdint.h>
 
-/* u_int*_t types are not defined without _GNU_SOURCE but usb.h needs them */
-#define u_int8_t uint8_t
-#define u_int16_t uint16_t
-#define u_int32_t uint32_t
+#include <libusb.h>
 
-#include <usb.h>
-
-#define USB_READ_EP		(USB_ENDPOINT_IN | 0x1)
-#define USB_WRITE_EP		(USB_ENDPOINT_OUT | 0x1)
-#define USB_WRITE_DATA_EP	(USB_ENDPOINT_OUT | 0x2)
+#define USB_READ_EP		(LIBUSB_ENDPOINT_IN | 0x1)
+#define USB_WRITE_EP		(LIBUSB_ENDPOINT_OUT | 0x1)
+#define USB_WRITE_DATA_EP	(LIBUSB_ENDPOINT_OUT | 0x2)
 
 #include "device.h"
 
@@ -57,13 +52,17 @@ struct usb_device_info {
 	enum device device;
 	int16_t hwrev;
 	const struct usb_flash_device * flash_device;
-	usb_dev_handle * udev;
+	libusb_device_handle * udev;
+	int detached;
 	int data;
 };
 
 const char * usb_flash_protocol_to_string(enum usb_flash_protocol protocol);
 struct usb_device_info * usb_open_and_wait_for_device(void);
 void usb_close_device(struct usb_device_info * dev);
+
+int usb_bulk_send(libusb_device_handle * udev, unsigned char endpoint, const void * data, int size, unsigned int timeout);
+int usb_bulk_recv(libusb_device_handle * udev, unsigned char endpoint, void * data, int size, unsigned int timeout);
 
 void usb_switch_to_nolo(struct usb_device_info * dev);
 void usb_switch_to_cold(struct usb_device_info * dev);
